@@ -60,7 +60,7 @@ def generate_param(bitsize):
         return p
     param = open("param.generated.py", "w")
     nbts = bitsize
-    param.write('info=["var:gparity","var:encoder","var:sgn","var:sgnn"]\n')
+    param.write('info=["var:gparity","var:encoder","var:sgn"]\n')
     param.write("gparity=["+str(gparity(0,nbts)))
     for i in range(1,2**nbts):
         param.write(","+str(gparity(i,nbts)))
@@ -82,6 +82,7 @@ def generate_param(bitsize):
         param.write(","+str(sgn(i,nbts)))
     param.write("]\n")
     print("sgn done")
+    '''
     param.write("sgnn=[["+str(sgnn(0,0,nbts,nbts)))
     for i in range(1,2**nbts):
         param.write(","+str(sgnn(0,i,nbts,nbts)))
@@ -95,6 +96,7 @@ def generate_param(bitsize):
         print(i,"/",2**nbts)
     param.write("]\n")
     print("sgnn done")
+    '''
 
 
 #generate_param(8)
