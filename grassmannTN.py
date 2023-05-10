@@ -1412,7 +1412,10 @@ def join_legs(XGobj,string,final_statistic_inp,decorate=False,merged_fermions_st
             stat_list += [0]
         if(n_fermion>0):
             dim_list += [prod_dim_fermion]
-            stat_list += [merged_fermions_stat[fcount]]
+            if(merged_fermions_stat==None):
+                stat_list += [1]
+            else:
+                stat_list += [merged_fermions_stat[fcount]]
             fcount +=1
 
     dim_list = tuple(dim_list)
@@ -1691,7 +1694,10 @@ def split_legs(XGobj,string,final_statistic_inp,final_shape_inp,decorate=False,m
             stat_list += [0]
         if(n_fermion>0):
             dim_list += [prod_dim_fermion]
-            stat_list += [merged_fermions_stat[fcount]]
+            if(merged_fermions_stat==None):
+                stat_list += [1]
+            else:
+                stat_list += [merged_fermions_stat[fcount]]
             fcount +=1
 
     dim_list = tuple(dim_list)
