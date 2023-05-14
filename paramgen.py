@@ -47,7 +47,6 @@ def generate_param(bitsize):
     def sgn(i,n):
         I = to_bin_canonical(i,n)
         p = np.sum(I)
-
         return (-1)**round(p*(p-1)/2)
     def sgnn(i1,i2,n1,n2):
         return sgn(i1+(2**n1)*i2,n1+n2)

@@ -36,14 +36,17 @@ char_list = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q"
 ####################################################
 
 class DGarray:
-    def __init__(self, data=[], bosonic = False, encoder = "canonical", format = "standard"):
+    def __init__(self, data=None, bosonic = False, encoder = "canonical", format = "standard", statistic=None):
     
+        
         #copy DGarray properties
         self.data = None
         self.statistic = None
         self.format = format
         self.encoder = encoder
-
+    
+        default = True
+    
         if(encoder not in encoder_type):
             print("Error[DGarray]: Unknown encoder.")
             exit()
@@ -58,18 +61,21 @@ class DGarray:
                 self.statistic = tuple([ 0 for i in range(len(self.shape))])
             else:
                 self.statistic = tuple([ 1 for i in range(len(self.shape))])
+            default = False
         elif(type(data)==SGarray):
             #copy DGarray properties
             self.data = data.data.todense()
             self.statistic = data.statistic
             self.format = data.format
             self.encoder = data.encoder
+            default = False
         elif(type(data)==DGarray):
             #copy DGarray properties
             self.data = data.data.copy()
             self.statistic = data.statistic
             self.format = data.format
             self.encoder = data.encoder
+            default = False
         elif(np.isscalar(data)):
             self.data = np.array(list([data]))
             self.format = 'standard'
@@ -77,9 +83,21 @@ class DGarray:
                 self.statistic = tuple([ 0 for i in range(len(self.shape))])
             else:
                 self.statistic = tuple([ 1 for i in range(len(self.shape))])
+            default = False
+        elif(data==None):
+            "nothing to see here"
         else:
-            print("Error[DGarray]: Invalid initialized data")
+            print("Error[DGarray]: Invalid initialized data.")
             exit()
+        
+        if statistic != None:
+            self.statistic = statistic
+            
+        if not default:
+            for i,dim in enumerate(self.data.shape):
+                if self.statistic[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
+                    print("Caution[DGarray]: Some of the fermionic tensor shapes are not a power of two.")
+                
     
     def __getitem__(self, index):
         return self.data[index]
@@ -239,7 +257,7 @@ class DGarray:
 ####################################################
 
 class SGarray:
-    def __init__(self, data=[], bosonic = False, encoder = "canonical", format = "standard"):
+    def __init__(self, data=None, bosonic = False, encoder = "canonical", format = "standard", statistic = None):
     
         #copy SGarray properties
         self.data = None
@@ -247,6 +265,8 @@ class SGarray:
         self.format = format
         self.encoder = encoder
 
+        default = True
+    
         if(encoder not in encoder_type):
             print("Error[SGarray]: Unknown encoder.")
             exit()
@@ -262,6 +282,7 @@ class SGarray:
                 self.statistic = tuple([ 0 for i in range(len(self.shape))])
             else:
                 self.statistic = tuple([ 1 for i in range(len(self.shape))])
+            default = False
         elif(type(data)==sp.COO):
             self.data  = data.copy()
             self.format = 'standard'
@@ -269,21 +290,35 @@ class SGarray:
                 self.statistic = tuple([ 0 for i in range(len(self.shape))])
             else:
                 self.statistic = tuple([ 1 for i in range(len(self.shape))])
+            default = False
         elif(type(data)==DGarray):
             #copy SGarray properties
             self.data  = sp.COO.from_numpy(data.data)
             self.statistic = data.statistic
             self.format = data.format
             self.encoder = data.encoder
+            default = False
         elif(type(data)==SGarray):
             #copy SGarray properties
             self.data = data.data.copy()
             self.statistic = data.statistic
             self.format = data.format
             self.encoder = data.encoder
+            default = False
+        elif data==None:
+            "nothing to see here"
         else:
             print("Error[SGarray]: Invalid initialized data")
             exit()
+        
+        if statistic != None:
+            self.statistic = statistic
+        
+        if not default:
+            for i,dim in enumerate(self.data.shape):
+                if self.statistic[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
+                    print("Caution[SGarray]: Some of the fermionic tensor shapes are not a power of two.")
+                
     
     @property
     def nnz(self):
@@ -638,6 +673,8 @@ def relative_parity(string, individual_parity):
 
 def assigning_sgn(sgn_inp,string_for_sign_computation,format):
     
+    print(string_for_sign_computation)
+    
     # sgn_inp is a blank sign matrix
     # string_for_sign_computation is used for sign computation (duh)
     # summed_list shows which symbols are always the same
@@ -749,7 +786,7 @@ def deinsum(*args):
     string = args[0]
     # detecting error 1)
     if(string.count("->")>1):
-        print("Error[einsum]: The string contains more than one instances of '->'!")
+        print("Error[deinsum]: The string contains more than one instances of '->'!")
         exit()
 
     string_input = ""
@@ -761,7 +798,7 @@ def deinsum(*args):
     
     # detecting error 2)
     if(string_output.count(",")!=0):
-        print("Error[einsum]: The string_output contains ','.")
+        print("Error[deinsum]: The string_output contains ','.")
         exit()
     
     string_list = list(string_input.split(","))
@@ -771,10 +808,13 @@ def deinsum(*args):
     DGarray_list = [ DGarray(obj) for obj in args[1:1+number_of_objects]]
 
     this_format = DGarray_list[0].format
-
+    
     def return_list(stat):
         if stat==1 or stat==-1 or stat==hybrid_symbol or len(stat)==1:
-            return [stat]
+            if(np.isscalar(stat)):
+                return [stat]
+            else:
+                return list(stat)
         else:
             return list(stat)
     statistic_list = tuple(sum([ return_list(obj.statistic) for obj in DGarray_list ],[]))
@@ -782,7 +822,7 @@ def deinsum(*args):
     # detecting error 3)
     for stat in statistic_list:
         if(stat not in allowed_stat):
-            print("Error[einsum]: Statistics must be 0, +1, -1, or"+hybrid_symbol+".")
+            print("Error[deinsum]: Statistics must be 0, +1, -1, or "+hybrid_symbol+".")
             exit()
     
     # detecting error 4)
@@ -808,7 +848,7 @@ def deinsum(*args):
                     (element1[1]==hybrid_symbol and element2[1]!=hybrid_symbol)
                     )
                 ):
-                print("Error[einsum]: Inconsistent index and statistic.")
+                print("Error[deinsum]: Inconsistent index and statistic.")
                 exit()
     
     ind_stat_dict = {a:b for a,b in ind_stat_dict}
@@ -1000,7 +1040,7 @@ def seinsum(*args):
     string = args[0]
     # detecting error 1)
     if(string.count("->")>1):
-        print("Error[einsum]: The string contains more than one instances of '->'!")
+        print("Error[seinsum]: The string contains more than one instances of '->'!")
         exit()
 
     string_input = ""
@@ -1012,7 +1052,7 @@ def seinsum(*args):
 
     # detecting error 2)
     if(string_output.count(",")!=0):
-        print("Error[einsum]: The string_output contains ','.")
+        print("Error[seinsum]: The string_output contains ','.")
         exit()
     
     string_list = list(string_input.split(","))
@@ -1025,7 +1065,10 @@ def seinsum(*args):
 
     def return_list(stat):
         if stat==1 or stat==-1 or stat==hybrid_symbol or len(stat)==1:
-            return [stat]
+            if(np.isscalar(stat)):
+                return [stat]
+            else:
+                return list(stat)
         else:
             return list(stat)
     statistic_list = tuple(sum([ return_list(obj.statistic) for obj in SGarray_list ],[]))
@@ -1033,7 +1076,7 @@ def seinsum(*args):
     # detecting error 3)
     for stat in statistic_list:
         if(stat not in allowed_stat):
-            print("Error[einsum]: Statistics must be 0, +1, -1, or"+hybrid_symbol+".")
+            print("Error[seinsum]: Statistics must be 0, +1, -1, or"+hybrid_symbol+".")
             exit()
     
     # detecting error 4)
@@ -1059,7 +1102,7 @@ def seinsum(*args):
                     (element1[1]==hybrid_symbol and element2[1]!=hybrid_symbol)
                     )
                 ):
-                print("Error[einsum]: Inconsistent index and statistic.")
+                print("Error[seinsum]: Inconsistent index and statistic.")
                 exit()
     
     ind_stat_dict = {a:b for a,b in ind_stat_dict}
@@ -1523,8 +1566,11 @@ def join_legs(XGobj,string,final_statistic_inp):
 
     # the string is of the form aaa(bb)cccc(ddd)eeee
     # The indices will then be grouped together as one index
-
-    final_statistic = list(final_statistic_inp)
+    
+    if np.isscalar(final_statistic_inp):
+        final_statistic = tuple([final_statistic_inp])
+    else:
+        final_statistic = list(final_statistic_inp)
 
     objtype = type(XGobj)
     Obj = XGobj.copy()
@@ -1711,9 +1757,9 @@ def join_legs(XGobj,string,final_statistic_inp):
 
     Obj = Obj.switch_encoder()  # <======================= SWITCH TO PARITY-PRESERVING ENCODER
     Obj.data = np.reshape(Obj.data,new_shape)
-    Obj.statistic = final_statistic_inp
+    Obj.statistic = final_statistic
     Obj = Obj.switch_encoder()  # <======================= SWITCH BACK TO CANONICAL ENCODER
-
+    
     # revert to the original conditions ===================================================================
 
     if(XGobj.encoder == 'parity-preserving'):
