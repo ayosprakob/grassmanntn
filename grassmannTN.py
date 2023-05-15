@@ -21,15 +21,35 @@ char_list = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q"
 
 
         USAGE ADVICES
-        - Split the legs before using einsum!
-          Reason: The ordering of the indices is obscure in the joined form.
-                  The missing sign factor is highly likely to happen!
-        - Manually reverse the splitted leg's ordering with einsum after the conjugatation.
-          Reason: The ordering of legs after they are joined is kept frozen until split.
-
-        - Conjugate and split/join operations are not commutative!
+        - Do not do einsum with hybrid indices
 
 '''
+
+####################################################
+##                Random Utilities                ##
+####################################################
+
+def make_tuple(obj):
+    if np.isscalar(obj):
+        return tuple([obj])
+    else:
+        return tuple(list(obj))
+
+def make_list(obj):
+    if np.isscalar(obj):
+        return [obj]
+    else:
+        return list(obj)
+
+def error(text):
+    print(text)
+    exit()
+
+def get_char(string):
+    for char in char_list:
+        if char not in string:
+            return char
+    error("Error[get_char]: Running out of index character!")    
 
 ####################################################
 ##             Densed Grassmann Array             ##
@@ -48,11 +68,11 @@ class DGarray:
         default = True
     
         if(encoder not in encoder_type):
-            print("Error[DGarray]: Unknown encoder.")
-            exit()
+            error("Error[DGarray]: Unknown encoder.")
+            
         if(format not in format_type):
-            print("Error[DGarray]: Unknown format.")
-            exit()
+            error("Error[DGarray]: Unknown format.")
+            
 
         if(type(data)==np.array or type(data)==np.ndarray or type(data)==list):
             self.data = np.array(data)
@@ -87,8 +107,8 @@ class DGarray:
         elif(data==None):
             "nothing to see here"
         else:
-            print("Error[DGarray]: Invalid initialized data.")
-            exit()
+            error("Error[DGarray]: Invalid initialized data.")
+            
         
         if statistic != None:
             self.statistic = statistic
@@ -162,8 +182,8 @@ class DGarray:
             or self.statistic!=other.statistic
              or self.format!=other.format
               or self.encoder!=other.encoder):
-            print("Error[DGarray.+]: Inconsistent object properties")
-            exit()
+            error("Error[DGarray.+]: Inconsistent object properties")
+            
         ret = self.copy()
         ret.data = ret.data+other.data
         return ret
@@ -173,8 +193,8 @@ class DGarray:
             or self.statistic!=other.statistic
              or self.format!=other.format
               or self.encoder!=other.encoder):
-            print("Error[DGarray.-]: Inconsistent object properties")
-            exit()
+            error("Error[DGarray.-]: Inconsistent object properties")
+            
         ret = self.copy()
         ret.data = ret.data-other.data
         return ret
@@ -216,9 +236,8 @@ class DGarray:
                 if(ret.statistic[i]==-1):
                     sgn_value *= param.sgn[ind]
                 if(ret.statistic[i]==hybrid_symbol):
-                    print("Error[switch_format]: Cannot switch format with a hybrid index.")
-                    print("                      Split them into bosonic and fermionic ones first!")
-                    exit()
+                    error("Error[switch_format]: Cannot switch format with a hybrid index.\n                      Split them into bosonic and fermionic ones first!")
+                    
             ret[coords] *= sgn_value
 
         if(ret.format=='standard'):
@@ -226,8 +245,8 @@ class DGarray:
         elif(ret.format=='matrix'):
             ret.format = 'standard'
         else:
-            print("Error[switch_format]: unknown format")
-            exit()
+            error("Error[switch_format]: unknown format")
+            
 
         if(self.encoder=='parity-preserving'):
             ret = ret.switch_encoder()
@@ -268,11 +287,11 @@ class SGarray:
         default = True
     
         if(encoder not in encoder_type):
-            print("Error[SGarray]: Unknown encoder.")
-            exit()
+            error("Error[SGarray]: Unknown encoder.")
+            
         if(format not in format_type):
-            print("Error[SGarray]: Unknown format.")
-            exit()
+            error("Error[SGarray]: Unknown format.")
+            
 
         
         if(type(data)==np.array or type(data)==np.ndarray or type(data)==list):
@@ -308,8 +327,8 @@ class SGarray:
         elif data==None:
             "nothing to see here"
         else:
-            print("Error[SGarray]: Invalid initialized data")
-            exit()
+            error("Error[SGarray]: Invalid initialized data")
+            
         
         if statistic != None:
             self.statistic = statistic
@@ -318,7 +337,7 @@ class SGarray:
             for i,dim in enumerate(self.data.shape):
                 if self.statistic[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
                     print("Caution[SGarray]: Some of the fermionic tensor shapes are not a power of two.")
-                
+        
     
     @property
     def nnz(self):
@@ -368,12 +387,12 @@ class SGarray:
         print("     encoder:",self.encoder)
         print("   non-zeros:",self.nnz)
         print("     entries:")
-        print()
 
         C = self.coords
         V = self.value
         for elem in range(self.nnz):
             print(C[elem],V[elem])
+        print()
 
     def info(self):
         print()
@@ -434,8 +453,8 @@ class SGarray:
             or self.statistic!=other.statistic
              or self.format!=other.format
               or self.encoder!=other.encoder):
-            print("Error[SGarray.+]: Inconsistent object properties")
-            exit()
+            error("Error[SGarray.+]: Inconsistent object properties")
+            
         ret = self.copy()
         ret.data = ret.data+other.data
         return ret
@@ -445,8 +464,8 @@ class SGarray:
             or self.statistic!=other.statistic
              or self.format!=other.format
               or self.encoder!=other.encoder):
-            print("Error[SGarray.-]: Inconsistent object properties")
-            exit()
+            error("Error[SGarray.-]: Inconsistent object properties")
+            
         ret = self.copy()
         ret.data = ret.data-other.data
         return ret
@@ -491,9 +510,8 @@ class SGarray:
                 if(ret.statistic[i]==-1):
                     sgn_value *= param.sgn[ind]
                 if(ret.statistic[i]==hybrid_symbol):
-                    print("Error[switch_format]: Cannot switch format with a hybrid index.")
-                    print("                      Split them into bosonic and fermionic ones first!")
-                    exit()
+                    error("Error[switch_format]: Cannot switch format with a hybrid index.\n                      Split them into bosonic and fermionic ones first!")
+                    
             ret.data.data[elem] *= sgn_value
 
         if(ret.format=='standard'):
@@ -501,8 +519,8 @@ class SGarray:
         elif(ret.format=='matrix'):
             ret.format = 'standard'
         else:
-            print("Error[switch_format]: unknown format")
-            exit()
+            error("Error[switch_format]: unknown format")
+            
 
         if(self.encoder=='parity-preserving'):
             ret = ret.switch_encoder()
@@ -552,8 +570,8 @@ def absolute_parity(permutation, individual_parity):
         Return a set of commutine elements (individual_parity = even)
         """
         if(len(permutation)!=len(individual_parity)):
-            print("Error[absolute_parity.get_commutative_elements]: Inconsistent array sizes!")
-            exit()
+            error("Error[absolute_parity.get_commutative_elements]: Inconsistent array sizes!")
+            
         else:
             commutative_elements = [x for i,x in enumerate(permutation) if (-1)**individual_parity[i]==1]
             return set(commutative_elements)
@@ -596,8 +614,8 @@ def relative_parity_int(permutation1, permutation2, individual_parity1):
         Return a LIST of commutine elements (individual_parity = even)
         """
         if(len(permutation)!=len(individual_parity)):
-            print("Error[relative_parity_int.get_noncommutative_elements]: Inconsistent array sizes!")
-            exit()
+            error("Error[relative_parity_int.get_noncommutative_elements]: Inconsistent array sizes!")
+            
         else:
             noncommutative_elements = [x for i,x in enumerate(permutation) if (-1)**individual_parity[i]==-1]
             return noncommutative_elements
@@ -608,8 +626,8 @@ def relative_parity_int(permutation1, permutation2, individual_parity1):
     noncommutative_elements2 = get_noncommutative_elements(permutation2,individual_parity2)
     
     if(sorted(noncommutative_elements1) != sorted(noncommutative_elements2)):
-        print("Error[relative_parity_int]: Inconsistent grassmann-odd indices!")
-        exit()
+        error("Error[relative_parity_int]: Inconsistent grassmann-odd indices!")
+        
     
     absolute_parity1 = absolute_parity(permutation1, individual_parity1)
     absolute_parity2 = absolute_parity(permutation2, individual_parity2)
@@ -650,8 +668,8 @@ def relative_parity(string, individual_parity):
         join_string = join_string + string_list[i]
         
     if(len(join_string)!=len(individual_parity)):
-        print("Error[relative_parity]: The number of input list and parity list are not consistent!")
-        exit()
+        error("Error[relative_parity]: The number of input list and parity list are not consistent!")
+        
         
     #remove the summed indices
     def remove_duplicates(list1, list2):
@@ -667,896 +685,371 @@ def relative_parity(string, individual_parity):
     join_string = ''.join(join_string_list)+"->"+string_output
     return relative_parity_single_input(join_string, individual_parity)
 
+def reordering(stringa,stringb,mylist):
+
+    rC = []
+    for b in stringb:
+        
+        # locate the location of b in the original string
+        index = stringa.index(b)
+
+        # add mylist's element at this index to the list
+        rC += [mylist[index]]
+
+    return rC
+
 ####################################################
 ##                     Einsums                    ##
 ####################################################
 
-def assigning_sgn(sgn_inp,string_for_sign_computation,format):
-    
-    print(string_for_sign_computation)
-    
-    # sgn_inp is a blank sign matrix
-    # string_for_sign_computation is used for sign computation (duh)
-    # summed_list shows which symbols are always the same
-
-    sgn = sgn_inp.copy()
-    iterator = np.nditer(sgn, flags=['multi_index'])
-    for element in iterator:
-        coords = iterator.multi_index
-        if(format=="standard"):
-
-            #----- to do ----------------------------------------#
-            # Properly compute the individual parity             #
-            #----------------------------------------------------#
-            
-            # compute individual parity
-            # edit this part
-            parity_from_indices = [param.gparity[i] for i in coords]
-            
-            sgn_value = relative_parity(string_for_sign_computation,parity_from_indices)
-            #this is the sign from basic permutation
-            
-            #print(string_for_sign_computation,parity_from_indices," ",sgn_value)
-            sgn[coords] = sgn_value
-        else:
-            sgn[coords] = 1
-    return sgn
-
-# object conditions checked
-# Unified version
-def einsum(*args):
+def einsum(*args,format="standard",encoder="canonical"):
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #   - canonical encoder                 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #   - standard format                   :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    string = args[0]
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #                     Step 0: Error detection
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    string_input = ""
-    string_output = ""
-    if(string.count("->")==1):
-        [string_input,string_output] = list(string.split("->"))
+    input_string = args[0]
+
+    n_separator = input_string.count("->")
+    result = ""
+    if n_separator == 0:
+        summand=input_string
+    elif n_separator==1:
+        [summand,result] = input_string.split("->")
     else:
-        string_input = string
+        error("Error[einsum]: There can be no more than one '->' separator.")
+    n_obj = summand.count(",")+1
+    obj_list = [ obj for obj in args[1:n_obj+1] ]
+    stat_list = sum([ make_list(obj.statistic) for obj in args[1:n_obj+1] ],[])
+    dim_list = sum([ make_list(obj.shape) for obj in args[1:n_obj+1] ],[])
 
-    string_list = list(string_input.split(","))
-    number_of_objects = len(string_list)
-    type_list = [ type(obj) for obj in args[1:1+number_of_objects]]
-    encoder_list = [ obj.encoder for obj in args[1:1+number_of_objects]]
-    format_list = [ obj.format for obj in args[1:1+number_of_objects]]
-    obj_list = [ obj for obj in args[1:1+number_of_objects]]
+    for stat in stat_list:
+        if stat == hybrid_symbol:
+            error("Error[einsum]: Split the hybrid indices before performing einsum.")
 
-    this_type = type_list[0]
-    for i in range(1,number_of_objects):
-        if type_list[i]!=this_type :
-            print("Error[einsum]: Objects must be of the same type!")
-            exit()
-
-    if(this_type!=DGarray and this_type!=SGarray):
-        print("Error[einsum]: Objects must be either DGarray or SGarray!")
-        exit()
-
-    this_encoder = encoder_list[0]
-    for i in range(1,number_of_objects):
-        if encoder_list[i]!=this_encoder :
-            print("Error[einsum]: Objects must be under the same encoder!")
-            exit()
-
-    this_format = format_list[0]
-    for i in range(1,number_of_objects):
-        if format_list[i]!=this_format :
-            print("Error[einsum]: The format of all Objects must be the same!")
-            exit()
-
-    #just to be sure, convert everything to the canonical encoder
+    # make sure that all objects are in standard format
     for i,obj in enumerate(obj_list):
-        if obj.encoder == 'parity-preserving':
+        if obj.format != 'standard':
+            obj_list[i] = obj.switch_format()
+        if obj.encoder != 'canonical':
             obj_list[i] = obj.switch_encoder()
 
-    newargs = tuple([args[0]]+obj_list)
+    #force all objects to be either dense or sparse
+    this_type = type(obj_list[0])
+    for obj in obj_list:
+        if type(obj) != this_type:
+            error("Error[einsum]: The summands must be either all dense or all sparse.")
 
-    if(this_type==DGarray):
-        ret = deinsum(*newargs)
-    else:
-        ret = seinsum(*newargs)
+    summand_with_comma = summand
+    while summand.count(",")>0:
+        summand = summand.replace(",","")
 
-    if(this_encoder=='parity-preserving'):
-        ret = ret.switch_encoder()
+    # get some information about the indices
+    # [ f=<char>, [lf,rf], [index locations in lf], [statistics] ]
+    index_info = []
+    for i,char in enumerate(summand):
+
+        # skip if bosonic
+        if stat_list[i] in bose_type:
+            continue
+
+        lf = summand.count(char)
+        rf = result.count(char)
+
+        if lf >2 or rf > 1 or (lf+rf)%2==1 :
+            error("Error[einsum]: Inconsistent index statistics. (lf >2 or rf > 1 or (lf+rf)%2==1)")
+
+        if lf==1:
+            continue
+
+        # add a new entry if it is a new character
+        if summand[:i].count(char)==0 :
+            if n_separator==0:
+                index_info += [ [ char, [i] , [stat_list[i]] ] ]
+            else:
+                index_info += [ [ char, [i] , [stat_list[i]] ] ]
+        else:
+            for k in range(len(index_info)):
+                if(index_info[k][0]==char):
+                    index_info[k][1] += [i]
+                    index_info[k][2] += [stat_list[i]]
+
+    def is_statwise_inconsistent(stat1,stat2):
+        if [stat1,stat2] == [0,0]:
+            return False
+        elif [stat1,stat2] == [1,-1]:
+            return False
+        elif [stat1,stat2] == [-1,1]:
+            return False
+        elif [stat1,stat2] == [hybrid_symbol,hybrid_symbol]:
+            return False
+        else:
+            return True
+
+    for elem in index_info:
+        if len(elem[2])==2 and is_statwise_inconsistent(elem[2][0],elem[2][1]):
+            error("Error[einsum]: The contracted indices have inconsistent statistic!")
+    
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #                     Step 1: Strings for sign factor computation
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    fsummand = ""
+    fstat_list = []
+    fdim_list = []
+    for i,char in enumerate(summand):
+        if stat_list[i] in fermi_type:
+            fsummand += char
+            fstat_list += [stat_list[i]]
+            fdim_list += [dim_list[i]]
+
+    xsummand = fsummand
+    summed_pairs = [] # This is a list of the index character of the summed pairs
+    for i,char in enumerate(fsummand):
+        if fstat_list[i]==-1 and fsummand.count(char)==2:
+            new_char = get_char(xsummand+summand)
+            xsummand = xsummand[:i]+new_char+xsummand[i+1:]
+            summed_pairs += [ [new_char,char] ]
+    xstat_list = fstat_list.copy()
+    xdim_list = fdim_list.copy()
+
+    fsorted = sorted(fsummand)
+    xsorted = ""
+    for i,char in enumerate(fsorted):
+        if xsorted[:i].count(char)>0:
+            for [k2,k] in summed_pairs:
+                if k==char :
+                    xsorted+=k2
+        else:
+            xsorted+=char
+
+    xsorted_stat_list = reordering(xsummand,xsorted,fstat_list)
+    xsorted_dim_list = reordering(xsummand,xsorted,fdim_list)
+
+    str_step1 = xsummand+"->"+xsorted
+    str_sgn1 = xsummand
+
+    if rf>0 :
+        ysorted = xsorted
+        for pair in summed_pairs:
+            ysorted = ysorted.replace(pair[0],"")
+            ysorted = ysorted.replace(pair[1],"")
+
+        yresult = ""
+        # remove bosonic indices
+        for char in result:
+            index = summand.index(char)
+            if stat_list[index] in fermi_type:
+                yresult+=char
+
+        ysorted_dim_list = []
+        for char in ysorted:
+            ysorted_dim_list += [xsorted_dim_list[xsorted.index(char)]]
+
+        str_step2 = ysorted+"->"+yresult
+        str_sgn2 = ysorted
+        #print(str_step2)
+
+        xstr_sgn2 = str_sgn2
+        for [f2,f1] in summed_pairs:
+            xstr_sgn2 = xstr_sgn2.replace(f2,f1)
+
+    xstr_sgn1 = str_sgn1
+    for [f2,f1] in summed_pairs:
+        xstr_sgn1 = xstr_sgn1.replace(f2,"")
+
+    xstr_sf = ""
+    sf_dim_list = []
+    for [f2,f1] in summed_pairs:
+        xstr_sf += f1
+        sf_dim_list += [xsorted_dim_list[xsorted.index(f1)]]
+
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #                     Step 2: Get the sign tensors
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    # S1
+
+    # this is a little complicate...
+    # let's remove the index that is to be summed later for faster computation
+    xdim_list_reduced = []
+    to_duplicate_list = [] # [duplicated_index, index_to_be_duplicated_from]
+    for i,char in enumerate(xsummand):
+        to_skip = False
+        original_char = ""
+        for [f2,f1] in summed_pairs:
+            if f2==char:
+                to_skip = True
+                original_char = f1
+                break
+        if to_skip:
+            to_duplicate_list += [ [i, xsummand.index(original_char) ] ]
+            continue
+        else:
+            xdim_list_reduced += [ dim_list[ summand.index(char) ] ]
+    xdim_list_reduced = make_tuple(xdim_list_reduced)
+    
+    S1 = np.zeros(xdim_list_reduced,dtype=int)
+    iterator = np.nditer(S1, flags=['multi_index'])
+    for element in iterator:
+        coords = iterator.multi_index
+        dupped_coords = list(coords)
+        for [i_dup,i_from] in to_duplicate_list:
+            dupped_coords.insert(i_dup, dupped_coords[i_from])
+        individual_parity = tuple([ param.gparity[i] for i in dupped_coords ])
+        sgn1 = relative_parity(str_step1,individual_parity)
+        S1[coords] = sgn1
+
+    # S2
+    if rf>0 :
+        S2 = np.zeros(ysorted_dim_list,dtype=int)
+        iterator = np.nditer(S2, flags=['multi_index'])
+
+        for element in iterator:
+            coords = iterator.multi_index
+            individual_parity = tuple([ param.gparity[i] for i in coords ])
+            sgn2 = relative_parity(str_step2,individual_parity)
+            S2[coords] = sgn2
+
+    # SF
+    SF = np.zeros(sf_dim_list,dtype=int)
+    iterator = np.nditer(SF, flags=['multi_index'])
+    for element in iterator:
+        coords = iterator.multi_index
+        sgnf = 1
+        for ind in coords:
+            sgnf *= param.sgn[ind]
+        SF[coords] = sgnf
+
+    if this_type == DGarray:
+        if rf == 1:
+            einsum_string = summand_with_comma+","+xstr_sgn1+","+xstr_sgn2+","+xstr_sf
+            einsum_obj_list = obj_list+[S1,S2,SF]
+        else:
+            einsum_string = summand_with_comma+","+xstr_sgn1+","+xstr_sf
+            einsum_obj_list = obj_list+[S1,SF]
+
+        if len(result)>0 :
+            einsum_string += "->"+result
+
+        for i,obj in enumerate(einsum_obj_list):
+            if type(obj)==DGarray :
+                einsum_obj_list[i] = obj.data.copy()
+
+        ret = np.einsum(*tuple([einsum_string]+einsum_obj_list))
+
+
+        if len(result)>0:
+            ret_stat = []
+            for char in result:
+                ret_stat += [ stat_list[ summand.index(char) ] ]
+            ret = DGarray(ret,statistic=make_tuple(ret_stat))
+        else:
+            ret = DGarray(ret)
+            ret.statistic = make_tuple(0)
+
+        if format=="matrix":
+            ret = ret.switch_format()
+        if encoder=="parity-preserving":
+            ret = ret.switch_encoder()
+
+    elif this_type == SGarray:
+
+        # the pre-processed summand string
+        if rf == 1:
+            einsum_string1 = summand_with_comma+","+xstr_sgn1+","+xstr_sgn2+","+xstr_sf
+            einsum_obj_list = obj_list+[S1,S2,SF]
+        else:
+            einsum_string1 = summand_with_comma+","+xstr_sgn1+","+xstr_sf
+            einsum_obj_list = obj_list+[S1,SF]
+
+        # generate a list containing information about the summing vertices
+        einsum_string2 = ""
+        summed_pairs2 = []
+        for i,char in enumerate(einsum_string1):
+
+            if char == ",":
+                einsum_string2 += ","
+                continue
+
+            if einsum_string1[:i].count(char)>1 and einsum_string1.count(char)>2:
+                new_char = get_char(einsum_string2+einsum_string1)
+                einsum_string2 += new_char
+                for k in range(len(summed_pairs2)):
+                    if summed_pairs2[k][0] == char:
+                        summed_pairs2[k][1] += new_char
+
+            else:
+                einsum_string2 += char
+                summed_pairs2 += [ [ char,char ] ]
+
+        str_vertex_list = [ x[1] for x in summed_pairs2 if len(x[1])>1]
+
+        # generate a list of vertices
+        einsum_string = einsum_string2
+        vertex_shape_list = []
+        for x in summed_pairs2:
+            if(len(x[1])==1):
+                continue
+            einsum_string += ","+x[1]
+            dim = xdim_list[xsummand.index(x[0])]
+            shape = tuple( [ dim for i in range(len(x[1])) ] )
+
+            coords = [ [] for i in range(len(x[1])) ]
+            value = []
+            for index in range(dim):
+                for i in range(len(x[1])):
+                    coords[i] += [index]
+                value += [1]
+
+            vertex = sp.COO(coords,value,shape)
+
+            vertex_shape_list += [vertex.copy()]
+
+        einsum_obj_list += vertex_shape_list
+
+        for i,obj in enumerate(einsum_obj_list):
+            if(type(obj)==SGarray):
+                einsum_obj_list[i] = obj.data
+            if(type(obj)==np.array or type(obj)==np.ndarray):
+                einsum_obj_list[i] = sp.COO.from_numpy(obj)
+
+        if len(result)>0:
+            einsum_string += "->"+result
+
+        ret = oe.contract(*tuple([einsum_string]+einsum_obj_list))
+
+        if len(result)>0:
+            ret_stat = []
+            for char in result:
+                ret_stat += [ stat_list[ summand.index(char) ] ]
+            ret = SGarray(ret,statistic=make_tuple(ret_stat))
+        else:
+            coords = [0]
+            value = [ret.data[0]]
+            ret = SGarray(sp.COO([[0]],[ret.data[0]],make_tuple(1)))
+            ret.statistic = make_tuple(0)
+
 
     return ret
-
-# Dense version
-def deinsum(*args):
-    #----------------------------------------------------#
-    # The same usage as np.einsum                        #
-    # but with sign factor applied.                      #
-    # Fermionic indices CAN be summed here.              #
-    #----------------------------------------------------#
-    
-    #----------------------------------------------------#
-    # Remove basic errors                                #
-    # 1) must contain only one or no instances of '->'.  #
-    # 2) the result must not contain ','.                #
-    # 3) statistics are not 0, 1, or -1.                 #
-    # 4) indices and statistic must be consistent.       #
-    #----------------------------------------------------#
-    
-    string = args[0]
-    # detecting error 1)
-    if(string.count("->")>1):
-        print("Error[deinsum]: The string contains more than one instances of '->'!")
-        exit()
-
-    string_input = ""
-    string_output = ""
-    if(string.count("->")==1):
-        [string_input,string_output] = list(string.split("->"))
-    else:
-        string_input = string
-    
-    # detecting error 2)
-    if(string_output.count(",")!=0):
-        print("Error[deinsum]: The string_output contains ','.")
-        exit()
-    
-    string_list = list(string_input.split(","))
-    number_of_objects = len(string_list)
-
-
-    DGarray_list = [ DGarray(obj) for obj in args[1:1+number_of_objects]]
-
-    this_format = DGarray_list[0].format
-    
-    def return_list(stat):
-        if stat==1 or stat==-1 or stat==hybrid_symbol or len(stat)==1:
-            if(np.isscalar(stat)):
-                return [stat]
-            else:
-                return list(stat)
-        else:
-            return list(stat)
-    statistic_list = tuple(sum([ return_list(obj.statistic) for obj in DGarray_list ],[]))
-    
-    # detecting error 3)
-    for stat in statistic_list:
-        if(stat not in allowed_stat):
-            print("Error[deinsum]: Statistics must be 0, +1, -1, or "+hybrid_symbol+".")
-            exit()
-    
-    # detecting error 4)
-    joined_string_input = list(string_input.replace(",",""))
-    ind_stat_dict = [ [a,b] for a,b in zip(joined_string_input,statistic_list)]
-    for i, element1 in enumerate(ind_stat_dict):
-        for j in range(i+1,len(ind_stat_dict)):
-            element2 = ind_stat_dict[j]
-            if(
-                #indices are the same
-                element1[0]==element2[0] and
-                (
-                    #one stat is 0 but the other is not (bosonic case)
-                    (element1[1]== 0 and element2[1]!= 0)
-                    or
-                    #one stat is +1 but the other stat is not -1
-                    (element1[1]==1 and element2[1]!=-1)
-                    or
-                    #one stat is -1 but the other stat is not +1
-                    (element1[1]==-1 and element2[1]!=1)
-                    or
-                    #one stat is hybrid but the other stat is not hybrid
-                    (element1[1]==hybrid_symbol and element2[1]!=hybrid_symbol)
-                    )
-                ):
-                print("Error[deinsum]: Inconsistent index and statistic.")
-                exit()
-    
-    ind_stat_dict = {a:b for a,b in ind_stat_dict}
-    output_statistic_list = tuple([ ind_stat_dict[ind] for ind in string_output ])
-    
-        
-    #Input = "aaaaa,aaa,aaaaa->bbbb",A1,A2,A3,[i,j,k,..]
-    #string = "aaaaa,aaa,aaaaa->bbbb"
-    #string_input = "aaaaa,aaa,aaaaa"
-    #joined_string_input = ["a","a",...,"a"]
-    #string_output = "bbbb"
-    #string_list = [aaaaa,aaa,aaaaa]
-    #DGarray_list = [A1,A2,A3]
-    #statistic_list = [i,j,k,..]
-    
-    #----------------------------------------------------#
-    # Replace the conjugated indices by another char.    #
-    # Add the pair [ind,ind-bar] at the end of           #
-    # the output.                                        #
-    #----------------------------------------------------#
-    
-    
-    #summed indices is always paired by the conditions above
-    #first add "-" in the conjugated variable
-        
-    replaced_joined_string_input = joined_string_input.copy()
-    summed_list = []
-    sign_sum_factor_string = []
-    for i,elem in enumerate(replaced_joined_string_input):
-        if(statistic_list[i]==-1 and replaced_joined_string_input.count(elem)==2):
-            for char in char_list:
-                if(char not in replaced_joined_string_input):
-                    replaced_joined_string_input[i]=char
-                    break
-            summed_list += [(elem,replaced_joined_string_input[i])]
-            sign_sum_factor_string += [elem]
-    sign_sum_factor_string = ''.join(sign_sum_factor_string)
-
-    replaced_input = replaced_joined_string_input.copy()
-    nitems = len(string_list)
-    inserted_loc = 0
-    for i in range(nitems):
-        replaced_input.insert(inserted_loc+len(string_list[i]),",")
-        inserted_loc += 1 + len(string_list[i])
-    replaced_input = replaced_input[:-1]
-    replaced_input = ''.join(replaced_input)
-    
-    replaced_output = string_output
-    for pair in summed_list:
-        replaced_output += pair[0] + pair[1]
-        
-    replaced_string = '->'.join([replaced_input,replaced_output])
-    
-    #get shape list
-    shape_list = []
-    for elem in DGarray_list:
-        shape_list += list(elem.shape)
-    
-    sgn_sum_shape = [ size for i,size in enumerate(shape_list) if (
-                                                statistic_list[i]==-1
-                                                and joined_string_input.count(joined_string_input[i])==2
-                                                )]
-
-    def get_Gindex_string(string, statistic_list):
-        """
-        return the string indices for DGeinsum
-        """
-        [string_input,string_output] = list(string.split("->"))
-        string_list = list(string_input.split(","))
-        join_string = "".join(string_list)
-        if(len(join_string)!=len(statistic_list)):
-            print("the number of input list and parity list are not consistent!")
-            exit()
-        #remove the summed indices
-        def remove_bosonic(list1, list2):
-            new_list1 = []
-            for i, val in enumerate(list1):
-                if list2[i] in fermi_type:
-                    new_list1.append(val)
-            return new_list1
-        join_string_list = remove_bosonic(list(join_string), statistic_list)
-        return ''.join(join_string_list)
-        
-    # get the string for einsum input
-    sign_factor_string = get_Gindex_string(replaced_string,statistic_list)
-    #remove the 'newly added' indices
-    removed_list = [ sign_factor_string.index(pair[1]) for pair in summed_list]
-    for pair in summed_list:
-        sign_factor_string = sign_factor_string.replace(pair[1],"")
-
-    delta_string = ''.join([ ","+x+xbar for (x,xbar) in summed_list])
-    
-    def get_Gindex_shape(DGarray_list, statistic_list):
-        """
-        return shape of (permutation) sign factor tensor
-        """
-        DGarray_number = len(DGarray_list)
-        shape_list = []
-        for obj in DGarray_list:
-            shape_list += list(obj.shape)
-        Gindex_shape = [ x for i,x in enumerate(shape_list) if statistic_list[i] in fermi_type]
-        return Gindex_shape
-
-    # prepare the (permutation) sign factor tensor
-    sgn_shape = get_Gindex_shape(DGarray_list, statistic_list)
-    sgn_shape = [ x for i,x in enumerate(sgn_shape) if i not in removed_list ]
-    sgn = np.zeros(sgn_shape,dtype=int)
-    
-    if(len(sgn_shape)>0 and len(sgn_sum_shape)>0):
-        string_input_with_sgn = ",".join([replaced_input,sign_factor_string,sign_sum_factor_string])
-    elif(len(sgn_shape)>0 and len(sgn_sum_shape)==0):
-        string_input_with_sgn = ",".join([replaced_input,sign_factor_string])
-    elif(len(sgn_shape)==0 and len(sgn_sum_shape)>0):
-        string_input_with_sgn = ",".join([replaced_input,sign_sum_factor_string])
-    else:
-        string_input_with_sgn = replaced_input
-
-    string_input_with_sgn += delta_string
-    string_with_sgn = "->".join([string_input_with_sgn,string_output])
-
-    def remove_bosonic_right(string):
-        [string_input,string_output] = list(string.split("->"))
-        string_input_list = list(string_input)
-        string_output_list = list(string_output)
-        new_string_output = []
-        for val in string_output_list:
-            if val in string_input_list:
-                new_string_output += [val]
-        return '->'.join([string_input,''.join(new_string_output)])
-    string_for_sign_computation = "->".join([sign_factor_string,replaced_output])
-    string_for_sign_computation = remove_bosonic_right(string_for_sign_computation)
-    
-    # ---------------------------- THIS IS TIME CONSUMING ----------------------------
-    # assign the value to the sign factor tensor
-    sgn = assigning_sgn(sgn,string_for_sign_computation,format)
-    # --------------------------------------------------------------------------------
-
-    # prepare the (sum) sign factor tensor
-    sgn_sum = np.zeros(sgn_sum_shape,dtype=int)
-    iterator = np.nditer(sgn_sum, flags=['multi_index'])
-    for element in iterator:
-        coords = iterator.multi_index
-        sgn_value = 1
-        for i in coords:
-            sgn_value *= param.sgn[i]
-        sgn_sum[coords] = sgn_value
-    
-    #also add the kronecker delta to sum the fermions
-    delta_list = []
-    for size in sgn_sum_shape:
-        delta_list += [np.identity(size,dtype=int)]
-    
-    if(len(sgn_shape)>0 and len(sgn_sum_shape)>0):
-        DGarray_list_with_sgn = DGarray_list + [sgn,sgn_sum] + delta_list
-    elif(len(sgn_shape)>0 and len(sgn_sum_shape)==0):
-        DGarray_list_with_sgn = DGarray_list + [sgn] + delta_list
-    elif(len(sgn_shape)==0 and len(sgn_sum_shape)>0):
-        DGarray_list_with_sgn = DGarray_list + [sgn_sum] + delta_list
-    else:
-        DGarray_list_with_sgn = DGarray_list + delta_list
-
-    if(string_output==""):
-        string_with_sgn = string_with_sgn.replace("->","")
-
-    #X = DGarray(np.array([np.einsum(*tuple([string_with_sgn]+DGarray_list_with_sgn))]))
-    X = DGarray(np.einsum(*tuple([string_with_sgn]+DGarray_list_with_sgn)))
-    X.statistic = output_statistic_list
-    X.encoder = DGarray_list[0].encoder
-    X.format = DGarray_list[0].format
-
-    return X
-
-# Sparse version
-def seinsum(*args):
-    #----------------------------------------------------#
-    # The same usage as np.einsum                        #
-    # but with sign factor applied.                      #
-    # Fermionic indices CAN be summed here.              #
-    #----------------------------------------------------#
-    
-    #----------------------------------------------------#
-    # Remove basic errors                                #
-    # 1) must contain only one or no instances of '->'.  #
-    # 2) the result must not contain ','.                #
-    # 3) statistics are not 0, 1, or -1.                 #
-    # 4) indices and statistic must be consistent.       #
-    #----------------------------------------------------#
-    
-    string = args[0]
-    # detecting error 1)
-    if(string.count("->")>1):
-        print("Error[seinsum]: The string contains more than one instances of '->'!")
-        exit()
-
-    string_input = ""
-    string_output = ""
-    if(string.count("->")==1):
-        [string_input,string_output] = list(string.split("->"))
-    else:
-        string_input = string
-
-    # detecting error 2)
-    if(string_output.count(",")!=0):
-        print("Error[seinsum]: The string_output contains ','.")
-        exit()
-    
-    string_list = list(string_input.split(","))
-    number_of_objects = len(string_list)
-
-
-    SGarray_list = [ SGarray(obj) for obj in args[1:1+number_of_objects]]
-
-    this_format = SGarray_list[0].format
-
-    def return_list(stat):
-        if stat==1 or stat==-1 or stat==hybrid_symbol or len(stat)==1:
-            if(np.isscalar(stat)):
-                return [stat]
-            else:
-                return list(stat)
-        else:
-            return list(stat)
-    statistic_list = tuple(sum([ return_list(obj.statistic) for obj in SGarray_list ],[]))
-    
-    # detecting error 3)
-    for stat in statistic_list:
-        if(stat not in allowed_stat):
-            print("Error[seinsum]: Statistics must be 0, +1, -1, or"+hybrid_symbol+".")
-            exit()
-    
-    # detecting error 4)
-    joined_string_input = list(string_input.replace(",",""))
-    ind_stat_dict = [ [a,b] for a,b in zip(joined_string_input,statistic_list)]
-    for i, element1 in enumerate(ind_stat_dict):
-        for j in range(i+1,len(ind_stat_dict)):
-            element2 = ind_stat_dict[j]
-            if(
-                #indices are the same
-                element1[0]==element2[0] and
-                (
-                    #one stat is 0 but the other is not (bosonic case)
-                    (element1[1]== 0 and element2[1]!= 0)
-                    or
-                    #one stat is +1 but the other stat is not -1
-                    (element1[1]==1 and element2[1]!=-1)
-                    or
-                    #one stat is -1 but the other stat is not +1
-                    (element1[1]==-1 and element2[1]!=1)
-                    or
-                    #one stat is hybrid but the other stat is not hybrid
-                    (element1[1]==hybrid_symbol and element2[1]!=hybrid_symbol)
-                    )
-                ):
-                print("Error[seinsum]: Inconsistent index and statistic.")
-                exit()
-    
-    ind_stat_dict = {a:b for a,b in ind_stat_dict}
-    output_statistic_list = tuple([ ind_stat_dict[ind] for ind in string_output ])
-    
-        
-    #Input = "aaaaa,aaa,aaaaa->bbbb",A1,A2,A3,[i,j,k,..]
-    #string = "aaaaa,aaa,aaaaa->bbbb"
-    #string_input = "aaaaa,aaa,aaaaa"
-    #joined_string_input = ["a","a",...,"a"]
-    #string_output = "bbbb"
-    #string_list = [aaaaa,aaa,aaaaa]
-    #SGarray_list = [A1,A2,A3]
-    #statistic_list = [i,j,k,..]
-    
-    #----------------------------------------------------#
-    # Replace the conjugated indices by another char.    #
-    # Add the pair [ind,ind-bar] at the end of           #
-    # the output.                                        #
-    #----------------------------------------------------#
-    
-    
-    #summed indices is always paired by the conditions above
-    #first add "-" in the conjugated variable
-    
-    replaced_joined_string_input = joined_string_input.copy()
-    summed_list = []
-    sign_sum_factor_string = []
-    for i,elem in enumerate(replaced_joined_string_input):
-        if(statistic_list[i]==-1 and replaced_joined_string_input.count(elem)==2):
-            for char in char_list:
-                if(char not in replaced_joined_string_input):
-                    replaced_joined_string_input[i]=char
-                    break
-            summed_list += [(elem,replaced_joined_string_input[i])]
-            sign_sum_factor_string += [elem]
-    sign_sum_factor_string = ''.join(sign_sum_factor_string)
-
-    replaced_input = replaced_joined_string_input.copy()
-    nitems = len(string_list)
-    inserted_loc = 0
-    for i in range(nitems):
-        replaced_input.insert(inserted_loc+len(string_list[i]),",")
-        inserted_loc += 1 + len(string_list[i])
-    replaced_input = replaced_input[:-1]
-    replaced_input = ''.join(replaced_input)
-    
-    replaced_output = string_output
-    for pair in summed_list:
-        replaced_output += pair[0] + pair[1]
-        
-    replaced_string = '->'.join([replaced_input,replaced_output])
-    
-    #get shape list
-    shape_list = []
-    for elem in SGarray_list:
-        shape_list += list(elem.shape)
-    
-    sgn_sum_shape = [ size for i,size in enumerate(shape_list) if (
-                                                statistic_list[i]==-1
-                                                and joined_string_input.count(joined_string_input[i])==2
-                                                )]
-
-    def get_Gindex_string(string, statistic_list):
-        """
-        return the string indices for DGeinsum
-        """
-        [string_input,string_output] = list(string.split("->"))
-        string_list = list(string_input.split(","))
-        join_string = "".join(string_list)
-        if(len(join_string)!=len(statistic_list)):
-            print("the number of input list and parity list are not consistent!")
-            exit()
-        #remove the summed indices
-        def remove_bosonic(list1, list2):
-            new_list1 = []
-            for i, val in enumerate(list1):
-                if list2[i] in fermi_type:
-                    new_list1.append(val)
-            return new_list1
-        join_string_list = remove_bosonic(list(join_string), statistic_list)
-        return ''.join(join_string_list)
-        
-    # get the string for einsum input
-    sign_factor_string = get_Gindex_string(replaced_string,statistic_list)
-    #remove the 'newly added' indices
-    removed_list = [ sign_factor_string.index(pair[1]) for pair in summed_list]
-    for pair in summed_list:
-        sign_factor_string = sign_factor_string.replace(pair[1],"")
-
-    delta_string = ''.join([ ","+x+xbar for (x,xbar) in summed_list])
-    
-    def get_Gindex_shape(DGarray_list, statistic_list):
-        """
-        return shape of (permutation) sign factor tensor
-        """
-        DGarray_number = len(DGarray_list)
-        shape_list = []
-        for obj in DGarray_list:
-            shape_list += list(obj.shape)
-        Gindex_shape = [ x for i,x in enumerate(shape_list) if statistic_list[i] in fermi_type]
-        return Gindex_shape
-
-    # prepare the (permutation) sign factor tensor
-    sgn_shape = get_Gindex_shape(SGarray_list, statistic_list)
-    sgn_shape = [ x for i,x in enumerate(sgn_shape) if i not in removed_list ]
-    sgn = np.zeros(sgn_shape,dtype=int)
-    
-    if(len(sgn_shape)>0 and len(sgn_sum_shape)>0):
-        string_input_with_sgn = ",".join([replaced_input,sign_factor_string,sign_sum_factor_string])
-    elif(len(sgn_shape)>0 and len(sgn_sum_shape)==0):
-        string_input_with_sgn = ",".join([replaced_input,sign_factor_string])
-    elif(len(sgn_shape)==0 and len(sgn_sum_shape)>0):
-        string_input_with_sgn = ",".join([replaced_input,sign_sum_factor_string])
-    else:
-        string_input_with_sgn = replaced_input
-
-    string_input_with_sgn += delta_string
-    string_with_sgn = "->".join([string_input_with_sgn,string_output])
-
-    def remove_bosonic_right(string):
-        [string_input,string_output] = list(string.split("->"))
-        string_input_list = list(string_input)
-        string_output_list = list(string_output)
-        new_string_output = []
-        for val in string_output_list:
-            if val in string_input_list:
-                new_string_output += [val]
-        return '->'.join([string_input,''.join(new_string_output)])
-    string_for_sign_computation = "->".join([sign_factor_string,replaced_output])
-    string_for_sign_computation = remove_bosonic_right(string_for_sign_computation)
-    
-    # ---------------------------- THIS IS TIME CONSUMING ----------------------------
-    # assign the value to the sign factor tensor
-    sgn = assigning_sgn(sgn,string_for_sign_computation,format)
-    # --------------------------------------------------------------------------------
-    
-    sgn = SGarray(sgn,bosonic=True)
-
-    # prepare the (sum) sign factor tensor
-    sgn_sum = np.zeros(sgn_sum_shape,dtype=int)
-    iterator = np.nditer(sgn_sum, flags=['multi_index'])
-    for element in iterator:
-        coords = iterator.multi_index
-        sgn_value = 1
-        for i in coords:
-            sgn_value *= param.sgn[i]
-        sgn_sum[coords] = sgn_value
-    sgn_sum = SGarray(sgn_sum,bosonic=True)
-
-    #also add the kronecker delta to sum the fermions
-    delta_list = []
-    for size in sgn_sum_shape:
-        delta_list += [SGarray(np.identity(size,dtype=int),bosonic=True)]
-
-    if(len(sgn_shape)>0 and len(sgn_sum_shape)>0):
-        SGarray_list_with_sgn = SGarray_list + [sgn,sgn_sum] + delta_list
-    elif(len(sgn_shape)>0 and len(sgn_sum_shape)==0):
-        SGarray_list_with_sgn = SGarray_list + [sgn] + delta_list
-    elif(len(sgn_shape)==0 and len(sgn_sum_shape)>0):
-        SGarray_list_with_sgn = SGarray_list + [sgn_sum] + delta_list
-    else:
-        SGarray_list_with_sgn = SGarray_list + delta_list
-
-    #opt_einsum.contract do not support multi-indices summation
-    #delta nodes must be added appropriately!
-
-    def add_delta_nodes(string_array_list, SGarray_list):
-        str_length_list = [len(string) for string in string_array_list.split(",")]
-        shape_list = []
-        for obj in SGarray_list:
-            shape_list += list(obj.shape)
-        merged_input = string_array_list.replace(",","")
-
-        key_list = []
-        for i in range(len(merged_input)):
-            if(merged_input[i] in merged_input[:i]):
-                #if the character exists previously
-                this_char = merged_input[i]
-                #replace this character with a new character
-                replaced_char=""
-                for char in char_list:
-                    if(char not in merged_input):
-                        replaced_char=char
-                        merged_input = merged_input[:i]+char+merged_input[i+1:]
-                        break
-
-                #add this character to the key list
-                is_not_added = True
-                for j,[key,key_num,key_char,key_shape] in enumerate(key_list):
-                    if key==this_char:
-                        key_list[j][1] += 1
-                        key_list[j][2] = key_list[j][2]+replaced_char
-                        is_not_added = False
-                if is_not_added :
-                    key_list += [ [this_char,2,this_char+replaced_char,shape_list[merged_input.index(this_char)]] ]
-
-        updated_string_array_list = merged_input
-        add_index = -1
-        for comma_index in str_length_list:
-            add_index += comma_index+1
-            updated_string_array_list = updated_string_array_list[:add_index] + "," + updated_string_array_list[add_index:]
-
-        updated_string_array_list += key_list[0][2]
-        for i in range(1,len(key_list)):
-            updated_string_array_list += "," + key_list[i][2]
-
-        delta_nodes = []
-        for key_entry in key_list:
-            dim = key_entry[3]
-            node_shape = [dim]*key_entry[1]
-            node = np.zeros(node_shape,dtype=int)
-            for i in range(dim):
-                ind = tuple([i]*key_entry[1])
-                node[ind] = 1
-            delta_nodes += [SGarray(node,bosonic=True)]
-
-        return updated_string_array_list,delta_nodes
-
-    temp_str , temp_obj = add_delta_nodes(string_input_with_sgn,SGarray_list_with_sgn)
-
-    string_input_with_sgn = temp_str
-    SGarray_list_with_sgn += temp_obj
-
-    string_with_sgn = "->".join([string_input_with_sgn,string_output])
-    #may be we should convert everything to sp.COO
-
-    if(string_output==""):
-        string_with_sgn = string_with_sgn.replace("->","")
-
-    obj_list = []
-    for obj in SGarray_list_with_sgn:
-        obj_list += [obj.data]
-
-    X = oe.contract(*tuple([string_with_sgn]+obj_list))
-    #X = DGarray(np.array([X.todense()]))
-
-    X = SGarray(X)
-    X.statistic = output_statistic_list
-    X.encoder = SGarray_list[0].encoder
-    X.format = SGarray_list[0].format
-
-    return X
 
 ####################################################
 ##                   Conjugation                  ##
 ####################################################
-
-# object conditions checked
-def hconjugate_old(Obj_input):
-
-    # Hermitian conjugation
-    # Note if you split legs of a conjugated tensor
-    # You have to manually reverse the leg orientation.
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #   - canonical encoder                 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #   - matrix format                     :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    Obj = Obj_input.copy()
-
-    if(type(Obj_input)==DGarray):
-        Obj = SGarray(Obj)
-    if(Obj_input.format=='standard'):
-        Obj = Obj.switch_format()
-    if(Obj_input.encoder=='parity-preserving'):
-        Obj = Obj.switch_encoder()
-
-    V = Obj.value.copy()
-    C = Obj.coords.copy()
-    #construct a totally new COO object
-    new_coords_system = []
-    for axis in range(Obj.ndim):
-        new_coords_system += [[]]
-
-    conj_data = []
-    for i in range(Obj.nnz):
-        new_coords = []
-        for ind in C[i]:
-            new_coords = [ind]+new_coords
-        new_coords = tuple(new_coords)
-
-        for axis in range(Obj.ndim):
-            new_coords_system[axis] += [new_coords[axis]]
-        conj_data += [np.conjugate(V[i])]
-
-    newshape = []
-    for dim in Obj.shape:
-        newshape = [dim] + newshape
-    newshape = tuple(newshape)
-
-    newstat = []
-    for stat in Obj.statistic:
-        if(stat==hybrid_symbol):
-            newstat = [stat] + newstat
-        else:
-            newstat = [-stat] + newstat
-    newstat = tuple(newstat)
-
-    newCOO = sp.COO(new_coords_system, conj_data, shape=newshape)
-
-    Obj.data = newCOO.copy()
-    Obj.statistic = newstat
-    
-    if(type(Obj_input)==DGarray):
-        Obj = DGarray(Obj)
-    if(Obj_input.format=='standard'):
-        Obj = Obj.switch_format()
-    if(Obj_input.encoder=='parity-preserving'):
-        Obj = Obj.switch_encoder()
-
-    return Obj
-
-def hconjugate(XGobj,string):
-
-    if(XGobj.format!='matrix'):
-        print("error[hconjugate]: Cannot perform the conjugate in the standard format.")
-        print("                   Convert to the matrix format first!")
-        exit()
-
-    # the string is of the form aaaa|bbb
-
-    objtype = type(XGobj)
-    Obj = XGobj.copy()
-    if(objtype==SGarray):
-        Obj = DGarray(Obj)
-    if(objtype not in [DGarray,SGarray]):
-        print("error[hconjugate]: Object type must only be DGarray or SGarray!")
-        exit()
-    # check if XGobj.statistic or final_statistic is weird or not
-    for stat in XGobj.statistic:
-        if(stat not in allowed_stat):
-            print("error[hconjugate]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
-            exit()
-
-    partition_count = 0
-    for partition in svd_partition:
-        partition_count += string.count(partition)
-    if(partition_count!=1):
-        partition_string = ""
-        for i, partition in enumerate(svd_partition):
-            if(i==0):
-                partition_string += "( "
-            elif(i==len(svd_partition)-1):
-                partition_string += ", or "
-            else:
-                partition_string += ", "
-
-            partition_string += "'"+partition+"'"
-
-            if(i==len(svd_partition)-1):
-                partition_string += " )"
-
-        print("error[hconjugate]: The input string must contain one and only one partition "+partition_string+" in it.")
-        exit()
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                             :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    # count the number of indices in the two groups
-    n_left = 0
-    n_right = 0
-    partition_found = False
-    string_left = ""
-    string_right = ""
-    for char in string:
-        if char in svd_partition :
-            partition_found = True
-            continue
-        if(partition_found):
-            n_right+=1
-            string_right+=char
-        else:
-            n_left+=1
-            string_left+=char
-
-    join_legs_string_input = string
-    for partition in svd_partition:
-        join_legs_string_input = join_legs_string_input.replace(partition,")(")
-    join_legs_string_input = "("+join_legs_string_input+")"
-
-    shape_left  = Obj.shape[:n_left]
-    stats_left  = Obj.statistic[:n_left]
-    shape_right = Obj.shape[n_left:]
-    stats_right = Obj.statistic[n_left:]
-
-    def prod(vector):
-        ret = 1
-        for elem in vector:
-            ret *= elem
-        return ret
-    def get_stat(vector):
-        boson_count = 0
-        fermi_count = 0
-        contain_hybrid = False
-        for elem in vector:
-            if elem in bose_type :
-                boson_count += 1
-            if elem in fermi_type :
-                fermi_count += 1
-            if elem == hybrid_symbol:
-                contain_hybrid = True
-                break
-
-        if(boson_count==0 and fermi_count>0):
-            return 1
-        elif(boson_count>0 and fermi_count==0):
-            if(contain_hybrid):
-                return hybrid_symbol
-            else:
-                return 0
-        elif(boson_count>0 and fermi_count>0):
-            return hybrid_symbol
-
-    Obj = join_legs(Obj,join_legs_string_input,(get_stat(stats_left),get_stat(stats_right)))
-
-    Objdat = Obj.data
-    Obj_entries_type = type(Objdat[0,0])
-    
-    hObjdat = np.zeros([Obj.shape[1],Obj.shape[0]] , dtype = Obj_entries_type)
-    for i in range(Obj.shape[0]):
-        for j in range(Obj.shape[1]):
-            hObjdat[j,i] = np.conjugate(Objdat[i,j])
-
-    Obj.data = hObjdat
-    Obj.statistic = (Obj.statistic[1],Obj.statistic[0])
-
-    new_string = "("+string_right+")("+string_left+")"
-    new_shape = tuple(list(shape_right)+list(shape_left))
-    new_stats = list(stats_right)+list(stats_left)
-
-    for i,stat in enumerate(new_stats):
-        if stat in fermi_type:
-            new_stats[i] *= -1
-    new_stats = tuple(new_stats)
-
-    Obj = split_legs(Obj,new_string,new_stats,new_shape)
-
-    if(objtype==SGarray):
-        Obj = SGarray(Obj)
-    
-    return Obj
-
 
 ####################################################
 ##                     Reshape                    ##
 ####################################################
 
 # object conditions checked
-def join_legs(XGobj,string,final_statistic_inp):
+def join_legs(XGobj,string,final_statistic_inp=None):
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -1566,28 +1059,27 @@ def join_legs(XGobj,string,final_statistic_inp):
 
     # the string is of the form aaa(bb)cccc(ddd)eeee
     # The indices will then be grouped together as one index
-    
-    if np.isscalar(final_statistic_inp):
-        final_statistic = tuple([final_statistic_inp])
-    else:
-        final_statistic = list(final_statistic_inp)
+
+    if final_statistic_inp != None:
+        final_statistic = make_tuple(final_statistic_inp)
 
     objtype = type(XGobj)
     Obj = XGobj.copy()
     if(objtype==SGarray):
         Obj = DGarray(Obj)
     if(objtype not in [DGarray,SGarray]):
-        print("error[join_legs]: Object type must only be DGarray or SGarray!")
-        exit()
+        error("Error[join_legs]: Object type must only be DGarray or SGarray!")
+        
     # check if XGobj.statistic or final_statistic is weird or not
     for stat in XGobj.statistic:
         if(stat not in allowed_stat):
-            print("error[join_legs]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
-            exit()
-    for stat in final_statistic:
-        if(stat not in allowed_stat):
-            print("error[join_legs]: The final statistic list contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
-            exit()
+            error("Error[join_legs]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
+    
+    if final_statistic_inp != None :
+        for stat in final_statistic:
+            if(stat not in allowed_stat):
+                error("Error[join_legs]: The final statistic list contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
+            
     if(XGobj.encoder == 'parity-preserving'):
         Obj = Obj.switch_encoder()
 
@@ -1609,11 +1101,11 @@ def join_legs(XGobj,string,final_statistic_inp):
             groups_info += [""]
             is_outside = True
         elif char == "(" and not is_outside:
-            print("error[join_legs]: No nested parenthesis!")
-            exit()
+            error("Error[join_legs]: No nested parenthesis!")
+            
         elif char == ")" and is_outside:
-            print("error[join_legs]: Unmatched parenthesis!")
-            exit()
+            error("Error[join_legs]: Unmatched parenthesis!")
+            
         #print("pending:",groups_info)
     for i,substring in enumerate(groups_info):
         if len(substring) == 0:
@@ -1624,9 +1116,9 @@ def join_legs(XGobj,string,final_statistic_inp):
         groups_info.remove("")
 
     n_groups = len(groups_info)
-    if n_groups != len(final_statistic):
-        print("error[join_legs]: The number of final indices is inconsistent with the grouping!")
-        exit()
+    if final_statistic_inp!=None and n_groups != len(final_statistic):
+        error("Error[join_legs]: The number of final indices is inconsistent with the grouping!")
+
     # add entries about the dimensions and statistics
     index = 0
     for i,elem in enumerate(groups_info):
@@ -1640,10 +1132,23 @@ def join_legs(XGobj,string,final_statistic_inp):
             (n_nonfermions<len(statistic) and n_nonfermions>0)
             or (statistic.count(hybrid_symbol)>0)
             )
-        if (is_hybrid and final_statistic[i] != hybrid_symbol) or (not is_hybrid and final_statistic[i] == hybrid_symbol):
-            print("error[join_legs]: The final statistic is inconsistent with object and the grouping!")
-            exit()
+        if final_statistic_inp!=None and ((is_hybrid and final_statistic[i] != hybrid_symbol) or (not is_hybrid and final_statistic[i] == hybrid_symbol)):
+            error("Error[join_legs]: The final statistic is inconsistent with object and the grouping!")
+            
         index += len(elem)
+
+    # initialize the final stats if necessary
+    final_statistic = []
+    for elem in groups_info:
+        nbose = elem[2].count(0)+elem[2].count(hybrid_symbol)
+        nfermi = elem[2].count(-1)+elem[2].count(1)
+        if nbose>0 and nfermi>0:
+            final_statistic += [hybrid_symbol]
+        elif nbose>0 and nfermi==0:
+            final_statistic += [0]
+        elif nbose==0 and nfermi>0:
+            final_statistic += [1]
+    final_statistic = make_tuple(final_statistic)
 
     # prepare the reordered group info  -------------------------------------------------------------------
 
@@ -1789,17 +1294,17 @@ def split_legs(XGobj,string,final_statistic_inp,final_shape_inp):
     if(objtype==SGarray):
         Obj = DGarray(Obj)
     if(objtype not in [DGarray,SGarray]):
-        print("error[split_legs]: Object type must only be DGarray or SGarray!")
-        exit()
+        error("Error[split_legs]: Object type must only be DGarray or SGarray!")
+        
     # check if XGobj.statistic or final_statistic is weird or not
     for stat in XGobj.statistic:
         if(stat not in allowed_stat):
-            print("error[split_legs]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
-            exit()
+            error("Error[split_legs]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
+            
     for stat in final_statistic:
         if(stat not in allowed_stat):
-            print("error[split_legs]: The final statistic list contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
-            exit()
+            error("Error[split_legs]: The final statistic list contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
+            
     if(XGobj.encoder == 'parity-preserving'):
         Obj = Obj.switch_encoder()
 
@@ -1821,11 +1326,11 @@ def split_legs(XGobj,string,final_statistic_inp,final_shape_inp):
             groups_info += [""]
             is_outside = True
         elif char == "(" and not is_outside:
-            print("error[split_legs]: No nested parenthesis!")
-            exit()
+            error("Error[split_legs]: No nested parenthesis!")
+            
         elif char == ")" and is_outside:
-            print("error[split_legs]: Unmatched parenthesis!")
-            exit()
+            error("Error[split_legs]: Unmatched parenthesis!")
+            
     for i,substring in enumerate(groups_info):
         if len(substring) == 0:
             groups_info[i] = ""
@@ -1841,8 +1346,8 @@ def split_legs(XGobj,string,final_statistic_inp,final_shape_inp):
 
     n_groups = len(string_no_brackets)
     if n_groups != len(final_statistic):
-        print("error[split_legs]: The number of final indices is inconsistent with the grouping!")
-        exit()
+        error("Error[split_legs]: The number of final indices is inconsistent with the grouping!")
+        
     # add entries about the dimensions and statistics
     index = 0
     for i,elem in enumerate(groups_info):
@@ -1857,8 +1362,8 @@ def split_legs(XGobj,string,final_statistic_inp,final_shape_inp):
             or (statistic.count(hybrid_symbol)>0)
             )
         if (is_hybrid and XGobj.statistic[i] != hybrid_symbol) or (not is_hybrid and XGobj.statistic[i] == hybrid_symbol):
-            print("error[split_legs]: The final statistic is inconsistent with object and the grouping!")
-            exit()
+            error("Error[split_legs]: The final statistic is inconsistent with object and the grouping!")
+            
         index += len(elem)
 
     # prepare the reordered group info  -------------------------------------------------------------------
@@ -2034,24 +1539,24 @@ def BlockSVD(Obj):
     # performing an svd of a matrix block by block
 
     if(type(Obj)!=np.array and type(Obj)!=np.ndarray):
-        print("Error[BlockSVD]: An input must be of type numpy.array or numpy.ndarray only!")
-        exit()
+        error("Error[BlockSVD]: An input must be of type numpy.array or numpy.ndarray only!")
+        
 
     if(Obj.ndim!=2):
-        print("Error[BlockSVD]: An input must be a matrix only!")
-        exit()
+        error("Error[BlockSVD]: An input must be a matrix only!")
+        
 
     m = Obj.shape[0]
     n = Obj.shape[1]
 
     if(m%2!=0 and n%2!=0):
-        print("Error[BlockSVD]: The matrix dimensions must be even!")
-        exit()
+        error("Error[BlockSVD]: The matrix dimensions must be even!")
+        
 
 
     if(m==0 and n==0):
-        print("Error[BlockSVD]: The matrix dimensions must be at least 2!")
-        exit()
+        error("Error[BlockSVD]: The matrix dimensions must be at least 2!")
+        
 
     parity_norm = 0
     for i in range(m):
@@ -2059,9 +1564,9 @@ def BlockSVD(Obj):
             if (i+j)%2!=0:
                 parity_norm += np.linalg.norm(Obj[i,j])
     if( (not skip_parity_blocking_check) and parity_norm/(m*n/2)>1.0e-14):
-        print("Error[BlockSVD]: This matrix is not constructed from a Grassmann-even tensor.")
+        error("Error[BlockSVD]: This matrix is not constructed from a Grassmann-even tensor.")
         print("                 (Or that one of the indices are non-fermionic.)")
-        exit()
+        
 
     # At this point the matrix is well-behaved
 
@@ -2090,7 +1595,7 @@ def BlockSVD(Obj):
             np.einsum('ik,kj->ij',M,cM)
         )
 
-    exit()
+    
     '''
 
     d = max(len(ΛE),len(ΛO))
@@ -2136,13 +1641,13 @@ def SVD(XGobj,string):
     if(objtype==SGarray):
         Obj = DGarray(Obj)
     if(objtype not in [DGarray,SGarray]):
-        print("error[SVD]: Object type must only be DGarray or SGarray!")
-        exit()
+        error("Error[SVD]: Object type must only be DGarray or SGarray!")
+        
     # check if XGobj.statistic or final_statistic is weird or not
     for stat in XGobj.statistic:
         if(stat not in allowed_stat):
-            print("error[SVD]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
-            exit()
+            error("Error[SVD]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
+            
     if(XGobj.encoder == 'canonical'):
         Obj = Obj.switch_encoder()
     if(XGobj.format == 'standard'):
@@ -2166,8 +1671,8 @@ def SVD(XGobj,string):
             if(i==len(svd_partition)-1):
                 partition_string += " )"
 
-        print("error[SVD]: The input string must contain one and only one partition "+partition_string+" in it.")
-        exit()
+        error("Error[SVD]: The input string must contain one and only one partition "+partition_string+" in it.")
+        
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                             :::::
@@ -2297,8 +1802,74 @@ def SVD(XGobj,string):
 
     return U, Λ, V
 
-
 ####################################################
-##                   Isometries                   ##
+##                   hConjugate                   ##
 ####################################################
 
+def hconjugate(Obj,string_input):
+    # string is of the form <indices1|indices2>
+    string = string_input
+    for separator in svd_partition:
+        string = string.replace(separator,"|")
+    if string.count("|") > 1:
+        error("Error[hconjugate]: The number of separator can only be 0 or 1 only.")
+
+    if Obj.statistic.count(hybrid_symbol)>0:
+        error("Error[hconjugate]: Split the hybrid indices before performing the conjugate.")
+
+    # get stat_left/right and shape_left/right
+    n = 0
+    if string.count("|") == 0:
+        stats = Obj.statistic
+        shape = Obj.shape
+    elif string.count("|") == 1:
+        n = string.index("|")
+        stats_left  = Obj.statistic[:n]
+        stats_right = Obj.statistic[n:]
+        shape_left  = Obj.shape[:n]
+        shape_right = Obj.shape[n:]
+
+    hObj = Obj.copy()
+    this_type = type(Obj)
+    this_format = Obj.format
+    this_encoder = Obj.encoder
+
+    if this_type == DGarray :
+        hObj = SGarray(hObj)
+    if this_format == "matrix" :
+        hObj = hObj.switch_format()
+    if this_encoder == "parity-preserving" :
+        hObj = hObj.switch_encoder()
+
+    coords_list = hObj.data.coords.copy()
+    vals = hObj.data.data.copy()
+    new_coords_list = np.array(list(coords_list)[n:] + list(coords_list)[:n])
+    new_stats = make_list(Obj.statistic[n:] + Obj.statistic[:n])
+    new_shape = make_tuple(Obj.shape[n:] + Obj.shape[:n])
+
+    for i,stat in enumerate(new_stats):
+        if stat in fermi_type:
+            new_stats[i] = -stat
+    new_stats = make_tuple(new_stats)
+
+    for i in range(hObj.nnz):
+        sgn = 1
+        for dim in range(hObj.ndim):
+            if new_stats[dim] in fermi_type:
+                sgn *= param.sgn[ new_coords_list[dim][i] ]
+        vals[i] = np.conjugate(vals[i]) * sgn
+
+    new_dat = sp.COO( new_coords_list, vals , new_shape)
+
+    hObj.data = new_dat
+    hObj.statistic = new_stats
+
+
+    if this_type == DGarray :
+        hObj = DGarray(hObj)
+    if this_format == "matrix" :
+        hObj = hObj.switch_format()
+    if this_encoder == "parity-preserving" :
+        hObj = hObj.switch_encoder()
+
+    return hObj
