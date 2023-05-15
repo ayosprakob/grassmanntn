@@ -142,8 +142,10 @@ class DGarray:
         array_form = self.data
         return np.linalg.norm(array_form)
 
-    def display(self):
+    def display(self,name=None):
         print()
+        if name != None:
+            print("        name:",name)
         print("  array type: dense")
         print("       shape:",self.shape)
         print("        size:",self.size)
@@ -158,8 +160,10 @@ class DGarray:
                 print(coords,element.item(),)
         print()
 
-    def info(self):
+    def info(self,name=None):
         print()
+        if name != None:
+            print("        name:",name)
         print("  array type: dense")
         print("       shape:",self.shape)
         print("        size:",self.size)
@@ -377,8 +381,10 @@ class SGarray:
         array_form = self.data.todense()
         return np.linalg.norm(array_form)
 
-    def display(self):
+    def display(self, name=None):
         print()
+        if name != None:
+            print("        name:",name)
         print("  array type: sparse")
         print("       shape:",self.shape)
         print("        size:",self.size)
@@ -394,8 +400,10 @@ class SGarray:
             print(C[elem],V[elem])
         print()
 
-    def info(self):
+    def info(self,name=None):
         print()
+        if name != None:
+            print("        name:",name)
         print("  array type: sparse")
         print("       shape:",self.shape)
         print("        size:",self.size)
@@ -1138,17 +1146,18 @@ def join_legs(XGobj,string,final_statistic_inp=None):
         index += len(elem)
 
     # initialize the final stats if necessary
-    final_statistic = []
-    for elem in groups_info:
-        nbose = elem[2].count(0)+elem[2].count(hybrid_symbol)
-        nfermi = elem[2].count(-1)+elem[2].count(1)
-        if nbose>0 and nfermi>0:
-            final_statistic += [hybrid_symbol]
-        elif nbose>0 and nfermi==0:
-            final_statistic += [0]
-        elif nbose==0 and nfermi>0:
-            final_statistic += [1]
-    final_statistic = make_tuple(final_statistic)
+    if final_statistic_inp == None :
+        final_statistic = []
+        for elem in groups_info:
+            nbose = elem[2].count(0)+elem[2].count(hybrid_symbol)
+            nfermi = elem[2].count(-1)+elem[2].count(1)
+            if nbose>0 and nfermi>0:
+                final_statistic += [hybrid_symbol]
+            elif nbose>0 and nfermi==0:
+                final_statistic += [0]
+            elif nbose==0 and nfermi>0:
+                final_statistic += [1]
+        final_statistic = make_tuple(final_statistic)
 
     # prepare the reordered group info  -------------------------------------------------------------------
 
@@ -1582,22 +1591,6 @@ def BlockSVD(Obj):
     UE, ΛE, VE = np.linalg.svd(ME, full_matrices=False, compute_uv=True)
     UO, ΛO, VO = np.linalg.svd(MO, full_matrices=False, compute_uv=True)
 
-    '''
-    M = UO.copy()
-    cM = np.einsum('ij->ji',np.conjugate(M))
-
-    print(
-            np.einsum('ik,kj->ij',cM,M)
-        )
-    print()
-
-    print(
-            np.einsum('ik,kj->ij',M,cM)
-        )
-
-    
-    '''
-
     d = max(len(ΛE),len(ΛO))
     d = int(2**math.ceil(np.log2(d)))
 
@@ -1622,7 +1615,12 @@ def BlockSVD(Obj):
     U = get_full_matrix(UE,UO)
     Λ = get_full_matrix(ΛE,ΛO)
     V = get_full_matrix(VE,VO)
-
+    
+    print(np.einsum('ik,jk->ij',U,np.conjugate(U)))
+    print(np.einsum('ik,jk->ij',np.conjugate(U),U))
+    print(np.einsum('ik,jk->ij',V,np.conjugate(V)))
+    print(np.einsum('ik,jk->ij',np.conjugate(V),V))
+    
     return U, Λ, V
 
 def SVD(XGobj,string):
