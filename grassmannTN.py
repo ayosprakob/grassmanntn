@@ -43,7 +43,7 @@ def make_list(obj):
     else:
         return list(obj)
 
-def error(text):
+def error(text="Error[??]"):
     print(text)
     exit()
 
@@ -88,11 +88,10 @@ class dense:
 
         if(type(data)==np.array or type(data)==np.ndarray or type(data)==list):
             self.data = np.array(data)
-            self.format = 'standard'
             if bosonic:
-                self.statistic = tuple([ 0 for i in range(len(self.shape))])
+                self.statistic = make_tuple([ 0 for i in range(len(self.shape))])
             else:
-                self.statistic = tuple([ 1 for i in range(len(self.shape))])
+                self.statistic = make_tuple([ 1 for i in range(len(self.shape))])
             default = False
         elif(type(data)==sparse):
             #copy dense properties
@@ -110,11 +109,10 @@ class dense:
             default = False
         elif(np.isscalar(data)):
             self.data = np.array(list([data]))
-            self.format = 'standard'
             if bosonic:
-                self.statistic = tuple([ 0 for i in range(len(self.shape))])
+                self.statistic = make_tuple([ 0 for i in range(len(self.shape))])
             else:
-                self.statistic = tuple([ 1 for i in range(len(self.shape))])
+                self.statistic = make_tuple([ 1 for i in range(len(self.shape))])
             default = False
         elif(data==None):
             "nothing to see here"
@@ -123,12 +121,12 @@ class dense:
             
         
         if statistic != None:
-            self.statistic = statistic
+            self.statistic = make_tuple(statistic)
             
         if not default:
             for i,dim in enumerate(self.data.shape):
                 if self.statistic[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
-                    error("Caution[dense]: Some of the fermionic tensor shapes are not a power of two.\n                Have you added the <statistic> argument when calling this function?")
+                    error("Error[dense]: Some of the fermionic tensor shapes are not a power of two.\n              Have you added the <statistic> argument when calling this function?")
                 
     
     def __getitem__(self, index):
@@ -169,7 +167,7 @@ class dense:
         for element in iterator:
             coords = iterator.multi_index
             if(np.abs(element.item())>1.0e-14):
-                print(coords,clean_format(element.item()))
+                print("\t",coords,clean_format(element.item()))
         print()
 
     def info(self,name=None):
@@ -287,11 +285,11 @@ class dense:
             ret.encoder='canonical'
         return ret
 
-    def join_legs(self,string_inp,statistic=None,format='standard'):
-        return join_legs(self,string_inp,statistic,format)
+    def join_legs(self,string_inp,make_format='standard',intermediate_statistic=(-1,1)):
+        return join_legs(self,string_inp,make_format,intermediate_statistic)
 
-    def split_legs(self,string_inp,statistic,shape,format='standard'):
-        return split_legs(self,string_inp,statistic,shape,format)
+    def split_legs(self,string_inp,final_stat,final_shape,intermediate_statistic=(-1,1)):
+        return split_legs(self,string_inp,final_stat,final_shape,intermediate_statistic)
 
     def hconjugate(self,input_string):
         return hconjugate(self,input_string)
@@ -321,19 +319,17 @@ class sparse:
         
         if(type(data)==np.array or type(data)==np.ndarray or type(data)==list):
             self.data  = sp.COO.from_numpy(np.array(data))
-            self.format = 'standard'
             if bosonic:
-                self.statistic = tuple([ 0 for i in range(len(self.shape))])
+                self.statistic = make_tuple([ 0 for i in range(len(self.shape))])
             else:
-                self.statistic = tuple([ 1 for i in range(len(self.shape))])
+                self.statistic = make_tuple([ 1 for i in range(len(self.shape))])
             default = False
         elif(type(data)==sp.COO):
             self.data  = data.copy()
-            self.format = 'standard'
             if bosonic:
-                self.statistic = tuple([ 0 for i in range(len(self.shape))])
+                self.statistic = make_tuple([ 0 for i in range(len(self.shape))])
             else:
-                self.statistic = tuple([ 1 for i in range(len(self.shape))])
+                self.statistic = make_tuple([ 1 for i in range(len(self.shape))])
             default = False
         elif(type(data)==dense):
             #copy sparse properties
@@ -356,12 +352,12 @@ class sparse:
             
         
         if statistic != None:
-            self.statistic = statistic
+            self.statistic = make_tuple(statistic)
         
         if not default:
             for i,dim in enumerate(self.data.shape):
                 if self.statistic[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
-                    error("Caution[sparse]: Some of the fermionic tensor shapes are not a power of two.\n                 Have you added the <statistic> argument when calling this function?")
+                    error("Error[sparse]: Some of the fermionic tensor shapes are not a power of two.\n               Have you added the <statistic> argument when calling this function?")
                
         
     
@@ -419,7 +415,7 @@ class sparse:
         C = self.coords
         V = self.value
         for elem in range(self.nnz):
-            print(C[elem],clean_format(V[elem]))
+            print("\t",C[elem],clean_format(V[elem]))
         print()
 
     def info(self,name=None):
@@ -578,11 +574,11 @@ class sparse:
             ret.encoder='canonical'
         return ret
 
-    def join_legs(self,string_inp,statistic=None,format='standard'):
-        return join_legs(self,string_inp,statistic,format)
+    def join_legs(self,string_inp,make_format='standard',intermediate_statistic=(-1,1)):
+        return join_legs(self,string_inp,make_format,intermediate_statistic)
 
-    def split_legs(self,string_inp,statistic,shape,format='standard'):
-        return split_legs(self,string_inp,statistic,shape,format)
+    def split_legs(self,string_inp,final_stat,final_shape,intermediate_statistic=(-1,1)):
+        return split_legs(self,string_inp,final_stat,final_shape,intermediate_statistic)
 
     def hconjugate(self):
         return hconjugate(self)
@@ -1142,498 +1138,351 @@ def einsum(*args,format="standard",encoder="canonical"):
 ##                     Reshape                    ##
 ####################################################
 
-# object conditions checked
-def join_legs(XGobj,string_inp,statistic=None,format='standard'):
+display_stage = []
 
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #   - canonical encoder                 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #   - standard format                   :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    # the string is of the form aaa(bb)cccc(ddd)eeee
-    # The indices will then be grouped together as one index
-
-    #i change the variable name around because I want the input variable name to be statistic
-    final_statistic_inp = statistic
-
-    string = string_inp
-    if string.count(")") == 0 and string.count(")") == 0:
-        nseparator = 0
-        for separator in separator_list:
-            nseparator += string.count(separator)
-        if nseparator>0 :
-            for separator in separator_list:
-                string = string.replace(separator,")(")
-            string = "("+string+")"
-
-
-    if final_statistic_inp != None:
-        final_statistic = make_tuple(final_statistic_inp)
-
-    objtype = type(XGobj)
+def join_legs(XGobj,string_inp,make_format='standard',intermediate_statistic=(-1,1)):
+    
+    # Always output the parity-preserving encoder
+    
+    #===============================================================================#
+    #   Step 0: Preconditioning the initial Object to standard & canonical          #
+    #===============================================================================#
     Obj = XGobj.copy()
-    if(objtype==sparse):
+    this_type = type(XGobj)
+    this_format = XGobj.format
+    this_encoder = XGobj.encoder
+    if this_type   == sparse:
         Obj = dense(Obj)
-    if(objtype not in [dense,sparse]):
-        error("Error[join_legs]: Object type must only be dense or sparse!")
+    if this_format == 'matrix':
+        #force convert to standard
+        Obj = Obj.switch_format()
+    if this_encoder == 'parity-preserving':
+        #force convert to standard
+        Obj = Obj.switch_encoder()
         
-    # check if XGobj.statistic or final_statistic is weird or not
-    for stat in XGobj.statistic:
-        if(stat not in allowed_stat):
-            error("Error[join_legs]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
+    if 0 in display_stage:
+        Obj.display("After stage 0")
     
-    if final_statistic_inp != None :
-        for stat in final_statistic:
-            if(stat not in allowed_stat):
-                error("Error[join_legs]: The final statistic list contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
-            
-    if(XGobj.encoder == 'parity-preserving'):
-        Obj = Obj.switch_encoder()
-    if(XGobj.format == 'matrix'):
-        Obj = Obj.switch_format()
-
-    # The coding starts here ==============================================================================
-
-    # prepare the information list of the groupings -------------------------------------------------------
-    groups_info = [""] #[string,type]
-    is_outside = True
-    for char in string:
-        current_pos = len(groups_info)-1
-        if char != "(" and char != ")" and not is_outside:
-            groups_info[current_pos] += char
-        elif char != "(" and char != ")" and is_outside:
-            groups_info += [char]
-        elif char == "(" and is_outside :
-            groups_info += [""]
-            is_outside = False
-        elif char == ")" and not is_outside :
-            groups_info += [""]
-            is_outside = True
-        elif char == "(" and not is_outside:
-            error("Error[join_legs]: No nested parenthesis!")
-            
-        elif char == ")" and is_outside:
-            error("Error[join_legs]: Unmatched parenthesis!")
-            
-        #print("pending:",groups_info)
-    for i,substring in enumerate(groups_info):
-        if len(substring) == 0:
-            groups_info[i] = ""
-        elif len(substring) == 1:
-            groups_info[i] = substring
-    while groups_info.count("")>0:
-        groups_info.remove("")
-
-    n_groups = len(groups_info)
-    if final_statistic_inp!=None and n_groups != len(final_statistic):
-        error("Error[join_legs]: The number of final indices is inconsistent with the grouping!")
-
-    # add entries about the dimensions and statistics
-    index = 0
-    for i,elem in enumerate(groups_info):
-        shape = XGobj.shape[index:index+len(elem)]           # <================ change XGobj.shape to final_shape in split_legs
-        statistic = XGobj.statistic[index:index+len(elem)]   # <======== change XGobj.statistic to final_statistic in split_legs
-        groups_info[i] = [elem,shape,statistic]
-
-        # check if is hybrid
-        n_nonfermions = statistic.count(0)+statistic.count(hybrid_symbol)
-        is_hybrid = (
-            (n_nonfermions<len(statistic) and n_nonfermions>0)
-            or (statistic.count(hybrid_symbol)>0)
-            )
-        if final_statistic_inp!=None and ((is_hybrid and final_statistic[i] != hybrid_symbol) or (not is_hybrid and final_statistic[i] == hybrid_symbol)):
-            error("Error[join_legs]: The final statistic is inconsistent with object and the grouping!")
-            
-        index += len(elem)
-
-    # initialize the final stats if necessary
-    if final_statistic_inp == None :
-        final_statistic = []
-        for elem in groups_info:
-            nbose = elem[2].count(0)+elem[2].count(hybrid_symbol)
-            nfermi = elem[2].count(-1)+elem[2].count(1)
-            if nbose>0 and nfermi>0:
-                final_statistic += [hybrid_symbol]
-            elif nbose>0 and nfermi==0:
-                final_statistic += [0]
-            elif nbose==0 and nfermi>0:
-                final_statistic += [1]
-        final_statistic = make_tuple(final_statistic)
-
-    # prepare the reordered group info  -------------------------------------------------------------------
-
-    reorderd_groups_info = []
-    for [ind_list,shape,stat_list] in groups_info:
-        new_ind_list = ""
-        new_shape = []
-        new_stat_list = []
-        for i,stat in enumerate(stat_list):
-            if(stat in fermi_type):
-                new_ind_list   += ind_list[i]
-                new_shape += [shape[i]]
-                new_stat_list  += [stat_list[i]]
-            else:
-                new_ind_list   = ind_list[i]+new_ind_list
-                new_shape = [shape[i]]+new_shape
-                new_stat_list  = [stat_list[i]]+new_stat_list
-        reorderd_groups_info += [ [new_ind_list,new_shape,new_stat_list] ]
-
-    # add sign factor for merging mixed statistic  --------------------------------------------------------
-
-    sgn_str  = ""
-    sgn_list = []
-    for j,[ind_list,shape,stat_list] in enumerate(groups_info):
-        #print(stat_list," vs ",final_statistic[j])
-        for i,stat in enumerate(stat_list):
-            if stat == 1 and final_statistic[j]==-1: #<========== This is different from join_legs
-                sgn = [ (-1)**param.gparity[k] for k in range(shape[i]) ]
-                sgn_str += ind_list[i]
-                sgn_list += [sgn]
-        #print(ind_list,"---multiply--->",''.join(sgn_str))
-
-    # input string for einsum -----------------------------------------------------------------------------
-    str_einsum_input  = ""
-    for group in groups_info:
-        str_einsum_input += group[0]
-    for char in sgn_str:
-        str_einsum_input += ","+char
-
-    # output string for einsum ----------------------------------------------------------------------------
-    str_einsum_output = ""
-    for group in reorderd_groups_info:
-        str_einsum_output += group[0]
-
-    # reordered statistic (unused in split_legs) ----------------------------------------------------------
-    reordered_stat  = []
-    for group in reorderd_groups_info:
-        reordered_stat  += group[2]
-
-    reordered_stat = tuple(reordered_stat)
-
-    # You can copy the above for split_legs as well =======================================================
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 1 - REARRANGE BOSONIC INDICES TO THE RIGHT                                       :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    #Obj.display("++++")
-    #for sgn in sgn_list:
-    #    print(sgn)
-
-    einsum_input = tuple([str_einsum_input+"->"+str_einsum_output] + [Obj.data] + sgn_list )
-
-    Obj.data = np.einsum(*einsum_input)
-    Obj.statistic = reordered_stat
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 2 - JOIN THE FERMIONIC INDICES WITH CANONICAL ENCODER (DONT SWITCH)              :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-    #Obj.display("----")
+    #===============================================================================#
+    #   Step 1: Move bosonic indices to the left of each group                      #
+    #===============================================================================#
     
-    # compute the new shape -------------------------------------------------------------------------------
-    new_shape = []
-    new_stat_list = []
-    for j,[ind,shape,stat_list] in enumerate(reorderd_groups_info):
-        boson_dim = 1
-        fermi_dim = 1
-        boson_count = 0
-        fermi_count = 0
-        for i,stat in enumerate(stat_list):
-            if stat in bose_type:
-                boson_count += 1
-                boson_dim *= shape[i]
-            else:
-                fermi_count += 1
-                fermi_dim *= shape[i]
-        if(boson_count>0):
-            new_shape += [boson_dim]
-        if(fermi_count>0):
-            new_shape += [fermi_dim]
-
-        if(boson_count>0 and fermi_count>0):
-            new_stat_list += [0,1] #the fermion is assign a +1 stat automatically for the hybrid case
-        elif(boson_count>0 and fermi_count==0):
-            new_stat_list += [0]
-        elif(boson_count==0 and fermi_count>0):
-            new_stat_list += [final_statistic[j]] #if it is just fermion, the final_statistic can be applied here.
-
-    new_shape = tuple(new_shape)
-    new_stat_list = tuple(new_stat_list)
-
+    # get the grouping info first
+    group_info, sorted_group_info = get_group_info(string_inp, Obj.statistic, Obj.shape)
+    #group_info contains the index_string, statistics, and shape of each group
+    #sorted_group_info is the same, but with bosonic indices sorted to the left
+    
+    n_indices = sum([ len(indices) for [indices,stats,shape] in group_info ])
+    
+    if n_indices != Obj.ndim :
+        error("Error[join_legs]: The number of indices is not consistent with the object's shape.")
+    
+    sign_factors_list = get_grouping_sign_factors(sorted_group_info, intermediate_statistic)
+    
+    unsorted_string = ''.join( [ indices for [indices, stats, shape] in group_info ] )
+    sorted_string = ''.join( [ indices for [indices, stats, shape] in sorted_group_info ] )
+    npeinsum_string = unsorted_string+sign_factors_list[0]+"->"+sorted_string
+    npeinsum_obj = [Obj.data] + sign_factors_list[1]
+    
+    sorted_stat = make_tuple(sum(
+            [ make_list(stats) for [indices, stats, shape] in sorted_group_info ] ,[]
+        ))
+    
+    #print(Obj.statistic)
+    #print(sorted_stat)
+    
+    #print(npeinsum_string)
+    #for obj in npeinsum_obj:
+    #    print(obj.shape)
+    
+    #sorted tensor
+    Obj.data = np.einsum(*make_tuple( [npeinsum_string] + npeinsum_obj ))
+    Obj.statistic = sorted_stat
+    
+    #Obj.display()
+    if 1 in display_stage:
+        Obj.display("After stage 1")
+    
+    #===============================================================================#
+    #   Step 2: Join fermionic indices with np.reshape                              #
+    #===============================================================================#
+    
+    new_stats, new_shape, final_stats, final_shape = get_intermediate_info(sorted_group_info,intermediate_statistic)
+    #intermediate_tensor
+    
     Obj.data = np.reshape(Obj.data,new_shape)
-    Obj.statistic = new_stat_list
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 3 - JOIN ALL THE INDICES WITH PARITY-PRESERVING ENCODER                          :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    if format == 'matrix' :
-        Obj = Obj.switch_format()
-
-    # compute the new shape -------------------------------------------------------------------------------
-    new_shape = []
-    for [ind,shape,stat_list] in reorderd_groups_info:
-        dim = 1
-        for subdim in shape:
-            dim *= subdim
-        new_shape += [dim]
-    new_shape = tuple(new_shape)
-
-    Obj = Obj.switch_encoder()  # <======================= SWITCH TO PARITY-PRESERVING ENCODER
-    Obj.data = np.reshape(Obj.data,new_shape)
-    Obj.statistic = final_statistic
-    Obj = Obj.switch_encoder()  # <======================= SWITCH BACK TO CANONICAL ENCODER
+    Obj.statistic = new_stats
     
-    # revert to the original conditions ===================================================================
-
-    if(XGobj.encoder == 'parity-preserving'):
-        Obj = Obj.switch_encoder()
-
-    if(objtype==sparse):
-        Obj = sparse(Obj)
-
+    if 2 in display_stage:
+        Obj.display("After stage 2")
+    
+    
+    #===============================================================================#
+    #   Step 3: Switch format if make_format='matrix'                               #
+    #===============================================================================#
+    
+    if make_format == 'matrix':
+        Obj = Obj.switch_format()
+        if 3 in display_stage:
+            Obj.display("After stage 3")
+    else:
+        if 3 in display_stage:
+            print("Step 3 is skipped.")
+    
+    #===============================================================================#
+    #   Step 4: Switch encoder                                                      #
+    #===============================================================================#
+    
+    Obj = Obj.switch_encoder()
+    
+    if 4 in display_stage:
+        Obj.display("After stage 4")
+    
+    #===============================================================================#
+    #   Step 5: Merge bosons and fermions                                           #
+    #===============================================================================#
+    
+    Obj.data = np.reshape(Obj.data,final_shape)
+    Obj.statistic = final_stats
+    
+    if 5 in display_stage:
+        Obj.display("After stage 5")
+    
     return Obj
+    
+def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_statistic=(-1,1)):
 
-def split_legs(XGobj,string_inp,statistic,shape,format='standard'):
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #   - canonical encoder                 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    # the string is of the form aaa(bb)cccc(ddd)eeee
-    # The indices will then be grouped together as one index
-
-    final_statistic_inp = statistic
-    final_shape_inp = shape
-
-    string = string_inp
-    if string.count(")") == 0 and string.count(")") == 0:
-        nseparator = 0
-        for separator in separator_list:
-            nseparator += string.count(separator)
-        if nseparator>0 :
-            for separator in separator_list:
-                string = string.replace(separator,")(")
-            string = "("+string+")"
-
-
-    final_statistic = list(final_statistic_inp)
-    final_shape     = list(final_shape_inp)
-
-    objtype = type(XGobj)
+    #===============================================================================#
+    #   Step 0: Preparation                                                         #
+    #===============================================================================#
+    
     Obj = XGobj.copy()
-    if(objtype==sparse):
-        Obj = dense(Obj)
-    if(objtype not in [dense,sparse]):
-        error("Error[split_legs]: Object type must only be dense or sparse!")
-        
-    # check if XGobj.statistic or final_statistic is weird or not
-    for stat in XGobj.statistic:
-        if(stat not in allowed_stat):
-            error("Error[split_legs]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
-            
-    for stat in final_statistic:
-        if(stat not in allowed_stat):
-            error("Error[split_legs]: The final statistic list contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
-            
-    if(XGobj.encoder == 'parity-preserving'):
-        Obj = Obj.switch_encoder()
-
-    # The coding starts here ==============================================================================
-
-    # prepare the information list of the groupings -------------------------------------------------------
-    groups_info = [""] #[string,type]
-    is_outside = True
-    for char in string:
-        current_pos = len(groups_info)-1
-        if char != "(" and char != ")" and not is_outside:
-            groups_info[current_pos] += char
-        elif char != "(" and char != ")" and is_outside:
-            groups_info += [char]
-        elif char == "(" and is_outside :
-            groups_info += [""]
-            is_outside = False
-        elif char == ")" and not is_outside :
-            groups_info += [""]
-            is_outside = True
-        elif char == "(" and not is_outside:
-            error("Error[split_legs]: No nested parenthesis!")
-            
-        elif char == ")" and is_outside:
-            error("Error[split_legs]: Unmatched parenthesis!")
-            
-    for i,substring in enumerate(groups_info):
-        if len(substring) == 0:
-            groups_info[i] = ""
-        elif len(substring) == 1:
-            groups_info[i] = substring
-    while groups_info.count("")>0:
-        groups_info.remove("")
-
-    string_no_brackets = string
-    while string_no_brackets.count("(")>0 or string_no_brackets.count(")")>0 :
-        string_no_brackets = string_no_brackets.replace("(","")
-        string_no_brackets = string_no_brackets.replace(")","")
-
-    n_groups = len(string_no_brackets)
-    if n_groups != len(final_statistic):
-        error("Error[split_legs]: The number of final indices is inconsistent with the grouping!")
-        
-    # add entries about the dimensions and statistics
-    index = 0
-    for i,elem in enumerate(groups_info):
-        shape = final_shape[index:index+len(elem)]           # <================ change XGobj.shape to final_shape in split_legs
-        statistic = final_statistic[index:index+len(elem)]   # <======== change XGobj.statistic to final_statistic in split_legs
-        groups_info[i] = [elem,shape,statistic]
-
-        # check if is hybrid
-        n_nonfermions = statistic.count(0)+statistic.count(hybrid_symbol)
-        is_hybrid = (
-            (n_nonfermions<len(statistic) and n_nonfermions>0)
-            or (statistic.count(hybrid_symbol)>0)
-            )
-        if (is_hybrid and XGobj.statistic[i] != hybrid_symbol) or (not is_hybrid and XGobj.statistic[i] == hybrid_symbol):
-            error("Error[split_legs]: The final statistic is inconsistent with object and the grouping!")
-            
-        index += len(elem)
-
-    # prepare the reordered group info  -------------------------------------------------------------------
-
-    reorderd_groups_info = []
-    for [ind_list,shape,stat_list] in groups_info:
-        new_ind_list = ""
-        new_shape = []
-        new_stat_list = []
-        for i,stat in enumerate(stat_list):
-            if(stat in fermi_type):
-                new_ind_list   += ind_list[i]
-                new_shape += [shape[i]]
-                new_stat_list  += [stat_list[i]]
-            else:
-                new_ind_list   = ind_list[i]+new_ind_list
-                new_shape = [shape[i]]+new_shape
-                new_stat_list  = [stat_list[i]]+new_stat_list
-        reorderd_groups_info += [ [new_ind_list,new_shape,new_stat_list] ]
-
-    # add sign factor for merging mixed statistic  --------------------------------------------------------
-
-    sgn_str  = ""
-    sgn_list = []
-    for j,[ind_list,shape,stat_list] in enumerate(groups_info):
-        #print(stat_list," vs ",XGobj.statistic[j])
-        for i,stat in enumerate(stat_list):
-            if stat == 1 and XGobj.statistic[j]==-1: #<========== This is different from join_legs
-                sgn = [ (-1)**param.gparity[k] for k in range(shape[i]) ]
-                sgn_str += ind_list[i]
-                sgn_list += [sgn]
-        #print(ind_list,"<---multiply---",''.join(sgn_str))
-
-    # input string for einsum -----------------------------------------------------------------------------
-    str_einsum_output  = ""
-    for group in groups_info:
-        str_einsum_output += group[0]
-
-    # output string for einsum ----------------------------------------------------------------------------
-    str_einsum_input = ""
-    for group in reorderd_groups_info:
-        str_einsum_input += group[0]
-    for char in sgn_str:
-        str_einsum_input += ","+char
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 1 - SPLIT THE BOSONIC AND FERMIONIC INDICES WITH PARITY-PRESERVING ENCODER       :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    # compute the new shape -------------------------------------------------------------------------------
-    new_shape = []
-    new_stat_list = []
-    for j,[ind,shape,stat_list] in enumerate(reorderd_groups_info):
-        boson_dim = 1
-        fermi_dim = 1
-        boson_count = 0
-        fermi_count = 0
-        for i,stat in enumerate(stat_list):
-            if stat in bose_type:
-                boson_count += 1
-                boson_dim *= shape[i]
-            else:
-                fermi_count += 1
-                fermi_dim *= shape[i]
-        if(boson_count>0):
-            new_shape += [boson_dim]
-        if(fermi_count>0):
-            new_shape += [fermi_dim]
-
-        if(boson_count>0 and fermi_count>0):
-            new_stat_list += [0,1] #the fermion is assign a +1 stat automatically for the hybrid case
-        elif(boson_count>0 and fermi_count==0):
-            new_stat_list += [0]
-        elif(boson_count==0 and fermi_count>0):
-            new_stat_list += [XGobj.statistic[j]] #if it is just fermion, the XGobj.statistic can be applied here.
-
-    new_shape = tuple(new_shape)
-    new_stat_list = tuple(new_stat_list)
-
-
-
-    Obj = Obj.switch_encoder()  # <======================= SWITCH TO PARITY-PRESERVING ENCODER
-    Obj.data = np.reshape(Obj.data,new_shape)
-    Obj.statistic = new_stat_list
-    Obj = Obj.switch_encoder()  # <======================= SWITCH BACK TO CANONICAL ENCODER
+    this_type = type(XGobj)
+    this_format = XGobj.format
+    this_encoder = XGobj.encoder
     
-    if XGobj.format == 'matrix':
-        Obj = Obj.switch_format()
-
-    #Obj.switch_encoder().switch_format().display("----")
+    if 5 in display_stage:
+        Obj.display("Before stage 5")
     
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 2 - SPLIT THE FERMIONIC INDICES WITH CANONICAL ENCODER (DONT SWITCH)             :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    # compute the new shape -------------------------------------------------------------------------------
-    new_shape = []
-    new_stat_list = []
-    for [ind,shape,stat_list] in reorderd_groups_info:
-        new_shape += shape
-        new_stat_list += stat_list
-
-    new_shape = tuple(new_shape)
-    new_stat_list = tuple(new_stat_list)
-
+    #===============================================================================#
+    #   Step 5: Split bosons and fermions                                           #
+    #===============================================================================#
+    
+    group_info, sorted_group_info = get_group_info(string_inp, final_stat, final_shape)
+    new_stats, new_shape, _, _ = get_intermediate_info(sorted_group_info,intermediate_statistic)
+    sign_factors_list = get_grouping_sign_factors(sorted_group_info, intermediate_statistic)
+    
     Obj.data = np.reshape(Obj.data,new_shape)
-    Obj.statistic = new_stat_list
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 3 - REARRANGE BOSONIC INDICES TO THE RIGHT                                       :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    einsum_input = tuple([str_einsum_input+"->"+str_einsum_output] + [Obj.data] + sgn_list )
-
-    Obj.data = np.einsum(*einsum_input)
-    Obj.statistic = final_statistic_inp
-
-    #Obj.display("++++")
-    #for sgn in sgn_list:
-    #    print(sgn)
-
-    # revert to the original conditions ===================================================================
-
-    if(XGobj.encoder == 'parity-preserving'):
-        Obj = Obj.switch_encoder()
-
-    if format == 'matrix' :
+    Obj.statistic = new_stats
+    
+    if 4 in display_stage:
+        Obj.display("Before stage 4")
+    
+    #===============================================================================#
+    #   Step 4: Switch encoder                                                      #
+    #===============================================================================#
+    
+    Obj = Obj.switch_encoder()
+    
+    if this_format == 'matrix':
+        if 3 in display_stage:
+            Obj.display("Before stage 3")
+    else:
+        if 3 in display_stage:
+                print("Step 3 is skipped.")
+                
+    #===============================================================================#
+    #   Step 3: Switch format if this_format='matrix'                               #
+    #===============================================================================#
+    
+    if this_format == 'matrix':
         Obj = Obj.switch_format()
-
-    if(objtype==sparse):
-        Obj = sparse(Obj)
-
+        
+    if 2 in display_stage:
+        Obj.display("Before stage 2")
+    
+    #===============================================================================#
+    #   Step 2: Split fermionic indices with np.reshape                              #
+    #===============================================================================#
+    
+    new_stats = []
+    new_shape = []
+    for [indices,stats,shape] in sorted_group_info:
+        new_stats += make_list(stats)
+        new_shape += make_list(shape)
+    new_stats = make_tuple(new_stats)
+    new_shape = make_tuple(new_shape)
+    
+    Obj.data = np.reshape(Obj.data,new_shape)
+    Obj.statistic = new_stats
+    
+    if 1 in display_stage:
+        Obj.display("Before stage 1")
+    
+    
+    #===============================================================================#
+    #   Step 1: Move bosonic indices to the left of each group                      #
+    #===============================================================================#
+    
+    unsorted_string = ''.join( [ indices for [indices, stats, shape] in group_info ] )
+    sorted_string = ''.join( [ indices for [indices, stats, shape] in sorted_group_info ] )
+    npeinsum_string = sorted_string+sign_factors_list[0]+"->"+unsorted_string
+    npeinsum_obj = [Obj.data] + sign_factors_list[1]
+    Obj.data = np.einsum(*make_tuple( [npeinsum_string] + npeinsum_obj ))
+    Obj.statistic = final_stat
+    
+    #Obj.display()
+    if 0 in display_stage:
+        Obj.display("Before stage 0")
+    
+    
     return Obj
+    
+def get_group_info(grouping_string, ungroup_stat, ungroup_shape):
+    #print("original string:",grouping_string)
+    formatted_string = grouping_string
+    
+    # check the string format --------------------------------------------------------
+    if formatted_string.count("(") == 0 and formatted_string.count(")") == 0 :
+        #this is the abbreviated format
+        for separator in separator_list:
+            formatted_string = formatted_string.replace(separator,")(")
+        formatted_string = "("+formatted_string+")"
+    else:
+        separator_count = 0
+        for separator in separator_list:
+            separator_count += formatted_string.count(separator)
+        if separator_count > 0 :
+            error("Error[get_grouping_info]: Do not mix the string format.")
+    #print("formatted string:",formatted_string)
+    
+    # parse the string ---------------------------------------------------------------
+    group_info = [] # [string text, statistic, shape]
+    is_outside = True
+    location = 0
+    for char in formatted_string:
+        if char == "(" and is_outside :
+            is_outside = False
+            group_info += [
+                [ "", [], [] ] #make a blank template for this group
+            ]
+            continue
+        if char == ")" and not is_outside :
+            is_outside = True
+            continue
+        if (char == "(" and not is_outside) or (char == ")" and is_outside) :
+            error("Error[get_grouping_info]: No nested parenthesis allowed!")
+        
+        if is_outside :
+            #add an element of just one index
+            group_info += [
+                [ char, [ungroup_stat[location]], [ungroup_shape[location]] ]
+            ]
+        else:
+            n = len(group_info)-1
+            group_info[n][0] += char
+            group_info[n][1] += [ungroup_stat[location]]
+            group_info[n][2] += [ungroup_shape[location]]
+        location += 1
+    for n in range(len(group_info)) :
+        group_info[n][1] = make_tuple(group_info[n][1])
+        group_info[n][2] = make_tuple(group_info[n][2])
+    
+    #print("group_info:")
+    #for elem in group_info:
+    #    print(elem)
+        
+    # make the sorted_group_info -----------------------------------------------------
+    sorted_group_info = []
+    for [indices, stats, shape] in group_info :
+        d = len(indices)
+        sorted_indices = ""
+        sorted_stats = []
+        sorted_shape = []
+        for i in range(d):
+            if stats[i] in bose_type:
+                sorted_indices = indices[i] + sorted_indices
+                sorted_stats = [stats[i]] + sorted_stats
+                sorted_shape = [shape[i]] + sorted_shape
+            else:
+                sorted_indices = sorted_indices + indices[i]
+                sorted_stats = sorted_stats + [stats[i]]
+                sorted_shape = sorted_shape + [shape[i]]
+        sorted_group_info += [[ sorted_indices,make_tuple(sorted_stats),make_tuple(sorted_shape) ]]
+    
+    #print("sorted_group_info:")
+    #for elem in sorted_group_info:
+    #    print(elem)
+    
+    return group_info, sorted_group_info
+    
+def get_grouping_sign_factors(sorted_group_info, intermediate_statistic):
+    #print(intermediate_statistic)
+    
+    if len(sorted_group_info) != len(intermediate_statistic) :
+        error("Error[get_grouping_sign_factors]: Inconsistent number of intermediate_statistic and groupings!")
+    
+    sign_factors_info = [ "" , [] ] #indices and dimensions
+    for i,[strings,stats,shapes] in enumerate(sorted_group_info):
+        
+        for d in range(len(stats)):
+            if stats[d] == 1 and intermediate_statistic[i] == -1 :
+                sign_factors_info[0] += ","+strings[d]
+                sign_factors_info[1] += [shapes[d]]
+        #print(stats,"--->",intermediate_statistic[i])
+    
+    #print(sign_factors_info)
+    
+    # generate the sign factor tensor (separately)
+    sign_factors_list = [ sign_factors_info[0], [] ]
+    for d in sign_factors_info[1] :
+        sgn = np.array([ (-1)**param.gparity[ind] for ind in range(d) ])
+        sign_factors_list[1] += [sgn]
+    
+    #print(sign_factors_list)
+    
+    return sign_factors_list
+
+def get_intermediate_info(sorted_group_info,intermediate_statistic):
+    new_shape = []
+    new_stats = []
+    final_shape = []
+    final_stats = []
+    
+    if len(sorted_group_info) != len(intermediate_statistic):
+        error("Error[get_intermediate_info]: Inconsistent number of intermediate_statistic and groupings!")
+    for i,[indices, stats, shape] in enumerate(sorted_group_info):
+        fermi_d = 1
+        bose_d  = 1
+        fermi_n = 0
+        bose_n  = 0
+        for d in range(len(stats)):
+            if stats[d] in fermi_type :
+                fermi_d *= shape[d]
+                fermi_n += 1
+            else:
+                bose_d *= shape[d]
+                bose_n += 1
+        if bose_n > 0 :
+            new_shape += [bose_d]
+            new_stats += [0]
+        if fermi_n > 0 :
+            new_shape += [fermi_d]
+            new_stats += [intermediate_statistic[i]]
+            
+        final_shape += [bose_d*fermi_d]
+        
+        if bose_n > 0 and fermi_n > 0 :
+            final_stats += [hybrid_symbol]
+        else:
+            final_stats += [intermediate_statistic[i]]
+            
+    new_stats = make_tuple(new_stats)
+    new_shape = make_tuple(new_shape)
+    final_stats = make_tuple(final_stats)
+    final_shape = make_tuple(final_shape)
+    
+    return new_stats, new_shape, final_stats, final_shape
 
 ####################################################
 ##          Trim the Grassmann-odd parts          ##
@@ -1758,22 +1607,19 @@ def BlockSVD(Obj):
     
     return U, Λ, V
 
-def SVD(XGobj,string):
+display_stage_svd = []
 
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #   - parity-preserving encoder         :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #   - matrix format                     :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+def SVD(XGobj,string):
 
     # the string is of the form aaaa|bbb
 
-    objtype = type(XGobj)
+    this_type = type(XGobj)
+    this_format = XGobj.format
+    this_encoder = XGobj.encoder
     Obj = XGobj.copy()
-    if(objtype==sparse):
+    if(this_type==sparse):
         Obj = dense(Obj)
-    if(objtype not in [dense,sparse]):
+    if(this_type not in [dense,sparse]):
         error("Error[SVD]: Object type must only be dense or sparse!")
         
     # check if XGobj.statistic or final_statistic is weird or not
@@ -1781,11 +1627,6 @@ def SVD(XGobj,string):
         if(stat not in allowed_stat):
             error("Error[SVD]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
             
-    if(XGobj.encoder == 'canonical'):
-        Obj = Obj.switch_encoder()
-    if(XGobj.format == 'standard'):
-        Obj = Obj.switch_format()
-
     partition_count = 0
     for partition in separator_list:
         partition_count += string.count(partition)
@@ -1805,11 +1646,13 @@ def SVD(XGobj,string):
                 partition_string += " )"
 
         error("Error[SVD]: The input string must contain one and only one partition "+partition_string+" in it.")
-        
+    
+    if 0 in display_stage_svd :
+        Obj.display("After stage 0")
 
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                             :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                       :::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     # count the number of indices in the two groups
     n_left = 0
@@ -1860,47 +1703,43 @@ def SVD(XGobj,string):
                 return 0
         elif(boson_count>0 and fermi_count>0):
             return hybrid_symbol
-    #Obj0 = Obj.copy()
-    Obj = Obj.join_legs(join_legs_string_input,(get_stat(stats_left,-1),get_stat(stats_right,+1)),"matrix")
+            
+    Obj = Obj.join_legs(join_legs_string_input,"matrix")
     
-    #Test = Obj.split_legs(join_legs_string_input,Obj0.statistic,Obj0.shape,"matrix")
-    #Obj0.display("Obj0")
-    #Obj.display("Obj")
-    #Test.display("Test")
-    #exit()
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 2 - BLOCK SVD (MAKE SURE IT'S PARITY-PRESERVING!)                                :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    if 1 in display_stage_svd :
+        Obj.display("After stage 1")
+        
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #:::::      STEP 2 - BLOCK SVD (MAKE SURE IT'S PARITY-PRESERVING!)                          :::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     U, Λ, V = BlockSVD(Obj.data)
 
-    #dense(U).display("right after BlockSVD")
-
-    #dense(np.einsum('ij,jk,kl->il',U, Λ, V)-Obj.data).display("zero test")
-
-    cU = np.einsum('ij->ji',np.conjugate(U))
-    #cV = np.einsum('ij->ji',np.conjugate(V))
-    #dense(np.einsum('ij,jk->ik',cU,U)).display("cUU")
-    #dense(np.einsum('ij,jk->ik',V,cV)).display("VcV")
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 3 - RECONSTRUCT U, Λ, and V AS GRASSMANN TENSORS                                 :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    if 2 in display_stage_svd :
+        cU = np.einsum('ij->ji',np.conjugate(U))
+        cV = np.einsum('ij->ji',np.conjugate(V))
+        dense(np.einsum('ij,jk->ik',cU,U)).display("cUU (stage 2)")
+        dense(np.einsum('ij,jk->ik',V,cV)).display("VcV (stage 2)")
+        
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #:::::      STEP 3 - RECONSTRUCT U, Λ, and V AS GRASSMANN TENSORS                           :::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     #the first way is to form the tensor first, then split
     
-    U = dense(U,encoder="parity-preserving")
-    Λ = dense(Λ,encoder="parity-preserving")
-    V = dense(V,encoder="parity-preserving")
-
-    U.statistic = (Obj.statistic[0],1)
-    Λ.statistic = (-1,1)
-    V.statistic = (-1,Obj.statistic[1])
+    U = dense(U,encoder="parity-preserving",format="matrix",statistic=(Obj.statistic[0],1))
+    Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistic=(-1,1))
+    V = dense(V,encoder="parity-preserving",format="matrix",statistic=(-1,Obj.statistic[1]))
     dΛ = Λ.shape[0]
 
-    U.format = "matrix"
-    Λ.format = "matrix"
-    V.format = "matrix"
+    if 3 in display_stage_svd :
+        U.display("U (stage 3)")
+        Λ.display("Λ (stage 3)")
+        V.display("V (stage 3)")
+        
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #:::::      STEP 4 - Split the legs                                                         :::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     # count the number of indices in the two groups
     Uind = ""
@@ -1935,36 +1774,27 @@ def SVD(XGobj,string):
     Vstats = tuple([-1] + Vstats)
     Ushape = tuple(Ushape + [dΛ])
     Vshape = tuple([dΛ] + Vshape)
-
-
-    #U.display("before spliting legs")
-
-    U = U.split_legs(Uind,Ustats,Ushape,'matrix')
-    V = V.split_legs(Vind,Vstats,Vshape,'matrix')
-
-    #U.display("after spliting legs")
-
-    #jU = U.join_legs(Uind,('*',1),'matrix')
-    #jU.display("joining legs back")
-    #U.switch_encoder().display("after spliting legs")
-
-    cU = U.hconjugate('ij k')
-    #cU.display("the conjugate")
-    #einsum('aij,ijb->ab',cU,U).display()
-
-    # revert to the original conditions ===================================================================
-
-    if(XGobj.format == 'standard'):
+    
+    U = U.split_legs(Uind,Ustats,Ushape)
+    Λ = Λ.switch_encoder()
+    V = V.split_legs(Vind,Vstats,Vshape)
+    
+    if 4 in display_stage_svd :
+        U.display("U (stage 4)")
+        Λ.display("Λ (stage 4)")
+        V.display("V (stage 4)")
+        
+    if(this_format == 'matrix'):
         U = U.switch_format()
         Λ = Λ.switch_format()
         V = V.switch_format()
 
-    if(XGobj.encoder == 'canonical'):
+    if(this_encoder == 'parity-preserving'):
         U = U.switch_encoder()
         Λ = Λ.switch_encoder()
         V = V.switch_encoder()
 
-    if(objtype==sparse):
+    if(this_type==sparse):
         U = sparse(U)
         Λ = sparse(Λ)
         V = sparse(V)
@@ -1975,22 +1805,19 @@ def SVD(XGobj,string):
 ##                   Conjugation                  ##
 ####################################################
 
-def hconjugate(XGobj,string):
+display_stage_hconjugate = []
 
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #   - parity-preserving encoder         :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #   - matrix format                     :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+def hconjugate(XGobj,string):
 
     # the string is of the form aaaa|bbb
 
-    objtype = type(XGobj)
+    this_type = type(XGobj)
+    this_format = XGobj.format
+    this_encoder = XGobj.encoder
     Obj = XGobj.copy()
-    if(objtype==sparse):
+    if(this_type==sparse):
         Obj = dense(Obj)
-    if(objtype not in [dense,sparse]):
+    if(this_type not in [dense,sparse]):
         error("Error[SVD]: Object type must only be dense or sparse!")
         
     # check if XGobj.statistic or final_statistic is weird or not
@@ -1998,11 +1825,6 @@ def hconjugate(XGobj,string):
         if(stat not in allowed_stat):
             error("Error[SVD]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
             
-    if(XGobj.encoder == 'canonical'):
-        Obj = Obj.switch_encoder()
-    if(XGobj.format == 'standard'):
-        Obj = Obj.switch_format()
-
     partition_count = 0
     for partition in separator_list:
         partition_count += string.count(partition)
@@ -2022,11 +1844,13 @@ def hconjugate(XGobj,string):
                 partition_string += " )"
 
         error("Error[SVD]: The input string must contain one and only one partition "+partition_string+" in it.")
-        
+    
+    if 0 in display_stage_hconjugate :
+        Obj.display("After stage 0")
 
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                             :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                       :::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     # count the number of indices in the two groups
     n_left = 0
@@ -2050,7 +1874,6 @@ def hconjugate(XGobj,string):
     stats_left  = Obj.statistic[:n_left]
     shape_right = Obj.shape[n_left:]
     stats_right = Obj.statistic[n_left:]
-
     def prod(vector):
         ret = 1
         for elem in vector:
@@ -2077,34 +1900,42 @@ def hconjugate(XGobj,string):
                 return 0
         elif(boson_count>0 and fermi_count>0):
             return hybrid_symbol
-
-    Obj = Obj.join_legs(join_legs_string_input,(get_stat(stats_left,-1),get_stat(stats_right,+1)),"matrix")
+            
+    Obj = Obj.join_legs(join_legs_string_input,"matrix")
     
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 2 - Hermitian Conjugation                                                        :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    if 1 in display_stage_hconjugate :
+        Obj.display("After stage 1")
+        
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #:::::      STEP 2 - Perform Hermitian Conjugation                                          :::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    #U, Λ, V = BlockSVD(Obj.data)
-    M = Obj.data
-    hM = np.conjugate(np.einsum('ij->ji',M))
-
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #:::::      STEP 3 - RECONSTRUCT THE TENSOR                                                       :::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    hObj = dense(hM,encoder="parity-preserving")
-    hObj.statistic = [Obj.statistic[1],Obj.statistic[0]]
-    if hObj.statistic[0] in fermi_type :
-        hObj.statistic[0] *= -1
-    if hObj.statistic[1] in fermi_type :
-        hObj.statistic[1] *= -1
-    hObj.statistic = make_tuple(hObj.statistic)
-    hObj.format = "matrix"
-
-    #Obj.display("Obj")
-    #hObj.display("hObj")
-
+    Obj.data = np.conjugate(np.einsum('ij->ji',Obj.data))
+    
+    new_stat = [1,1]
+    
+    if Obj.statistic[0] in fermi_type :
+        new_stat[1] = -Obj.statistic[0]
+    else:
+        new_stat[1] = Obj.statistic[0]
+        
+    if Obj.statistic[1] in fermi_type :
+        new_stat[0] = -Obj.statistic[1]
+    else:
+        new_stat[0] = Obj.statistic[1]
+    
+    new_stat = make_tuple(new_stat)
+    
+    Obj.statistic = new_stat
+    
+    if 2 in display_stage_hconjugate :
+        Obj.display("After stage 2")
+        
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #:::::      STEP 3 - Split legs                                                             :::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    
+    
     # count the number of indices in the two groups
     Uind = ""
     Vind = ""
@@ -2125,28 +1956,18 @@ def hconjugate(XGobj,string):
             Uind+=char
             Ustats+=[XGobj.statistic[i]]
             Ushape+=[XGobj.shape[i]]
-
-    hObjind   = "("+Vind+")" + "("+Uind+")"
-    hObjstats = Vstats+Ustats
-    hObjshape = tuple(Vshape+Ushape)
-    for i in range(len(hObjstats)) :
-        if hObjstats[i] in fermi_type :
-            hObjstats[i] *= -1
-    hObjstats = make_tuple(hObjstats)
-
-    #hObj.display("hObj")
-    hObj = hObj.split_legs(hObjind,hObjstats,hObjshape,'matrix')
-    #hObj.display("hObj")
-    #exit()
-
-    # revert to the original conditions ===================================================================
-
-    if(XGobj.format == 'standard'):
-        hObj = hObj.switch_format()
-    if(XGobj.encoder == 'canonical'):
-        hObj = hObj.switch_encoder()
-
-    if(objtype==sparse):
-        hObj = sparse(hObj)
-
-    return hObj
+    
+    new_ind = "("+Vind+")("+Uind+")"
+    new_stats = Vstats + Ustats
+    new_shape = make_tuple(Vshape + Ushape)
+    for i in range(len(new_stats)):
+        if new_stats[i] in fermi_type :
+            new_stats[i]*=-1
+    new_stats = make_tuple(new_stats)
+    
+    Obj = Obj.split_legs(new_ind,new_stats,new_shape)
+    
+    if 3 in display_stage_hconjugate :
+        Obj.display("After stage 3")
+        
+    return Obj

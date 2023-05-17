@@ -209,8 +209,8 @@ def check_conjugate():
 def check_svd():
 
 	m = 4
-	n = 2
-	p = 2
+	n = 4
+	p = 4
 	q = 4
 
 	# dense
@@ -227,13 +227,15 @@ def check_svd():
 	s3 = 0
 	s4 = 0
 	while [s1,s2]==[0,0] or [s3,s4]==[0,0] :
-		s1 = f()
-		s2 = f()
-		s3 = f()
-		s4 = f()
+		s1 = g()
+		s2 = g()
+		s3 = g()
+		s4 = g()
 
 	statistic = (s1,s2,s3,s4)
-	print(statistic)
+	print()
+	print("  generated statistic = ",statistic)
+	print()
 
 	A = dense(np.random.rand(*shape)+cI*np.random.rand(*shape), statistic = statistic)
 	A = gTN.trim_grassmann_odd(A)
@@ -246,7 +248,7 @@ def check_svd():
 	USV = gTN.einsum('ija,akl->ijkl',US,V)
 	
 	err = (A-USV).norm
-	print('|A-USV| =',	err)
+	print('  |A-U•S•V| =',	err)
 	if err>1.0e-8 :
 		print("\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!")
 
@@ -258,10 +260,24 @@ def check_svd():
 	cV = V.hconjugate('a ij')
 
 	#gTN.einsum('iaj,jkb->iakb',U,cU).switch_format().display("UcU")
-	gTN.einsum('aij,ijb->ab',cU,U).switch_format().display("cUU")
+	gTN.einsum('aij,ijb->ab',cU,U).switch_format().display("U†•U")
 
-	gTN.einsum('aij,ijb->ab',V,cV).switch_format().display("VcV")
+	gTN.einsum('aij,ijb->ab',V,cV).switch_format().display("V•V†")
 	#gTN.einsum('iaj,jkb->iakb',cV,V).switch_format().display("cVV")
 
+def check_join():
+    # dense
+    shape = ( 4, 3, 2, 2)
+    stats = ( 1, 0, 1,-1)
+    A = dense(np.random.rand(*shape), statistic = stats)
+    A = gTN.trim_grassmann_odd(A)
+    if(type(A)==sparse):
+        A = A.remove_zeros()
+    #A.display()
+    
+    A = A.join_legs('ijk,b',(-1,1),make_format='matrix')
+    A = A.split_legs('ijk,b',(-1,1),stats,shape)
+    
+    
 # ---------------------------- main ----------------------------
 check_svd()
