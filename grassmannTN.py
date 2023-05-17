@@ -6,7 +6,7 @@ import opt_einsum as oe
 import time
 
 hybrid_symbol = "*"
-svd_partition = ("|",":",";",","," ")
+separator_list = ("|",":",";",",","."," ")
 
 skip_parity_blocking_check = True
 allowed_stat = (0,1,-1,hybrid_symbol)
@@ -21,7 +21,9 @@ char_list = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q"
 
 
         USAGE ADVICES
-        - Do not do einsum with hybrid indices
+        - Do not do einsum with hybrid indices (already prevent in the code)
+        - hconjugate and join/split opertions are not commutative!
+        - switch encoder before switching format!
 
 '''
 
@@ -51,15 +53,25 @@ def get_char(string):
             return char
     error("Error[get_char]: Running out of index character!")    
 
+def clean_format(number):
+    if np.abs(np.real(number))>1.0e-14 and np.abs(np.imag(number))<1.0e-14:
+        return round(np.real(number),13)
+    elif np.abs(np.real(number))<1.0e-14 and np.abs(np.imag(number))>1.0e-14:
+        return round(np.imag(number),13)*complex(0,1)
+    elif np.abs(np.real(number))<1.0e-14 and np.abs(np.imag(number))<1.0e-14:
+        return 0
+    else:
+        return round(np.real(number),13)+round(np.imag(number),13)*complex(0,1)
+
 ####################################################
 ##             Densed Grassmann Array             ##
 ####################################################
 
-class DGarray:
+class dense:
     def __init__(self, data=None, bosonic = False, encoder = "canonical", format = "standard", statistic=None):
     
         
-        #copy DGarray properties
+        #copy dense properties
         self.data = None
         self.statistic = None
         self.format = format
@@ -68,10 +80,10 @@ class DGarray:
         default = True
     
         if(encoder not in encoder_type):
-            error("Error[DGarray]: Unknown encoder.")
+            error("Error[dense]: Unknown encoder.")
             
         if(format not in format_type):
-            error("Error[DGarray]: Unknown format.")
+            error("Error[dense]: Unknown format.")
             
 
         if(type(data)==np.array or type(data)==np.ndarray or type(data)==list):
@@ -82,15 +94,15 @@ class DGarray:
             else:
                 self.statistic = tuple([ 1 for i in range(len(self.shape))])
             default = False
-        elif(type(data)==SGarray):
-            #copy DGarray properties
+        elif(type(data)==sparse):
+            #copy dense properties
             self.data = data.data.todense()
             self.statistic = data.statistic
             self.format = data.format
             self.encoder = data.encoder
             default = False
-        elif(type(data)==DGarray):
-            #copy DGarray properties
+        elif(type(data)==dense):
+            #copy dense properties
             self.data = data.data.copy()
             self.statistic = data.statistic
             self.format = data.format
@@ -107,7 +119,7 @@ class DGarray:
         elif(data==None):
             "nothing to see here"
         else:
-            error("Error[DGarray]: Invalid initialized data.")
+            error("Error[dense]: Invalid initialized data.")
             
         
         if statistic != None:
@@ -116,7 +128,7 @@ class DGarray:
         if not default:
             for i,dim in enumerate(self.data.shape):
                 if self.statistic[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
-                    print("Caution[DGarray]: Some of the fermionic tensor shapes are not a power of two.")
+                    error("Caution[dense]: Some of the fermionic tensor shapes are not a power of two.\n                Have you added the <statistic> argument when calling this function?")
                 
     
     def __getitem__(self, index):
@@ -157,7 +169,7 @@ class DGarray:
         for element in iterator:
             coords = iterator.multi_index
             if(np.abs(element.item())>1.0e-14):
-                print(coords,element.item(),)
+                print(coords,clean_format(element.item()))
         print()
 
     def info(self,name=None):
@@ -173,8 +185,8 @@ class DGarray:
         print()
 
     def copy(self):
-        #copy DGarray properties
-        ret = DGarray()
+        #copy dense properties
+        ret = dense()
         ret.data = self.data.copy()
         ret.statistic = self.statistic
         ret.format = self.format
@@ -186,7 +198,7 @@ class DGarray:
             or self.statistic!=other.statistic
              or self.format!=other.format
               or self.encoder!=other.encoder):
-            error("Error[DGarray.+]: Inconsistent object properties")
+            error("Error[dense.+]: Inconsistent object properties")
             
         ret = self.copy()
         ret.data = ret.data+other.data
@@ -197,7 +209,7 @@ class DGarray:
             or self.statistic!=other.statistic
              or self.format!=other.format
               or self.encoder!=other.encoder):
-            error("Error[DGarray.-]: Inconsistent object properties")
+            error("Error[dense.-]: Inconsistent object properties")
             
         ret = self.copy()
         ret.data = ret.data-other.data
@@ -231,7 +243,7 @@ class DGarray:
 
         ret = self.copy()
         if(self.encoder=='parity-preserving'):
-            ret = ret.switch_encoder()
+            ret = ret.switch_encoder().copy()
         iterator = np.nditer(ret.data, flags=['multi_index'])
         for element in iterator:
             coords = iterator.multi_index
@@ -253,7 +265,7 @@ class DGarray:
             
 
         if(self.encoder=='parity-preserving'):
-            ret = ret.switch_encoder()
+            ret = ret.switch_encoder().copy()
         return ret
 
     def switch_encoder(self):
@@ -274,15 +286,24 @@ class DGarray:
         else:
             ret.encoder='canonical'
         return ret
+
+    def join_legs(self,string_inp,statistic=None,format='standard'):
+        return join_legs(self,string_inp,statistic,format)
+
+    def split_legs(self,string_inp,statistic,shape,format='standard'):
+        return split_legs(self,string_inp,statistic,shape,format)
+
+    def hconjugate(self,input_string):
+        return hconjugate(self,input_string)
         
 ####################################################
 ##            Sparse Grassmann arrays             ##
 ####################################################
 
-class SGarray:
+class sparse:
     def __init__(self, data=None, bosonic = False, encoder = "canonical", format = "standard", statistic = None):
     
-        #copy SGarray properties
+        #copy sparse properties
         self.data = None
         self.statistic = None
         self.format = format
@@ -291,10 +312,10 @@ class SGarray:
         default = True
     
         if(encoder not in encoder_type):
-            error("Error[SGarray]: Unknown encoder.")
+            error("Error[sparse]: Unknown encoder.")
             
         if(format not in format_type):
-            error("Error[SGarray]: Unknown format.")
+            error("Error[sparse]: Unknown format.")
             
 
         
@@ -314,15 +335,15 @@ class SGarray:
             else:
                 self.statistic = tuple([ 1 for i in range(len(self.shape))])
             default = False
-        elif(type(data)==DGarray):
-            #copy SGarray properties
+        elif(type(data)==dense):
+            #copy sparse properties
             self.data  = sp.COO.from_numpy(data.data)
             self.statistic = data.statistic
             self.format = data.format
             self.encoder = data.encoder
             default = False
-        elif(type(data)==SGarray):
-            #copy SGarray properties
+        elif(type(data)==sparse):
+            #copy sparse properties
             self.data = data.data.copy()
             self.statistic = data.statistic
             self.format = data.format
@@ -331,7 +352,7 @@ class SGarray:
         elif data==None:
             "nothing to see here"
         else:
-            error("Error[SGarray]: Invalid initialized data")
+            error("Error[sparse]: Invalid initialized data")
             
         
         if statistic != None:
@@ -340,7 +361,8 @@ class SGarray:
         if not default:
             for i,dim in enumerate(self.data.shape):
                 if self.statistic[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
-                    print("Caution[SGarray]: Some of the fermionic tensor shapes are not a power of two.")
+                    error("Caution[sparse]: Some of the fermionic tensor shapes are not a power of two.\n                 Have you added the <statistic> argument when calling this function?")
+               
         
     
     @property
@@ -397,7 +419,7 @@ class SGarray:
         C = self.coords
         V = self.value
         for elem in range(self.nnz):
-            print(C[elem],V[elem])
+            print(C[elem],clean_format(V[elem]))
         print()
 
     def info(self,name=None):
@@ -448,8 +470,8 @@ class SGarray:
         return ret
 
     def copy(self):
-        #copy SGarray properties
-        ret = SGarray()
+        #copy sparse properties
+        ret = sparse()
         ret.data = self.data.copy()
         ret.statistic = self.statistic
         ret.format = self.format
@@ -461,7 +483,7 @@ class SGarray:
             or self.statistic!=other.statistic
              or self.format!=other.format
               or self.encoder!=other.encoder):
-            error("Error[SGarray.+]: Inconsistent object properties")
+            error("Error[sparse.+]: Inconsistent object properties")
             
         ret = self.copy()
         ret.data = ret.data+other.data
@@ -472,7 +494,7 @@ class SGarray:
             or self.statistic!=other.statistic
              or self.format!=other.format
               or self.encoder!=other.encoder):
-            error("Error[SGarray.-]: Inconsistent object properties")
+            error("Error[sparse.-]: Inconsistent object properties")
             
         ret = self.copy()
         ret.data = ret.data-other.data
@@ -556,6 +578,15 @@ class SGarray:
             ret.encoder='canonical'
         return ret
 
+    def join_legs(self,string_inp,statistic=None,format='standard'):
+        return join_legs(self,string_inp,statistic,format)
+
+    def split_legs(self,string_inp,statistic,shape,format='standard'):
+        return split_legs(self,string_inp,statistic,shape,format)
+
+    def hconjugate(self):
+        return hconjugate(self)
+        
 ####################################################
 ##       Parity Calculation (internal tools)      ##
 ####################################################
@@ -743,11 +774,13 @@ def einsum(*args,format="standard",encoder="canonical"):
             error("Error[einsum]: Split the hybrid indices before performing einsum.")
 
     # make sure that all objects are in standard format
-    for i,obj in enumerate(obj_list):
-        if obj.format != 'standard':
-            obj_list[i] = obj.switch_format()
-        if obj.encoder != 'canonical':
-            obj_list[i] = obj.switch_encoder()
+
+    for i in range(len(obj_list)):
+        #obj_list[i].info("*")
+        if obj_list[i].encoder != 'canonical':
+            obj_list[i] = obj_list[i].switch_encoder().copy()
+        if obj_list[i].format != 'standard':
+            obj_list[i] = obj_list[i].switch_format().copy()
 
     #force all objects to be either dense or sparse
     this_type = type(obj_list[0])
@@ -804,7 +837,18 @@ def einsum(*args,format="standard",encoder="canonical"):
     for elem in index_info:
         if len(elem[2])==2 and is_statwise_inconsistent(elem[2][0],elem[2][1]):
             error("Error[einsum]: The contracted indices have inconsistent statistic!")
-    
+
+    # count fermions number
+    fermion_num_left = 0
+    fermion_num_right = 0
+    for i,char in enumerate(summand):
+        if stat_list[i] in fermi_type:
+            fermion_num_left+=1
+    for char in result:
+        i = summand.index(char)
+        if stat_list[i] in fermi_type:
+            fermion_num_right+=1
+
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #                     Step 1: Strings for sign factor computation
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -844,7 +888,7 @@ def einsum(*args,format="standard",encoder="canonical"):
     str_step1 = xsummand+"->"+xsorted
     str_sgn1 = xsummand
 
-    if rf>0 :
+    if fermion_num_right>0 :
         ysorted = xsorted
         for pair in summed_pairs:
             ysorted = ysorted.replace(pair[0],"")
@@ -909,14 +953,21 @@ def einsum(*args,format="standard",encoder="canonical"):
     for element in iterator:
         coords = iterator.multi_index
         dupped_coords = list(coords)
-        for [i_dup,i_from] in to_duplicate_list:
-            dupped_coords.insert(i_dup, dupped_coords[i_from])
+        
+        for [f1,f2] in to_duplicate_list:
+            dupped_coords.insert(f1,0)
+
+        for [f1,f2] in to_duplicate_list:
+            dupped_coords[f1] = dupped_coords[f2]
+
         individual_parity = tuple([ param.gparity[i] for i in dupped_coords ])
         sgn1 = relative_parity(str_step1,individual_parity)
         S1[coords] = sgn1
 
+    #dense(S1).switch_encoder().display("S1:"+str_step1)
+
     # S2
-    if rf>0 :
+    if fermion_num_right>0 :
         S2 = np.zeros(ysorted_dim_list,dtype=int)
         iterator = np.nditer(S2, flags=['multi_index'])
 
@@ -925,6 +976,8 @@ def einsum(*args,format="standard",encoder="canonical"):
             individual_parity = tuple([ param.gparity[i] for i in coords ])
             sgn2 = relative_parity(str_step2,individual_parity)
             S2[coords] = sgn2
+
+    #dense(S2).switch_encoder().display("S2:"+str_step2)
 
     # SF
     SF = np.zeros(sf_dim_list,dtype=int)
@@ -935,51 +988,77 @@ def einsum(*args,format="standard",encoder="canonical"):
         for ind in coords:
             sgnf *= param.sgn[ind]
         SF[coords] = sgnf
+    #dense(SF).switch_encoder().display("SF")
 
-    if this_type == DGarray:
-        if rf == 1:
-            einsum_string = summand_with_comma+","+xstr_sgn1+","+xstr_sgn2+","+xstr_sf
-            einsum_obj_list = obj_list+[S1,S2,SF]
+    if this_type == dense:
+        einsum_string1 = summand_with_comma
+        einsum_obj_list = obj_list.copy()
+        if fermion_num_right > 1:
+            if len(xstr_sgn1)>0 :
+                einsum_string1 += ","+xstr_sgn1
+                einsum_obj_list += [S1]
+            if len(xstr_sgn2)>0 :
+                einsum_string1 += ","+xstr_sgn2
+                einsum_obj_list += [S2]
+            if len(xstr_sf)>0 :
+                einsum_string1 += ","+xstr_sf
+                einsum_obj_list += [SF]
         else:
-            einsum_string = summand_with_comma+","+xstr_sgn1+","+xstr_sf
-            einsum_obj_list = obj_list+[S1,SF]
-
+            if len(xstr_sgn1)>0 :
+                einsum_string1 += ","+xstr_sgn1
+                einsum_obj_list += [S1]
+            if len(xstr_sf)>0 :
+                einsum_string1 += ","+xstr_sf
+                einsum_obj_list += [SF]
+        einsum_string = einsum_string1
         if len(result)>0 :
             einsum_string += "->"+result
 
         for i,obj in enumerate(einsum_obj_list):
-            if type(obj)==DGarray :
+            if type(obj)==dense :
                 einsum_obj_list[i] = obj.data.copy()
 
-        ret = np.einsum(*tuple([einsum_string]+einsum_obj_list))
 
+        ret = np.einsum(*tuple([einsum_string]+einsum_obj_list))
 
         if len(result)>0:
             ret_stat = []
             for char in result:
                 ret_stat += [ stat_list[ summand.index(char) ] ]
-            ret = DGarray(ret,statistic=make_tuple(ret_stat))
+            ret = dense(ret,statistic=make_tuple(ret_stat))
         else:
-            ret = DGarray(ret)
+            ret = dense(ret)
             ret.statistic = make_tuple(0)
 
         if format=="matrix":
-            ret = ret.switch_format()
+            ret = ret.switch_format().copy()
         if encoder=="parity-preserving":
-            ret = ret.switch_encoder()
+            ret = ret.switch_encoder().copy()
 
-    elif this_type == SGarray:
+    elif this_type == sparse:
 
         # the pre-processed summand string
-        if rf == 1:
-            einsum_string1 = summand_with_comma+","+xstr_sgn1+","+xstr_sgn2+","+xstr_sf
-            einsum_obj_list = obj_list+[S1,S2,SF]
+        einsum_string1 = summand_with_comma
+        einsum_obj_list = obj_list.copy()
+        if fermion_num_right > 1:
+            if len(xstr_sgn1)>0 :
+                einsum_string1 += ","+xstr_sgn1
+                einsum_obj_list += [S1]
+            if len(xstr_sgn2)>0 :
+                einsum_string1 += ","+xstr_sgn2
+                einsum_obj_list += [S2]
+            if len(xstr_sf)>0 :
+                einsum_string1 += ","+xstr_sf
+                einsum_obj_list += [SF]
         else:
-            einsum_string1 = summand_with_comma+","+xstr_sgn1+","+xstr_sf
-            einsum_obj_list = obj_list+[S1,SF]
+            if len(xstr_sgn1)>0 :
+                einsum_string1 += ","+xstr_sgn1
+                einsum_obj_list += [S1]
+            if len(xstr_sf)>0 :
+                einsum_string1 += ","+xstr_sf
+                einsum_obj_list += [SF]
 
         # generate a list containing information about the summing vertices
-        einsum_string2 = ""
         summed_pairs2 = []
         for i,char in enumerate(einsum_string1):
 
@@ -987,33 +1066,38 @@ def einsum(*args,format="standard",encoder="canonical"):
                 einsum_string2 += ","
                 continue
 
-            if einsum_string1[:i].count(char)>1 and einsum_string1.count(char)>2:
-                new_char = get_char(einsum_string2+einsum_string1)
-                einsum_string2 += new_char
-                for k in range(len(summed_pairs2)):
-                    if summed_pairs2[k][0] == char:
-                        summed_pairs2[k][1] += new_char
+            nchar = einsum_string1.count(char)
 
-            else:
-                einsum_string2 += char
-                summed_pairs2 += [ [ char,char ] ]
+            if nchar>2:
+                char_replaced = [char]
+                for j in range(nchar-1):
+                    char_replaced += [get_char(einsum_string1+''.join(char_replaced))]
 
-        str_vertex_list = [ x[1] for x in summed_pairs2 if len(x[1])>1]
+                einsum_string2 = einsum_string1
+                for rchar in char_replaced[1:]:
+                    einsum_string2 = einsum_string2.replace(char,rchar,1)
+
+                summed_pairs2 += [ char_replaced ]
+
+                einsum_string1 = einsum_string2
+
+        for i in range(len(summed_pairs2)):
+            summed_pairs2[i] = ''.join(summed_pairs2[i])
+            einsum_string1 += ","+summed_pairs2[i]
 
         # generate a list of vertices
-        einsum_string = einsum_string2
+        einsum_string = einsum_string1
         vertex_shape_list = []
         for x in summed_pairs2:
-            if(len(x[1])==1):
+            if(len(x)==1):
                 continue
-            einsum_string += ","+x[1]
-            dim = xdim_list[xsummand.index(x[0])]
-            shape = tuple( [ dim for i in range(len(x[1])) ] )
+            dim = dim_list[summand.index(x[0])]
+            shape = tuple( [ dim for i in range(len(x)) ] )
 
-            coords = [ [] for i in range(len(x[1])) ]
+            coords = [ [] for i in range(len(x)) ]
             value = []
             for index in range(dim):
-                for i in range(len(x[1])):
+                for i in range(len(x)):
                     coords[i] += [index]
                 value += [1]
 
@@ -1024,7 +1108,7 @@ def einsum(*args,format="standard",encoder="canonical"):
         einsum_obj_list += vertex_shape_list
 
         for i,obj in enumerate(einsum_obj_list):
-            if(type(obj)==SGarray):
+            if(type(obj)==sparse):
                 einsum_obj_list[i] = obj.data
             if(type(obj)==np.array or type(obj)==np.ndarray):
                 einsum_obj_list[i] = sp.COO.from_numpy(obj)
@@ -1038,45 +1122,62 @@ def einsum(*args,format="standard",encoder="canonical"):
             ret_stat = []
             for char in result:
                 ret_stat += [ stat_list[ summand.index(char) ] ]
-            ret = SGarray(ret,statistic=make_tuple(ret_stat))
+            ret = sparse(ret,statistic=make_tuple(ret_stat))
         else:
             coords = [0]
             value = [ret.data[0]]
-            ret = SGarray(sp.COO([[0]],[ret.data[0]],make_tuple(1)))
+            ret = sparse(sp.COO([[0]],[ret.data[0]],make_tuple(1)))
             ret.statistic = make_tuple(0)
 
+        if format=="matrix":
+            ret = ret.switch_format().copy()
+        if encoder=="parity-preserving":
+            ret = ret.switch_encoder().copy()
+
+    #ret.info("?")
 
     return ret
-
-####################################################
-##                   Conjugation                  ##
-####################################################
 
 ####################################################
 ##                     Reshape                    ##
 ####################################################
 
 # object conditions checked
-def join_legs(XGobj,string,final_statistic_inp=None):
+def join_legs(XGobj,string_inp,statistic=None,format='standard'):
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #   - canonical encoder                 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #   - standard format                   :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     # the string is of the form aaa(bb)cccc(ddd)eeee
     # The indices will then be grouped together as one index
+
+    #i change the variable name around because I want the input variable name to be statistic
+    final_statistic_inp = statistic
+
+    string = string_inp
+    if string.count(")") == 0 and string.count(")") == 0:
+        nseparator = 0
+        for separator in separator_list:
+            nseparator += string.count(separator)
+        if nseparator>0 :
+            for separator in separator_list:
+                string = string.replace(separator,")(")
+            string = "("+string+")"
+
 
     if final_statistic_inp != None:
         final_statistic = make_tuple(final_statistic_inp)
 
     objtype = type(XGobj)
     Obj = XGobj.copy()
-    if(objtype==SGarray):
-        Obj = DGarray(Obj)
-    if(objtype not in [DGarray,SGarray]):
-        error("Error[join_legs]: Object type must only be DGarray or SGarray!")
+    if(objtype==sparse):
+        Obj = dense(Obj)
+    if(objtype not in [dense,sparse]):
+        error("Error[join_legs]: Object type must only be dense or sparse!")
         
     # check if XGobj.statistic or final_statistic is weird or not
     for stat in XGobj.statistic:
@@ -1090,6 +1191,8 @@ def join_legs(XGobj,string,final_statistic_inp=None):
             
     if(XGobj.encoder == 'parity-preserving'):
         Obj = Obj.switch_encoder()
+    if(XGobj.format == 'matrix'):
+        Obj = Obj.switch_format()
 
     # The coding starts here ==============================================================================
 
@@ -1182,11 +1285,13 @@ def join_legs(XGobj,string,final_statistic_inp=None):
     sgn_str  = ""
     sgn_list = []
     for j,[ind_list,shape,stat_list] in enumerate(groups_info):
+        #print(stat_list," vs ",final_statistic[j])
         for i,stat in enumerate(stat_list):
-            if stat == 1 and final_statistic[j]==-1:
+            if stat == 1 and final_statistic[j]==-1: #<========== This is different from join_legs
                 sgn = [ (-1)**param.gparity[k] for k in range(shape[i]) ]
                 sgn_str += ind_list[i]
                 sgn_list += [sgn]
+        #print(ind_list,"---multiply--->",''.join(sgn_str))
 
     # input string for einsum -----------------------------------------------------------------------------
     str_einsum_input  = ""
@@ -1213,6 +1318,10 @@ def join_legs(XGobj,string,final_statistic_inp=None):
     #:::::      STEP 1 - REARRANGE BOSONIC INDICES TO THE RIGHT                                       :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+    #Obj.display("++++")
+    #for sgn in sgn_list:
+    #    print(sgn)
+
     einsum_input = tuple([str_einsum_input+"->"+str_einsum_output] + [Obj.data] + sgn_list )
 
     Obj.data = np.einsum(*einsum_input)
@@ -1221,6 +1330,9 @@ def join_legs(XGobj,string,final_statistic_inp=None):
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 2 - JOIN THE FERMIONIC INDICES WITH CANONICAL ENCODER (DONT SWITCH)              :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+    #Obj.display("----")
     
     # compute the new shape -------------------------------------------------------------------------------
     new_shape = []
@@ -1259,6 +1371,8 @@ def join_legs(XGobj,string,final_statistic_inp=None):
     #:::::      STEP 3 - JOIN ALL THE INDICES WITH PARITY-PRESERVING ENCODER                          :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+    if format == 'matrix' :
+        Obj = Obj.switch_format()
 
     # compute the new shape -------------------------------------------------------------------------------
     new_shape = []
@@ -1279,12 +1393,12 @@ def join_legs(XGobj,string,final_statistic_inp=None):
     if(XGobj.encoder == 'parity-preserving'):
         Obj = Obj.switch_encoder()
 
-    if(objtype==SGarray):
-        Obj = SGarray(Obj)
+    if(objtype==sparse):
+        Obj = sparse(Obj)
 
     return Obj
 
-def split_legs(XGobj,string,final_statistic_inp,final_shape_inp):
+def split_legs(XGobj,string_inp,statistic,shape,format='standard'):
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -1295,15 +1409,29 @@ def split_legs(XGobj,string,final_statistic_inp,final_shape_inp):
     # the string is of the form aaa(bb)cccc(ddd)eeee
     # The indices will then be grouped together as one index
 
+    final_statistic_inp = statistic
+    final_shape_inp = shape
+
+    string = string_inp
+    if string.count(")") == 0 and string.count(")") == 0:
+        nseparator = 0
+        for separator in separator_list:
+            nseparator += string.count(separator)
+        if nseparator>0 :
+            for separator in separator_list:
+                string = string.replace(separator,")(")
+            string = "("+string+")"
+
+
     final_statistic = list(final_statistic_inp)
     final_shape     = list(final_shape_inp)
 
     objtype = type(XGobj)
     Obj = XGobj.copy()
-    if(objtype==SGarray):
-        Obj = DGarray(Obj)
-    if(objtype not in [DGarray,SGarray]):
-        error("Error[split_legs]: Object type must only be DGarray or SGarray!")
+    if(objtype==sparse):
+        Obj = dense(Obj)
+    if(objtype not in [dense,sparse]):
+        error("Error[split_legs]: Object type must only be dense or sparse!")
         
     # check if XGobj.statistic or final_statistic is weird or not
     for stat in XGobj.statistic:
@@ -1398,11 +1526,13 @@ def split_legs(XGobj,string,final_statistic_inp,final_shape_inp):
     sgn_str  = ""
     sgn_list = []
     for j,[ind_list,shape,stat_list] in enumerate(groups_info):
+        #print(stat_list," vs ",XGobj.statistic[j])
         for i,stat in enumerate(stat_list):
-            if stat == 1 and XGobj.statistic[j]==-1:
+            if stat == 1 and XGobj.statistic[j]==-1: #<========== This is different from join_legs
                 sgn = [ (-1)**param.gparity[k] for k in range(shape[i]) ]
                 sgn_str += ind_list[i]
                 sgn_list += [sgn]
+        #print(ind_list,"<---multiply---",''.join(sgn_str))
 
     # input string for einsum -----------------------------------------------------------------------------
     str_einsum_output  = ""
@@ -1456,6 +1586,9 @@ def split_legs(XGobj,string,final_statistic_inp,final_shape_inp):
     Obj.statistic = new_stat_list
     Obj = Obj.switch_encoder()  # <======================= SWITCH BACK TO CANONICAL ENCODER
     
+    if XGobj.format == 'matrix':
+        Obj = Obj.switch_format()
+
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 2 - SPLIT THE FERMIONIC INDICES WITH CANONICAL ENCODER (DONT SWITCH)             :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -1473,6 +1606,8 @@ def split_legs(XGobj,string,final_statistic_inp,final_shape_inp):
     Obj.data = np.reshape(Obj.data,new_shape)
     Obj.statistic = new_stat_list
 
+    #Obj.display("----")
+    
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 3 - REARRANGE BOSONIC INDICES TO THE RIGHT                                       :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -1482,13 +1617,20 @@ def split_legs(XGobj,string,final_statistic_inp,final_shape_inp):
     Obj.data = np.einsum(*einsum_input)
     Obj.statistic = final_statistic_inp
 
+    #Obj.display("++++")
+    #for sgn in sgn_list:
+    #    print(sgn)
+
     # revert to the original conditions ===================================================================
 
     if(XGobj.encoder == 'parity-preserving'):
         Obj = Obj.switch_encoder()
 
-    if(objtype==SGarray):
-        Obj = SGarray(Obj)
+    if format == 'matrix' :
+        Obj = Obj.switch_format()
+
+    if(objtype==sparse):
+        Obj = sparse(Obj)
 
     return Obj
 
@@ -1506,15 +1648,15 @@ def trim_grassmann_odd(Obj_input):
         Obj = Obj.switch_encoder()
         
 
-    if(objtype==DGarray):
-        Obj = SGarray(Obj)
+    if(objtype==dense):
+        Obj = sparse(Obj)
     C = Obj.coords
     for i in range(Obj.nnz):
         fcoords = [ ind for j,ind in enumerate(C[i]) if (Obj.statistic[j] in fermi_type)]
         if(sum(fcoords)%2 == 1):
             Obj.data.data[i] = 0
-    if(objtype==DGarray):
-        Obj = DGarray(Obj)
+    if(objtype==dense):
+        Obj = dense(Obj)
 
     if(Obj_input.encoder == 'canonical'):
         Obj = Obj.switch_encoder()
@@ -1525,8 +1667,8 @@ def is_grassmann_even(Obj_input):
     Obj = Obj_input.copy()
     if Obj.encoder == 'canonical':
         Obj = Obj.switch_encoder()
-    if type(Obj) == DGarray:
-        Obj = SGarray(Obj)
+    if type(Obj) == dense:
+        Obj = sparse(Obj)
 
     C = Obj.coords
     for x in C:
@@ -1538,10 +1680,6 @@ def is_grassmann_even(Obj_input):
 ####################################################
 ##                      SVDs                      ##
 ####################################################
-
-# cU * U = I
-# cV * V = I
-# V * cV = I
 
 def BlockSVD(Obj):
     
@@ -1616,11 +1754,6 @@ def BlockSVD(Obj):
     Λ = get_full_matrix(ΛE,ΛO)
     V = get_full_matrix(VE,VO)
     
-    print(np.einsum('ik,jk->ij',U,np.conjugate(U)))
-    print(np.einsum('ik,jk->ij',np.conjugate(U),U))
-    print(np.einsum('ik,jk->ij',V,np.conjugate(V)))
-    print(np.einsum('ik,jk->ij',np.conjugate(V),V))
-    
     return U, Λ, V
 
 def SVD(XGobj,string):
@@ -1636,10 +1769,10 @@ def SVD(XGobj,string):
 
     objtype = type(XGobj)
     Obj = XGobj.copy()
-    if(objtype==SGarray):
-        Obj = DGarray(Obj)
-    if(objtype not in [DGarray,SGarray]):
-        error("Error[SVD]: Object type must only be DGarray or SGarray!")
+    if(objtype==sparse):
+        Obj = dense(Obj)
+    if(objtype not in [dense,sparse]):
+        error("Error[SVD]: Object type must only be dense or sparse!")
         
     # check if XGobj.statistic or final_statistic is weird or not
     for stat in XGobj.statistic:
@@ -1652,21 +1785,21 @@ def SVD(XGobj,string):
         Obj = Obj.switch_format()
 
     partition_count = 0
-    for partition in svd_partition:
+    for partition in separator_list:
         partition_count += string.count(partition)
     if(partition_count!=1):
         partition_string = ""
-        for i, partition in enumerate(svd_partition):
+        for i, partition in enumerate(separator_list):
             if(i==0):
                 partition_string += "( "
-            elif(i==len(svd_partition)-1):
+            elif(i==len(separator_list)-1):
                 partition_string += ", or "
             else:
                 partition_string += ", "
 
             partition_string += "'"+partition+"'"
 
-            if(i==len(svd_partition)-1):
+            if(i==len(separator_list)-1):
                 partition_string += " )"
 
         error("Error[SVD]: The input string must contain one and only one partition "+partition_string+" in it.")
@@ -1681,7 +1814,7 @@ def SVD(XGobj,string):
     n_right = 0
     partition_found = False
     for char in string:
-        if char in svd_partition :
+        if char in separator_list :
             partition_found = True
             continue
         if(partition_found):
@@ -1690,7 +1823,7 @@ def SVD(XGobj,string):
             n_left+=1
 
     join_legs_string_input = string
-    for partition in svd_partition:
+    for partition in separator_list:
         join_legs_string_input = join_legs_string_input.replace(partition,")(")
     join_legs_string_input = "("+join_legs_string_input+")"
 
@@ -1704,7 +1837,7 @@ def SVD(XGobj,string):
         for elem in vector:
             ret *= elem
         return ret
-    def get_stat(vector):
+    def get_stat(vector,prefer=None):
         boson_count = 0
         fermi_count = 0
         for elem in vector:
@@ -1714,27 +1847,42 @@ def SVD(XGobj,string):
                 fermi_count += 1
 
         if(boson_count==0 and fermi_count>0):
-            return 1
+            if prefer != None:
+                return prefer
+            else:
+                return 1
         elif(boson_count>0 and fermi_count==0):
-            return 0
+            if prefer != None:
+                return prefer
+            else:
+                return 0
         elif(boson_count>0 and fermi_count>0):
             return hybrid_symbol
-
-    Obj = join_legs(Obj,join_legs_string_input,(get_stat(stats_left),get_stat(stats_right)))
-
+    Obj0 = Obj.copy()
+    Obj = Obj.join_legs(join_legs_string_input,(get_stat(stats_left,-1),get_stat(stats_right,+1)),"matrix")
+    
+    Test = Obj.split_legs(join_legs_string_input,Obj0.statistic,Obj0.shape,"matrix")
+    #Obj0.display("Obj0")
+    #Obj.display("Obj")
+    #Test.display("Test")
+    #exit()
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 2 - BLOCK SVD (MAKE SURE IT'S PARITY-PRESERVING!)                                :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     U, Λ, V = BlockSVD(Obj.data)
 
+    #dense(np.einsum('ij,jk,kl->il',U, Λ, V)-Obj.data).display("zero test")
+
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 3 - RECONSTRUCT U, Λ, and V AS GRASSMANN TENSORS                                 :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    U = DGarray(U,encoder="parity-preserving")
-    Λ = DGarray(Λ,encoder="parity-preserving")
-    V = DGarray(V,encoder="parity-preserving")
+    #the first way is to form the tensor first, then split
+    
+    U = dense(U,encoder="parity-preserving")
+    Λ = dense(Λ,encoder="parity-preserving")
+    V = dense(V,encoder="parity-preserving")
 
     U.statistic = (Obj.statistic[0],1)
     Λ.statistic = (-1,1)
@@ -1754,7 +1902,7 @@ def SVD(XGobj,string):
     Vshape = []
     partition_found = False
     for i,char in enumerate(string):
-        if char in svd_partition :
+        if char in separator_list :
             partition_found = True
             continue
         if(partition_found):
@@ -1779,35 +1927,41 @@ def SVD(XGobj,string):
     Ushape = tuple(Ushape + [dΛ])
     Vshape = tuple([dΛ] + Vshape)
 
-    U = split_legs(U,Uind,Ustats,Ushape)
-    V = split_legs(V,Vind,Vstats,Vshape)
+    #U.display("before spliting legs")
+
+    U = U.split_legs(Uind,Ustats,Ushape,'matrix')
+    V = V.split_legs(Vind,Vstats,Vshape,'matrix')
+
+    #U.display("after spliting legs")
 
     # revert to the original conditions ===================================================================
 
-    if(XGobj.encoder == 'canonical'):
-        U = U.switch_encoder()
-        Λ = Λ.switch_encoder()
-        V = V.switch_encoder()
     if(XGobj.format == 'standard'):
         U = U.switch_format()
         Λ = Λ.switch_format()
         V = V.switch_format()
 
-    if(objtype==SGarray):
-        U = SGarray(U)
-        Λ = SGarray(Λ)
-        V = SGarray(V)
+    if(XGobj.encoder == 'canonical'):
+        U = U.switch_encoder()
+        Λ = Λ.switch_encoder()
+        V = V.switch_encoder()
+
+    if(objtype==sparse):
+        U = sparse(U)
+        Λ = sparse(Λ)
+        V = sparse(V)
 
     return U, Λ, V
 
 ####################################################
-##                   hConjugate                   ##
+##                   Conjugation                  ##
 ####################################################
 
 def hconjugate(Obj,string_input):
+
     # string is of the form <indices1|indices2>
     string = string_input
-    for separator in svd_partition:
+    for separator in separator_list:
         string = string.replace(separator,"|")
     if string.count("|") > 1:
         error("Error[hconjugate]: The number of separator can only be 0 or 1 only.")
@@ -1828,46 +1982,113 @@ def hconjugate(Obj,string_input):
         shape_right = Obj.shape[n:]
 
     hObj = Obj.copy()
+
     this_type = type(Obj)
     this_format = Obj.format
     this_encoder = Obj.encoder
 
-    if this_type == DGarray :
-        hObj = SGarray(hObj)
-    if this_format == "matrix" :
-        hObj = hObj.switch_format()
-    if this_encoder == "parity-preserving" :
+    if this_type == sparse:
+        hObj = dense(hObj)
+    if this_encoder == 'parity-preserving':
         hObj = hObj.switch_encoder()
 
-    coords_list = hObj.data.coords.copy()
-    vals = hObj.data.data.copy()
-    new_coords_list = np.array(list(coords_list)[n:] + list(coords_list)[:n])
-    new_stats = make_list(Obj.statistic[n:] + Obj.statistic[:n])
-    new_shape = make_tuple(Obj.shape[n:] + Obj.shape[:n])
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                             :::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    for i,stat in enumerate(new_stats):
-        if stat in fermi_type:
-            new_stats[i] = -stat
+    # count the number of indices in the two groups
+    n_left = 0
+    n_right = 0
+    partition_found = False
+    for char in string:
+        if char in separator_list :
+            partition_found = True
+            continue
+        if(partition_found):
+            n_right+=1
+        else:
+            n_left+=1
+
+    join_legs_string_input = string
+    for partition in separator_list:
+        join_legs_string_input = join_legs_string_input.replace(partition,")(")
+    join_legs_string_input = "("+join_legs_string_input+")"
+
+    shape_left  = hObj.shape[:n_left]
+    stats_left  = hObj.statistic[:n_left]
+    shape_right = hObj.shape[n_left:]
+    stats_right = hObj.statistic[n_left:]
+
+    def prod(vector):
+        ret = 1
+        for elem in vector:
+            ret *= elem
+        return ret
+    def get_stat(vector,prefer=None):
+        boson_count = 0
+        fermi_count = 0
+        for elem in vector:
+            if elem in bose_type :
+                boson_count += 1
+            if elem in fermi_type :
+                fermi_count += 1
+
+        if(boson_count==0 and fermi_count>0):
+            if prefer != None:
+                return prefer
+            else:
+                return 1
+        elif(boson_count>0 and fermi_count==0):
+            if prefer != None:
+                return prefer
+            else:
+                return 0
+        elif(boson_count>0 and fermi_count>0):
+            return hybrid_symbol
+
+    #hObj.switch_encoder().display("before joining legs")
+    #hObj0pj = hObj.copy()
+    hObj = hObj.join_legs(join_legs_string_input,(get_stat(stats_left,-1),get_stat(stats_right,+1)),format='matrix')
+    #hObj0 = hObj.copy()
+    
+    #hObj.switch_encoder().display("after joining legs")
+
+    #hObj.switch_encoder().display("after joining legs")
+
+    M = hObj.data
+    hM = np.conjugate(np.einsum('ij->ji',M))
+
+    #dense(M).display("raw form")
+
+    #dense(np.einsum('ij,jk->ik',M,hM)).display("UcU (raw form)")
+    #dense(np.einsum('ij,jk->ik',hM,M)).display("cUU (raw form)")
+
+    new_stats_joined = []
+    for stat in hObj.statistic :
+        if stat in fermi_type :
+            new_stats_joined = [-stat]+new_stats_joined
+        else:
+            new_stats_joined = [stat]+new_stats_joined
+    hObj.data = hM
+    hObj.statistic = make_tuple(new_stats_joined)
+
+    new_shape = make_tuple(make_list(shape_right)+make_list(shape_left))
+    new_stats = make_list(stats_right)+make_list(stats_left)
+    for i in range(Obj.ndim):
+        if new_stats[i] in fermi_type:
+            new_stats[i] *= -1
     new_stats = make_tuple(new_stats)
 
-    for i in range(hObj.nnz):
-        sgn = 1
-        for dim in range(hObj.ndim):
-            if new_stats[dim] in fermi_type:
-                sgn *= param.sgn[ new_coords_list[dim][i] ]
-        vals[i] = np.conjugate(vals[i]) * sgn
+    [left_string,right_string] = string.split("|")
+    join_legs_string_output = "("+ right_string+")("+left_string+")"
 
-    new_dat = sp.COO( new_coords_list, vals , new_shape)
+    hObj = hObj.split_legs(join_legs_string_output,new_stats,new_shape,format=this_format)
 
-    hObj.data = new_dat
-    hObj.statistic = new_stats
+    #hObj0 = hObj0.split_legs(join_legs_string_input,hObj0pj.statistic,hObj0pj.shape)
 
+    #hObj0.switch_encoder().display("after spliting legs")
 
-    if this_type == DGarray :
-        hObj = DGarray(hObj)
-    if this_format == "matrix" :
-        hObj = hObj.switch_format()
-    if this_encoder == "parity-preserving" :
-        hObj = hObj.switch_encoder()
-
+    #print(new_stats,hObj0pj.statistic)
+    #print(new_shape,hObj0pj.shape)
+    #exit()
     return hObj
