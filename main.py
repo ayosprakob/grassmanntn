@@ -168,6 +168,23 @@ def check_join_and_split():
 	print("|C-C4| =",(C-C4).norm)
 	print()
 
+def check_hybrid_join():
+
+	m = 8
+	n = 5
+
+	A = np.reshape(np.arange(m*n),(m,n))
+	A = dense(A, statistic = (1,0))
+	A = gTN.trim_grassmann_odd(A)
+	if(type(A)==sparse):
+		A = A.remove_zeros()
+
+	A.switch_encoder().display()
+
+	B = A.join_legs('(ij)')
+
+	B.switch_encoder().display()
+
 def check_conjugate():
 
 	m = 2
@@ -191,10 +208,10 @@ def check_conjugate():
 
 def check_svd():
 
-	m = 2
+	m = 4
 	n = 2
 	p = 2
-	q = 2
+	q = 4
 
 	# dense
 
@@ -210,10 +227,10 @@ def check_svd():
 	s3 = 0
 	s4 = 0
 	while [s1,s2]==[0,0] or [s3,s4]==[0,0] :
-		s1 = g()
-		s2 = g()
-		s3 = g()
-		s4 = g()
+		s1 = f()
+		s2 = f()
+		s3 = f()
+		s4 = f()
 
 	statistic = (s1,s2,s3,s4)
 	print(statistic)

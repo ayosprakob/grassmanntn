@@ -265,7 +265,7 @@ class dense:
             
 
         if(self.encoder=='parity-preserving'):
-            ret = ret.switch_encoder().copy()
+            ret = ret.switch_encoder()
         return ret
 
     def switch_encoder(self):
@@ -1550,7 +1550,6 @@ def split_legs(XGobj,string_inp,statistic,shape,format='standard'):
     #:::::      STEP 1 - SPLIT THE BOSONIC AND FERMIONIC INDICES WITH PARITY-PRESERVING ENCODER       :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-
     # compute the new shape -------------------------------------------------------------------------------
     new_shape = []
     new_stat_list = []
@@ -1581,6 +1580,8 @@ def split_legs(XGobj,string_inp,statistic,shape,format='standard'):
     new_shape = tuple(new_shape)
     new_stat_list = tuple(new_stat_list)
 
+
+
     Obj = Obj.switch_encoder()  # <======================= SWITCH TO PARITY-PRESERVING ENCODER
     Obj.data = np.reshape(Obj.data,new_shape)
     Obj.statistic = new_stat_list
@@ -1589,6 +1590,8 @@ def split_legs(XGobj,string_inp,statistic,shape,format='standard'):
     if XGobj.format == 'matrix':
         Obj = Obj.switch_format()
 
+    #Obj.switch_encoder().switch_format().display("----")
+    
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 2 - SPLIT THE FERMIONIC INDICES WITH CANONICAL ENCODER (DONT SWITCH)             :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -1606,8 +1609,6 @@ def split_legs(XGobj,string_inp,statistic,shape,format='standard'):
     Obj.data = np.reshape(Obj.data,new_shape)
     Obj.statistic = new_stat_list
 
-    #Obj.display("----")
-    
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 3 - REARRANGE BOSONIC INDICES TO THE RIGHT                                       :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -1681,6 +1682,7 @@ def is_grassmann_even(Obj_input):
 ##                      SVDs                      ##
 ####################################################
 
+# I = cUU = VcV
 def BlockSVD(Obj):
     
     # performing an svd of a matrix block by block
@@ -1858,10 +1860,10 @@ def SVD(XGobj,string):
                 return 0
         elif(boson_count>0 and fermi_count>0):
             return hybrid_symbol
-    Obj0 = Obj.copy()
+    #Obj0 = Obj.copy()
     Obj = Obj.join_legs(join_legs_string_input,(get_stat(stats_left,-1),get_stat(stats_right,+1)),"matrix")
     
-    Test = Obj.split_legs(join_legs_string_input,Obj0.statistic,Obj0.shape,"matrix")
+    #Test = Obj.split_legs(join_legs_string_input,Obj0.statistic,Obj0.shape,"matrix")
     #Obj0.display("Obj0")
     #Obj.display("Obj")
     #Test.display("Test")
@@ -1872,7 +1874,14 @@ def SVD(XGobj,string):
 
     U, Λ, V = BlockSVD(Obj.data)
 
+    #dense(U).display("right after BlockSVD")
+
     #dense(np.einsum('ij,jk,kl->il',U, Λ, V)-Obj.data).display("zero test")
+
+    cU = np.einsum('ij->ji',np.conjugate(U))
+    #cV = np.einsum('ij->ji',np.conjugate(V))
+    #dense(np.einsum('ij,jk->ik',cU,U)).display("cUU")
+    #dense(np.einsum('ij,jk->ik',V,cV)).display("VcV")
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 3 - RECONSTRUCT U, Λ, and V AS GRASSMANN TENSORS                                 :::::
@@ -1927,12 +1936,21 @@ def SVD(XGobj,string):
     Ushape = tuple(Ushape + [dΛ])
     Vshape = tuple([dΛ] + Vshape)
 
+
     #U.display("before spliting legs")
 
     U = U.split_legs(Uind,Ustats,Ushape,'matrix')
     V = V.split_legs(Vind,Vstats,Vshape,'matrix')
 
     #U.display("after spliting legs")
+
+    #jU = U.join_legs(Uind,('*',1),'matrix')
+    #jU.display("joining legs back")
+    #U.switch_encoder().display("after spliting legs")
+
+    cU = U.hconjugate('ij k')
+    #cU.display("the conjugate")
+    #einsum('aij,ijb->ab',cU,U).display()
 
     # revert to the original conditions ===================================================================
 
@@ -1957,40 +1975,54 @@ def SVD(XGobj,string):
 ##                   Conjugation                  ##
 ####################################################
 
-def hconjugate(Obj,string_input):
+def hconjugate(XGobj,string):
 
-    # string is of the form <indices1|indices2>
-    string = string_input
-    for separator in separator_list:
-        string = string.replace(separator,"|")
-    if string.count("|") > 1:
-        error("Error[hconjugate]: The number of separator can only be 0 or 1 only.")
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #   - parity-preserving encoder         :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #   - matrix format                     :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    if Obj.statistic.count(hybrid_symbol)>0:
-        error("Error[hconjugate]: Split the hybrid indices before performing the conjugate.")
+    # the string is of the form aaaa|bbb
 
-    # get stat_left/right and shape_left/right
-    n = 0
-    if string.count("|") == 0:
-        stats = Obj.statistic
-        shape = Obj.shape
-    elif string.count("|") == 1:
-        n = string.index("|")
-        stats_left  = Obj.statistic[:n]
-        stats_right = Obj.statistic[n:]
-        shape_left  = Obj.shape[:n]
-        shape_right = Obj.shape[n:]
+    objtype = type(XGobj)
+    Obj = XGobj.copy()
+    if(objtype==sparse):
+        Obj = dense(Obj)
+    if(objtype not in [dense,sparse]):
+        error("Error[SVD]: Object type must only be dense or sparse!")
+        
+    # check if XGobj.statistic or final_statistic is weird or not
+    for stat in XGobj.statistic:
+        if(stat not in allowed_stat):
+            error("Error[SVD]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
+            
+    if(XGobj.encoder == 'canonical'):
+        Obj = Obj.switch_encoder()
+    if(XGobj.format == 'standard'):
+        Obj = Obj.switch_format()
 
-    hObj = Obj.copy()
+    partition_count = 0
+    for partition in separator_list:
+        partition_count += string.count(partition)
+    if(partition_count!=1):
+        partition_string = ""
+        for i, partition in enumerate(separator_list):
+            if(i==0):
+                partition_string += "( "
+            elif(i==len(separator_list)-1):
+                partition_string += ", or "
+            else:
+                partition_string += ", "
 
-    this_type = type(Obj)
-    this_format = Obj.format
-    this_encoder = Obj.encoder
+            partition_string += "'"+partition+"'"
 
-    if this_type == sparse:
-        hObj = dense(hObj)
-    if this_encoder == 'parity-preserving':
-        hObj = hObj.switch_encoder()
+            if(i==len(separator_list)-1):
+                partition_string += " )"
+
+        error("Error[SVD]: The input string must contain one and only one partition "+partition_string+" in it.")
+        
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                             :::::
@@ -2014,10 +2046,10 @@ def hconjugate(Obj,string_input):
         join_legs_string_input = join_legs_string_input.replace(partition,")(")
     join_legs_string_input = "("+join_legs_string_input+")"
 
-    shape_left  = hObj.shape[:n_left]
-    stats_left  = hObj.statistic[:n_left]
-    shape_right = hObj.shape[n_left:]
-    stats_right = hObj.statistic[n_left:]
+    shape_left  = Obj.shape[:n_left]
+    stats_left  = Obj.statistic[:n_left]
+    shape_right = Obj.shape[n_left:]
+    stats_right = Obj.statistic[n_left:]
 
     def prod(vector):
         ret = 1
@@ -2046,49 +2078,75 @@ def hconjugate(Obj,string_input):
         elif(boson_count>0 and fermi_count>0):
             return hybrid_symbol
 
-    #hObj.switch_encoder().display("before joining legs")
-    #hObj0pj = hObj.copy()
-    hObj = hObj.join_legs(join_legs_string_input,(get_stat(stats_left,-1),get_stat(stats_right,+1)),format='matrix')
-    #hObj0 = hObj.copy()
+    Obj = Obj.join_legs(join_legs_string_input,(get_stat(stats_left,-1),get_stat(stats_right,+1)),"matrix")
     
-    #hObj.switch_encoder().display("after joining legs")
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #:::::      STEP 2 - Hermitian Conjugation                                                        :::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    #hObj.switch_encoder().display("after joining legs")
-
-    M = hObj.data
+    #U, Λ, V = BlockSVD(Obj.data)
+    M = Obj.data
     hM = np.conjugate(np.einsum('ij->ji',M))
 
-    #dense(M).display("raw form")
 
-    #dense(np.einsum('ij,jk->ik',M,hM)).display("UcU (raw form)")
-    #dense(np.einsum('ij,jk->ik',hM,M)).display("cUU (raw form)")
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #:::::      STEP 3 - RECONSTRUCT THE TENSOR                                                       :::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    new_stats_joined = []
-    for stat in hObj.statistic :
-        if stat in fermi_type :
-            new_stats_joined = [-stat]+new_stats_joined
+    hObj = dense(hM,encoder="parity-preserving")
+    hObj.statistic = [Obj.statistic[1],Obj.statistic[0]]
+    if hObj.statistic[0] in fermi_type :
+        hObj.statistic[0] *= -1
+    if hObj.statistic[1] in fermi_type :
+        hObj.statistic[1] *= -1
+    hObj.statistic = make_tuple(hObj.statistic)
+    hObj.format = "matrix"
+
+    #Obj.display("Obj")
+    #hObj.display("hObj")
+
+    # count the number of indices in the two groups
+    Uind = ""
+    Vind = ""
+    Ustats = []
+    Vstats = []
+    Ushape = []
+    Vshape = []
+    partition_found = False
+    for i,char in enumerate(string):
+        if char in separator_list :
+            partition_found = True
+            continue
+        if(partition_found):
+            Vind+=char
+            Vstats+=[XGobj.statistic[i-1]]
+            Vshape+=[XGobj.shape[i-1]]
         else:
-            new_stats_joined = [stat]+new_stats_joined
-    hObj.data = hM
-    hObj.statistic = make_tuple(new_stats_joined)
+            Uind+=char
+            Ustats+=[XGobj.statistic[i]]
+            Ushape+=[XGobj.shape[i]]
 
-    new_shape = make_tuple(make_list(shape_right)+make_list(shape_left))
-    new_stats = make_list(stats_right)+make_list(stats_left)
-    for i in range(Obj.ndim):
-        if new_stats[i] in fermi_type:
-            new_stats[i] *= -1
-    new_stats = make_tuple(new_stats)
+    hObjind   = "("+Vind+")" + "("+Uind+")"
+    hObjstats = Vstats+Ustats
+    hObjshape = tuple(Vshape+Ushape)
+    for i in range(len(hObjstats)) :
+        if hObjstats[i] in fermi_type :
+            hObjstats[i] *= -1
+    hObjstats = make_tuple(hObjstats)
 
-    [left_string,right_string] = string.split("|")
-    join_legs_string_output = "("+ right_string+")("+left_string+")"
-
-    hObj = hObj.split_legs(join_legs_string_output,new_stats,new_shape,format=this_format)
-
-    #hObj0 = hObj0.split_legs(join_legs_string_input,hObj0pj.statistic,hObj0pj.shape)
-
-    #hObj0.switch_encoder().display("after spliting legs")
-
-    #print(new_stats,hObj0pj.statistic)
-    #print(new_shape,hObj0pj.shape)
+    #hObj.display("hObj")
+    hObj = hObj.split_legs(hObjind,hObjstats,hObjshape,'matrix')
+    #hObj.display("hObj")
     #exit()
+
+    # revert to the original conditions ===================================================================
+
+    if(XGobj.format == 'standard'):
+        hObj = hObj.switch_format()
+    if(XGobj.encoder == 'canonical'):
+        hObj = hObj.switch_encoder()
+
+    if(objtype==sparse):
+        hObj = sparse(hObj)
+
     return hObj
