@@ -550,9 +550,6 @@ class sparse:
     def __repr__(self):
         return repr(self.data)
 
-    def __repr__(self):
-        return repr(self.data)
-    
     def switch_format(self):
         #multiply sign factor sigma[i] to every conjugated indices i
 
@@ -894,6 +891,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
     if debug_mode :
         t0 = time.time()
+        print()
         print("Step 1: Strings for sign factor computation")
 
     fsummand = ""
@@ -972,7 +970,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
     if debug_mode :
         t0 = time.time()
-        print("Step 2: Get the sign tensors (",time.time()-t0,"s from the beginning)")
+        print("Step 2: Get the sign tensors (",time.time()-t0,"s from the beginning )")
     # S1
 
     # this is a little complicate...
@@ -995,21 +993,12 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     xdim_list_reduced = make_tuple(xdim_list_reduced)
     
     if debug_mode :
-        print("xdim_list_reduced (",time.time()-t0,"s from the beginning)")
+        print("xdim_list_reduced (",time.time()-t0,"s from the beginning )")
 
-
-    # THIS SECTION IS TIME CONSUMING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    #
-    #           ||
-    #           ||
-    #           ||
-    #           ||
-    #           ||
-    #          \  /
-    #           \/
-    #
     S1 = np.zeros(xdim_list_reduced,dtype=int)
     iterator = np.nditer(S1, flags=['multi_index'])
+    individual_parity_list = []
+    sgn_list = []
     for element in iterator:
         coords = iterator.multi_index
         dupped_coords = list(coords)
@@ -1020,26 +1009,23 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         for [f1,f2] in to_duplicate_list:
             dupped_coords[f1] = dupped_coords[f2]
 
-        individual_parity = tuple([ param.gparity[i] for i in dupped_coords ])
-        sgn1 = relative_parity(str_step1,individual_parity)
+        individual_parity = tuple([ param.gparity[i]%2 for i in dupped_coords ])
+        if individual_parity not in individual_parity_list:
+            individual_parity_list += [individual_parity]
+            sgn1 = relative_parity(str_step1,individual_parity)
+            sgn_list += [sgn1]
+        else:
+            index = individual_parity_list.index(individual_parity)
+            sgn1 = sgn_list[index]
+
         S1[coords] = sgn1
 
     if debug_mode :
-        print("S1 (",time.time()-t0,"s from the beginning)")
-    #dense(S1).switch_encoder().display("S1:"+str_step1)
-    #
-    #           /\
-    #          /  \
-    #           ||
-    #           ||
-    #           ||
-    #           ||
-    #           ||
-    #
-    # THIS SECTION IS TIME CONSUMING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+        print("S1 (",time.time()-t0,"s from the beginning )")
 
     # S2
+    individual_parity_list = []
+    sgn_list = []
     if fermion_num_right>0 :
         S2 = np.zeros(ysorted_dim_list,dtype=int)
         iterator = np.nditer(S2, flags=['multi_index'])
@@ -1047,13 +1033,19 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         for element in iterator:
             coords = iterator.multi_index
             individual_parity = tuple([ param.gparity[i] for i in coords ])
-            sgn2 = relative_parity(str_step2,individual_parity)
+            if individual_parity not in individual_parity_list:
+                individual_parity_list += [individual_parity]
+                sgn2 = relative_parity(str_step2,individual_parity)
+                sgn_list += [sgn2]
+            else:
+                index = individual_parity_list.index(individual_parity)
+                sgn2 = sgn_list[index]
             S2[coords] = sgn2
 
     #dense(S2).switch_encoder().display("S2:"+str_step2)
 
     if debug_mode :
-        print("S2 (",time.time()-t0,"s from the beginning)")
+        print("S2 (",time.time()-t0,"s from the beginning )")
     # SF
     SF = np.zeros(sf_dim_list,dtype=int)
     iterator = np.nditer(SF, flags=['multi_index'])
@@ -1066,13 +1058,13 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     #dense(SF).switch_encoder().display("SF")
 
     if debug_mode :
-        print("SF (",time.time()-t0,"s from the beginning)")
+        print("SF (",time.time()-t0,"s from the beginning )")
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #                     Step 3: Do the summation
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     if debug_mode :
-        print("Step 3: Do the summation (",time.time()-t0,"s from the beginning)")
+        print("Step 3: Do the summation (",time.time()-t0,"s from the beginning )")
 
     if this_type == dense:
         einsum_string1 = summand_with_comma
@@ -1226,7 +1218,8 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
             ret = ret.switch_encoder().copy()
 
     if debug_mode :
-        print("Step 4: Finish (",time.time()-t0,"s from the beginning)")
+        print("Step 4: Finish (",time.time()-t0,"s from the beginning )")
+        print()
 
     return ret
 
