@@ -20,8 +20,6 @@ numer_display_cutoff = 1000*numer_cutoff
 char_list = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
 
 '''
-
-
         USAGE ADVICES
         - Do not do einsum with hybrid indices (already prevent in the code)
         - hconjugate and join/split opertions are not commutative!
@@ -279,7 +277,7 @@ class dense:
             sgn_value = 1
             for i,ind in enumerate(coords):
                 if(ret.statistic[i]==-1):
-                    sgn_value *= param.sgn[ind]
+                    sgn_value *= param.sgn(ind)
                 if(ret.statistic[i]==hybrid_symbol):
                     error("Error[switch_format]: Cannot switch format with a hybrid index.\n                      Split them into bosonic and fermionic ones first!")
                     
@@ -304,7 +302,7 @@ class dense:
             new_coords = []
             for i,ind in enumerate(coords):
                 if(self.statistic[i] in fermi_type):
-                    new_coords += [param.encoder[ind]]
+                    new_coords += [param.encoder(ind)]
                 else:
                     new_coords += [ind]
             new_coords = tuple(new_coords)
@@ -314,6 +312,22 @@ class dense:
         else:
             ret.encoder='canonical'
         return ret
+
+    def force_encoder(self,target="canonical"):
+        if target not in encoder_type:
+            error("Error[dense.force_encoder]: Unrecognized target encoder.")
+        if target != self.encoder :
+            return self.switch_encoder()
+        else :
+            return self.copy()
+
+    def force_format(self,target="standard"):
+        if target not in format_type:
+            error("Error[dense.force_format]: Unrecognized target format.")
+        if target != self.format :
+            return self.switch_format()
+        else :
+            return self.copy()
 
     def join_legs(self,string_inp,make_format='standard',intermediate_stat=(-1,1)):
         return join_legs(self,string_inp,make_format,intermediate_stat)
@@ -568,7 +582,7 @@ class sparse:
             sgn_value = 1
             for i,ind in enumerate(coords):
                 if(ret.statistic[i]==-1):
-                    sgn_value *= param.sgn[ind]
+                    sgn_value *= param.sgn(ind)
                 if(ret.statistic[i]==hybrid_symbol):
                     error("Error[switch_format]: Cannot switch format with a hybrid index.\n                      Split them into bosonic and fermionic ones first!")
                     
@@ -595,7 +609,7 @@ class sparse:
             new_coords = []
             for i,ind in enumerate(coords):
                 if(self.statistic[i] in fermi_type):
-                    new_coords += [param.encoder[ind]]
+                    new_coords += [param.encoder(ind)]
                 else:
                     new_coords += [ind]
             new_coords = tuple(new_coords)
@@ -607,6 +621,22 @@ class sparse:
         else:
             ret.encoder='canonical'
         return ret
+
+    def force_encoder(self,target="canonical"):
+        if target not in encoder_type:
+            error("Error[sparse.force_encoder]: Unrecognized target encoder.")
+        if target != self.encoder :
+            return self.switch_encoder()
+        else :
+            return self.copy()
+
+    def force_format(self,target="standard"):
+        if target not in format_type:
+            error("Error[sparse.force_format]: Unrecognized target format.")
+        if target != self.format :
+            return self.switch_format()
+        else :
+            return self.copy()
 
     def join_legs(self,string_inp,make_format='standard',intermediate_stat=(-1,1)):
         return join_legs(self,string_inp,make_format,intermediate_stat)
@@ -1009,7 +1039,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         for [f1,f2] in to_duplicate_list:
             dupped_coords[f1] = dupped_coords[f2]
 
-        individual_parity = tuple([ param.gparity[i]%2 for i in dupped_coords ])
+        individual_parity = tuple([ param.gparity(i)%2 for i in dupped_coords ])
         if individual_parity not in individual_parity_list:
             individual_parity_list += [individual_parity]
             sgn1 = relative_parity(str_step1,individual_parity)
@@ -1032,7 +1062,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
         for element in iterator:
             coords = iterator.multi_index
-            individual_parity = tuple([ param.gparity[i] for i in coords ])
+            individual_parity = tuple([ param.gparity(i) for i in coords ])
             if individual_parity not in individual_parity_list:
                 individual_parity_list += [individual_parity]
                 sgn2 = relative_parity(str_step2,individual_parity)
@@ -1053,7 +1083,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         coords = iterator.multi_index
         sgnf = 1
         for ind in coords:
-            sgnf *= param.sgn[ind]
+            sgnf *= param.sgn(ind)
         SF[coords] = sgnf
     #dense(SF).switch_encoder().display("SF")
 
@@ -1427,6 +1457,8 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     if 0 in display_stage:
         Obj.display("Before stage 0")
     
+    if this_format=='matrix':
+        return Obj.switch_format()
     
     return Obj
     
@@ -1528,7 +1560,7 @@ def get_grouping_sign_factors(sorted_group_info, intermediate_stat):
     # generate the sign factor tensor (separately)
     sign_factors_list = [ sign_factors_info[0], [] ]
     for d in sign_factors_info[1] :
-        sgn = np.array([ (-1)**param.gparity[ind] for ind in range(d) ])
+        sgn = np.array([ (-1)**param.gparity(ind) for ind in range(d) ])
         sign_factors_list[1] += [sgn]
     
     #print(sign_factors_list)
@@ -1922,7 +1954,7 @@ def svd(XGobj,string,cutoff=None):
         Λ.display("Λ (stage 4)")
         V.display("V (stage 4)")
         
-    if(this_format == 'matrix'):
+    if(this_format == 'standard'):
         U = U.switch_format()
         Λ = Λ.switch_format()
         V = V.switch_format()
@@ -2433,3 +2465,111 @@ def hconjugate(XGobj,string):
         Obj = Obj.switch_encoder()
 
     return Obj
+
+
+####################################################
+##                    Utilities                   ##
+####################################################
+
+def random(shape,statistic,tensor_format=dense,dtype=float):
+    X = np.random.rand(*shape)
+    if dtype == complex :
+        X = complex(1,0)*X + complex(0,1)*np.random.rand(*shape)
+    A = dense(X, statistic = statistic)
+    A = trim_grassmann_odd(A)
+    if tensor_format==sparse :
+        A = sparse(A)
+        A = A.remove_zeros()
+    return A
+
+####################################################
+##                       TRG                      ##
+####################################################
+
+def trg(T,dcut=16):
+
+    # mandatory properties of T:
+    #    - shape = (nx,ny,nx,ny)
+    #    - statistic = (1,1,-1,-1)
+
+    if [T.shape[0],T.shape[1]] != [T.shape[2],T.shape[3]] :
+        error("Error[trg]: The shape must be of the form (m,n,m,n)!")
+
+    if make_list(T.statistic) != [1,1,-1,-1] :
+        error("Error[trg]: The statistic must be (1,1,-1,-1)!")
+
+    #===============================================================================#
+    #   Step 1: Rearrange the tensor legs in two ways                               #
+    #===============================================================================#
+    
+    T1 = einsum('ijkl->jkli',T)
+    T2 = einsum('ijkl->klij',T)
+
+    U1,S1,V1 = T1.svd('ab cd')
+    U2,S2,V2 = T2.svd('ab cd')
+
+    #
+    #                             j                                     j
+    #                             ↑                                     ↑
+    #        j                    ↑                                     ↑
+    #        ↑              k → →(U1)                                 (V2)→ → i
+    #        ↑                      ↘                                 ↗
+    #  k → →(T)→ → i    =             ↘              =              ↗
+    #        ↑                          ↘                         ↗
+    #        ↑                          (V1)→ → i         k → →(U2)
+    #        l                            ↑                     ↑
+    #                                     ↑                     ↑
+    #                                     l                     l
+    #
+
+    #===============================================================================#
+    #   Step 2: Multiply sqrt(S) into U and V                                       #
+    #===============================================================================#
+    
+    S = S1.force_format("matrix")
+    sqrtS = S.copy()
+    sqrtS.data = np.sqrt(S.data)
+    sqrtS = sqrtS.force_format("standard")
+
+    U1 = einsum('abx,xc->abc',U1,sqrtS)
+    V1 = einsum('ax,xbc->abc',sqrtS,V1)
+
+    S = S2.force_format("matrix")
+    sqrtS = S.copy()
+    sqrtS.data = np.sqrt(S.data)
+    sqrtS = sqrtS.force_format("standard")
+
+    U2 = einsum('abx,xc->abc',U2,sqrtS)
+    V2 = einsum('ax,xbc->abc',sqrtS,V2)
+
+    
+    #===============================================================================#
+    #   Step 3: Renormalization                                                     #
+    #===============================================================================#
+
+    #
+    #      k                       j
+    #        ↘                   ↗
+    #          ↘               ↗
+    #          (V1)→ → z → →(U2)
+    #            ↑           ↑
+    #            ↑           ↑
+    #            w           y
+    #            ↑           ↑
+    #            ↑           ↑
+    #          (V2)→ → x → →(U1)
+    #          ↗               ↘
+    #        ↗                   ↘
+    #      l                       i
+    #
+    
+    V1.info()
+    V2.info()
+
+    VV = einsum('kwz,lxw->lxzk',V1,V2);     print("VV")
+    UU = einsum('yxi,zyj->jzxi',U1,U2);     print("UU")
+    T2 = einsum('lxzk,jzxi->ijkl',VV,UU);   print("T2")
+
+    tr1 = einsum('ijkl,klij',T,T);          print(tr1)
+    tr2 = einsum('ijij',T2);                print(tr2)
+
