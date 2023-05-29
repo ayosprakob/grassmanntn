@@ -8,7 +8,7 @@ import random
 import sys
 cI = complex(0,1)
 
-from grassmanntn import grassmanntn as gtn
+import grassmanntn as gtn
 from grassmanntn.grassmanntn import dense
 from grassmanntn.grassmanntn import sparse
 from grassmanntn import param

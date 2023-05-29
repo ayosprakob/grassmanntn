@@ -922,7 +922,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     if debug_mode :
         t0 = time.time()
         print()
-        print("Step 1: Strings for sign factor computation")
+        print("Step 1: Strings for sign factor computation",end="")
 
     fsummand = ""
     fstat_list = []
@@ -999,8 +999,9 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     if debug_mode :
+        print(" (",time.time()-t0,"s )...")
         t0 = time.time()
-        print("Step 2: Get the sign tensors (",time.time()-t0,"s from the beginning )")
+        print("Step 2: Get the sign tensors",end="")
     # S1
 
     # this is a little complicate...
@@ -1023,8 +1024,11 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     xdim_list_reduced = make_tuple(xdim_list_reduced)
     
     if debug_mode :
-        print("xdim_list_reduced (",time.time()-t0,"s from the beginning )")
-
+        print(" (",time.time()-t0,"s )...")
+        t0 = time.time()
+        print("    S1:",end="")
+    
+    #==========================================
     S1 = np.zeros(xdim_list_reduced,dtype=int)
     iterator = np.nditer(S1, flags=['multi_index'])
     individual_parity_list = []
@@ -1040,6 +1044,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
             dupped_coords[f1] = dupped_coords[f2]
 
         individual_parity = tuple([ param.gparity(i)%2 for i in dupped_coords ])
+        
         if individual_parity not in individual_parity_list:
             individual_parity_list += [individual_parity]
             sgn1 = relative_parity(str_step1,individual_parity)
@@ -1049,9 +1054,11 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
             sgn1 = sgn_list[index]
 
         S1[coords] = sgn1
-
+    
     if debug_mode :
-        print("S1 (",time.time()-t0,"s from the beginning )")
+        print(" (",time.time()-t0,"s )...")
+        t0 = time.time()
+        print("    S2:",end="")
 
     # S2
     individual_parity_list = []
@@ -1075,7 +1082,9 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     #dense(S2).switch_encoder().display("S2:"+str_step2)
 
     if debug_mode :
-        print("S2 (",time.time()-t0,"s from the beginning )")
+        print(" (",time.time()-t0,"s )...")
+        t0 = time.time()
+        print("    SF:",end="")
     # SF
     SF = np.zeros(sf_dim_list,dtype=int)
     iterator = np.nditer(SF, flags=['multi_index'])
@@ -1087,14 +1096,14 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         SF[coords] = sgnf
     #dense(SF).switch_encoder().display("SF")
 
-    if debug_mode :
-        print("SF (",time.time()-t0,"s from the beginning )")
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #                     Step 3: Do the summation
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     if debug_mode :
-        print("Step 3: Do the summation (",time.time()-t0,"s from the beginning )")
+        print(" (",time.time()-t0,"s )...")
+        t0 = time.time()
+        print("Step 3: Do the summation",end="")
 
     if this_type == dense:
         einsum_string1 = summand_with_comma
@@ -1248,7 +1257,9 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
             ret = ret.switch_encoder().copy()
 
     if debug_mode :
-        print("Step 4: Finish (",time.time()-t0,"s from the beginning )")
+        print(" (",time.time()-t0,"s )...")
+        t0 = time.time()
+        print("Step 4: Finish")
         print()
 
     return ret
@@ -2563,13 +2574,20 @@ def trg(T,dcut=16):
     #      l                       i
     #
     
-    V1.info()
-    V2.info()
+    VV = einsum('kwz,lxw->lxzk',V1,V2);
+    UU = einsum('yxi,zyj->jzxi',U1,U2);
+    T2 = einsum('lxzk,jzxi->ijkl',VV,UU,debug_mode=True);
 
-    VV = einsum('kwz,lxw->lxzk',V1,V2);     print("VV")
-    UU = einsum('yxi,zyj->jzxi',U1,U2);     print("UU")
-    T2 = einsum('lxzk,jzxi->ijkl',VV,UU);   print("T2")
-
-    tr1 = einsum('ijkl,klij',T,T);          print(tr1)
-    tr2 = einsum('ijij',T2);                print(tr2)
+    tr1 = einsum('ijkl,klij',T,T);
+    tr2 = einsum('ijij',T2);
+    err = np.abs(tr1-tr2)
+    print("Error:",err)
+    
+    Tnorm = T2.norm
+    T2 = dense(T2)
+    T2.data = T2.data/Tnorm
+    if type(T) == sparse :
+        T2 = sparse(T2)
+    
+    return T2, Tnorm
 
