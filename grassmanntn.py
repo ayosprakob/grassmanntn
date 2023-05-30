@@ -5,6 +5,7 @@ import sparse as sp
 import opt_einsum as oe
 import time
 import sys
+import gc
 
 hybrid_symbol = "*"
 separator_list = ("|",":",";",",","."," ")
@@ -52,6 +53,79 @@ def get_char(string):
         if char not in string:
             return char
     error("Error[get_char]: Running out of index character!")    
+
+def show_progress(step_inp,total_inp,random_text = ""):
+
+    step = int(np.floor(32*step_inp/total_inp))
+    total = 32
+
+    if step > total:
+        #gtn.error("Error[show_progress]: <step> cannot be larger than <total>!")
+        step = total
+    print("\r",end="")
+
+    random_text = random_text + " "
+    if(len(random_text)>2*total):
+        random_text = " "
+
+    progress_number = " "+str(step_inp)+"/"+str(total_inp)
+
+    if len(random_text) > 2*step :
+        random_text = random_text[(len(random_text)-2*step):]
+    styled_random_text = "\u001b[1;37;44m"+random_text+"\u001b[0;0m"
+
+    if 2*step-len(random_text)+len(random_text)+len(progress_number) > 2*total :
+        progress_number = progress_number[:(2*total-2*step)]
+    styled_number = "\u001b[1;34;47m"+progress_number+"\u001b[0;0m"
+
+    filled_bar = "\u001b[0;;44m \u001b[0;0m"
+    blank_bar = "\u001b[0;;47m \u001b[0;0m"
+
+
+    n_filled = 2*step-len(random_text)
+    n_blank  = 2*total-n_filled-len(random_text)-len(progress_number)
+
+    total = n_filled+len(random_text)+len(progress_number)+n_blank
+
+    print("   progress: ",end="")
+    for i in range(n_filled):
+        print(filled_bar,end="")
+    
+    print(styled_random_text,end="")
+    print(styled_number,end="")
+
+    for i in range(n_blank):
+        print(blank_bar,end="")
+    return step_inp+1
+
+def time_display(time_seconds):
+
+    if time_seconds < 60 :
+        ret = '{:.4g}'.format(time_seconds)+" s"
+    elif time_seconds < 60*60 :
+        minutes = int(np.floor(time_seconds/60))
+        seconds = time_seconds-60*minutes
+        ret = str(minutes)+" m "+'{:.4g}'.format(seconds)+" s"
+    elif time_seconds < 60*60*24 :
+        hours = int(np.floor(time_seconds/60/60))
+        minutes = int(np.floor(time_seconds/60-60*hours))
+        seconds = time_seconds-60*minutes-60*60*hours
+        ret = str(hours)+" hr "+str(minutes)+" m "+'{:.4g}'.format(seconds)+" s"
+    else:
+        days = int(np.floor(time_seconds/60/60/24))
+        hours = int(np.floor(time_seconds/60/60-24*days))
+        minutes = int(np.floor(time_seconds/60-60*hours-60*24*days))
+        seconds = time_seconds-60*minutes-60*60*hours-60*60*24*days
+        ret = str(days)+" d "+str(hours)+" hr "+str(minutes)+" m "+'{:.4g}'.format(seconds)+" s"
+
+    return ret
+
+def clear_progress():
+    print("\r",end="")
+    for i in range(80):
+        print(" ",end="")
+    print("\r",end="")
+    return 1
 
 def clean_format(number):
     order = -int(np.log10(numer_display_cutoff))
@@ -2493,6 +2567,20 @@ def random(shape,statistic,tensor_format=dense,dtype=float):
         A = A.remove_zeros()
     return A
 
+def power(T,p):
+    this_type = type(T)
+    this_format = T.format
+    this_encoder = T.encoder
+    T = dense(T).force_format("matrix").force_encoder("canonical")
+    T.data = np.power(T.data,p)
+    T = T.force_format(this_format).force_encoder(this_encoder)
+    if this_type==sparse :
+        T = sparse(T)
+    return T
+
+def sqrt(T):
+    return power(T,0.5)
+
 ####################################################
 ##                       TRG                      ##
 ####################################################
@@ -2537,19 +2625,11 @@ def trg(T,dcut=16):
     #   Step 2: Multiply sqrt(S) into U and V                                       #
     #===============================================================================#
     
-    S = S1.force_format("matrix")
-    sqrtS = S.copy()
-    sqrtS.data = np.sqrt(S.data)
-    sqrtS = sqrtS.force_format("standard")
-
+    sqrtS = sqrt(S1)
     U1 = einsum('abx,xc->abc',U1,sqrtS)
     V1 = einsum('ax,xbc->abc',sqrtS,V1)
 
-    S = S2.force_format("matrix")
-    sqrtS = S.copy()
-    sqrtS.data = np.sqrt(S.data)
-    sqrtS = sqrtS.force_format("standard")
-
+    sqrtS = sqrt(S2)
     U2 = einsum('abx,xc->abc',U2,sqrtS)
     V2 = einsum('ax,xbc->abc',sqrtS,V2)
 
@@ -2576,7 +2656,7 @@ def trg(T,dcut=16):
     
     VV = einsum('kwz,lxw->lxzk',V1,V2);
     UU = einsum('yxi,zyj->jzxi',U1,U2);
-    T2 = einsum('lxzk,jzxi->ijkl',VV,UU,debug_mode=True);
+    T2 = einsum('lxzk,jzxi->ijkl',VV,UU);
 
     tr1 = einsum('ijkl,klij',T,T);
     tr2 = einsum('ijij',T2);
@@ -2591,3 +2671,199 @@ def trg(T,dcut=16):
     
     return T2, Tnorm
 
+####################################################
+##                     2D ATRG                    ##
+####################################################
+
+def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
+
+    process_name = "atrg2d"
+    if iternum != None:
+        process_name = process_name+"["+str(iternum)+"]"
+    process_length = 6
+    step = 1
+
+    if intermediate_dcut==None:
+        intermediate_dcut=dcut
+
+    T1 = einsum("ijkl->li jk",T1)
+    T2 = einsum("ijkl->li jk",T2)
+
+    U1, S1, V1 = T1.svd("li jk",intermediate_dcut)
+    U2, S2, V2 = T2.svd("li jk",intermediate_dcut)
+
+    #
+    #        j                    j
+    #        :                    :
+    #        :                    :
+    #  k --- X --- i        k --- V
+    #        :                    :
+    #        :                    S
+    #        l                    :
+    #                             U --- i
+    #                             :
+    #                             :
+    #                             l
+    #
+    step = show_progress(step,process_length,process_name)
+    A = V1.copy()
+    B = einsum("lia,ab->lib",U1,S1)
+    C = einsum("ab,bjk->ajk",S2,V2)
+    D = U2.copy()
+
+    M = einsum("ajk,jib->aibk",C,B)
+
+    del U1,S1,V1,U2,S2,V2,B,C
+    gc.collect()
+
+    #
+    #        b                    
+    #        :                    
+    #        :                   
+    #  k --- M --- i        
+    #        :                    
+    #        :                    
+    #        a                    
+    #
+
+    step = show_progress(step,process_length,process_name)
+    U, S, V = M.svd("ai bk",intermediate_dcut)
+
+    sqrtS = sqrt(S)
+    Y = einsum('abx,xc->abc',U,sqrtS)
+    X = einsum('ax,xbc->abc',sqrtS,V)
+
+    del U,S,V,sqrtS
+    gc.collect()
+
+    step = show_progress(step,process_length,process_name)
+    Q1 = einsum('iax,xbj->ijab',D,Y)
+    Q2 = einsum('kya,ylb->abkl',X,A)
+
+    step = show_progress(step,process_length,process_name)
+    Q = einsum('ijab,abkl->ijkl',Q1,Q2)
+    step = show_progress(step,process_length,process_name)
+    
+    U,S,V = Q.svd("ij kl",dcut)
+
+    sqrtS = sqrt(S)
+    H = einsum('abx,xc->abc',U,sqrtS)
+    G = einsum('ax,xbc->abc',sqrtS,V)
+
+    del U,S,V,sqrtS
+    gc.collect()
+
+    step = show_progress(step,process_length,process_name)
+
+    T = einsum('lai,kaj->ijkl',H,G)
+
+    clear_progress()
+
+    Tnorm = T.norm
+    T.data = T.data/Tnorm
+
+    return T, Tnorm
+
+def atrg2dx(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
+    T1 = einsum('ijkl->jilk',T1)
+    T, Tnorm = atrg2dy(T1,T2,dcut,intermediate_dcut,iternum)
+    T = einsum('jilk->ijkl',T)
+    return T, Tnorm
+
+####################################################
+##                     3D ATRG                    ##
+####################################################
+
+def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
+
+    process_name = "hotrg3d"
+    if iternum != None:
+        process_name = process_name+"["+str(iternum)+"]"
+    process_length = 32
+    step = 1
+
+    if intermediate_dcut==None:
+        intermediate_dcut=dcut
+
+    step = show_progress(step,process_length,process_name)
+    T1 = einsum('ijklmn->ikmn jl',T1)
+    step = show_progress(step,process_length,process_name)
+    X1,S1,Y1 = T1.svd('ikmn jl',intermediate_dcut)
+    sqrtS = sqrt(S1)
+    step = show_progress(step,process_length,process_name)
+    X1 = einsum('ikmna,ab->ikbmn',X1,sqrtS)
+    step = show_progress(step,process_length,process_name)
+    Y1 = einsum('ab,bjl->ajl',sqrtS,Y1)
+
+    step = show_progress(step,process_length,process_name)
+    T1b = einsum('ikbmn,bjl->ikmn jl',X1,Y1)
+
+    step = show_progress(step,process_length,process_name)
+    T2 = einsum('ijklmn->ikmn jl',T2)
+    step = show_progress(step,process_length,process_name)
+    X2,S2,Y2 = T2.svd('ikmn jl',intermediate_dcut)
+    sqrtS = sqrt(S2)
+    step = show_progress(step,process_length,process_name)
+    X2 = einsum('ikmna,ab->ikbmn',X2,sqrtS)
+    step = show_progress(step,process_length,process_name)
+    Y2 = einsum('ab,bjl->ajl',sqrtS,Y2)
+
+    step = show_progress(step,process_length,process_name)
+    Qpx = einsum('iIKmn,jJLmn->IKJLmn ij',X1,X2)
+    step = show_progress(step,process_length,process_name)
+    Qmx = einsum('IKJLmn ij->IJ iKjLmn',Qpx)
+
+    step = show_progress(step,process_length,process_name)
+    Qpy = einsum('KiI,LjJ->KILJ ij',Y1,Y2)
+    step = show_progress(step,process_length,process_name)
+    Qmy = einsum('KILJ ij->IJ KiLj',Qpy)
+
+    del X1,S1,Y1,X2,S2,Y2,sqrtS
+    gc.collect()
+
+    step = show_progress(step,process_length,process_name)
+    cQpx = Qpx.hconjugate('IKJLmn ij')
+    step = show_progress(step,process_length,process_name)
+    cQmx = Qmx.hconjugate('IJ iKjLmn')
+    step = show_progress(step,process_length,process_name)
+    cQpy = Qpy.hconjugate('KILJ ij')
+    step = show_progress(step,process_length,process_name)
+    cQmy = Qmy.hconjugate('IJ KiLj')
+
+
+    step = show_progress(step,process_length,process_name)
+    Mpx = einsum('ij abcdef,abcdef IJ-> ij IJ ',cQpx,Qpx)
+    step = show_progress(step,process_length,process_name)
+    Mmx = einsum('ij abcdef,abcdef IJ-> ij IJ ',Qmx,cQmx)
+    step = show_progress(step,process_length,process_name)
+    Mpy = einsum('ij abcd,abcd IJ-> ij IJ ',cQpy,Qpy)
+    step = show_progress(step,process_length,process_name)
+    Mmy = einsum('ij abcd,abcd IJ-> ij IJ ',Qmy,cQmy)
+
+    del Qpx,Qmx,Qpy,Qmy,cQpx,cQmx,cQpy,cQmy
+    gc.collect()
+
+    step = show_progress(step,process_length,process_name)
+    Upx, Spx, Vpx = Mpx.eig('ij IJ',dcut)
+    step = show_progress(step,process_length,process_name)
+    Umx, Smx, Vmx = Mmx.eig('ij IJ',dcut)
+    step = show_progress(step,process_length,process_name)
+    Upy, Spy, Vpy = Mpy.eig('ij IJ',dcut)
+    step = show_progress(step,process_length,process_name)
+    Umy, Smy, Vmy = Mmy.eig('ij IJ',dcut)
+    
+    del Mpx,Mmx,Mpy,Mmy
+    gc.collect()
+
+    if Spx.shape[0] < Smx.shape[0] :
+        Ux = Upx.copy()
+    else:
+        Ux = Umx.copy()
+    if Spy.shape[0] < Smy.shape[0] :
+        Uy = Upy.copy()
+    else:
+        Uy = Umy.copy()
+
+    clear_progress()
+
+    return 1,2

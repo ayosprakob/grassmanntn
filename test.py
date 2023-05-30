@@ -55,7 +55,7 @@ def test_trg():
 
 	n=4
 	A = gtn.random( (n,n,n,n) , (1,1,-1,-1), tensor_format=dense, dtype=complex)
-	gtn.trg(A)
+	gtn.atrg2d(A)
 
 	return 1
 
