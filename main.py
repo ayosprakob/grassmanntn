@@ -18,9 +18,9 @@ from grassmanntn.grassmanntn import sparse as sparse
 from grassmanntn.grassmanntn import dense as dense
 
 def main():
-	Nf=2
-	fcut=16
-	dcut=16
+	Nf=1
+	fcut=32
+	dcut=32
 	for imu in range(50+1):
 
 		mu = 3*imu/50
@@ -49,7 +49,7 @@ def main():
 		vol = 1
 		F = logZ(T)
 
-		print(vol,"    ",mu,"    ",gtn.clean_format(F),"    ",gtn.time_display(time.time()-t0))
+		print(vol,"    ",mu,"    ",np.real(F),"    ",np.imag(F),"    ",gtn.time_display(time.time()-t0))
 		for i in range(8):
 			t0 = time.time()
 			
@@ -67,7 +67,7 @@ def main():
 			F = (logZ(T)+logNorm)/vol
 			
 			#print(gtn.clean_format(F))
-			print(vol,"    ",mu,"    ",gtn.clean_format(F),"    ",gtn.time_display(time.time()-t0))
+			print(vol,"    ",mu,"    ",np.real(F),"    ",np.imag(F),"    ",gtn.time_display(time.time()-t0))
 
 ####################################################
 ##           Initial tensor compression           ##
@@ -87,7 +87,6 @@ def tensor_preparation(Nphi, beta, Nf, spacing, mass, charge, mu, mute=True):
 	B = fcompress_B(B)
 	if not mute:
 		print("                       B compression (1): "+gtn.time_display(time.time()-t0))
-	#z2 = gtn.einsum("IJIJijij,jiji",B,A)
 
 
 	t0 = time.time()
@@ -113,6 +112,8 @@ def tensor_preparation(Nphi, beta, Nf, spacing, mass, charge, mu, mute=True):
 	if not mute:
 		print("                           T compression: "+gtn.time_display(time.time()-t0))
 	z4 = gtn.einsum("IJIJij,ij",T,sparse(np.full((Nphi,Nphi),1),statistic=(0,0)))
+
+
 
 	trace_error = np.abs(1-z4/z1)
 	if not mute:
@@ -1113,8 +1114,8 @@ def fcompress_B(B,cutoff=64,mute=True):
 		U1 = Um.copy()
 
 	step = gtn.show_progress(step,process_length,process_name)
-	B = gtn.einsum('IJKLijkl,IA->AJKLijkl',B,U1)
-	B = gtn.einsum('AJKLijkl,CK->AJCLijkl',B,U1.hconjugate('I J'))
+	B = gtn.einsum('IA,IJKLijkl->AJKLijkl',U1,B)
+	B = gtn.einsum('CK,AJKLijkl->AJCLijkl',U1.hconjugate('I J'),B)
 
 	if not mute:
 		gtn.clear_progress()
@@ -1151,8 +1152,8 @@ def fcompress_B(B,cutoff=64,mute=True):
 		U2 = Um.copy()
 
 	step = gtn.show_progress(step,process_length,process_name)
-	B = gtn.einsum('AJCLijkl,JB->ABCLijkl',B,U2)
-	B = gtn.einsum('ABCLijkl,DL->ABCDijkl',B,U2.hconjugate('I J'))
+	B = gtn.einsum('JB,AJCLijkl->ABCLijkl',U2,B)
+	B = gtn.einsum('DL,ABCLijkl->ABCDijkl',U2.hconjugate('I J'),B)
 	gtn.clear_progress()
 	
 	if not mute:

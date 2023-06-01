@@ -10,7 +10,8 @@ import gc
 hybrid_symbol = "*"
 separator_list = ("|",":",";",",","."," ")
 
-skip_parity_blocking_check = True
+skip_parity_blocking_check = False
+skip_power_of_two_check = False
 allowed_stat = (0,1,-1,hybrid_symbol)
 fermi_type = (1,-1)
 bose_type = (0,hybrid_symbol)
@@ -54,7 +55,7 @@ def get_char(string):
             return char
     error("Error[get_char]: Running out of index character!")    
 
-def show_progress(step_inp,total_inp,random_text = ""):
+def show_progress(step_inp,total_inp,random_text = "", ratio=True):
 
     step = int(np.floor(32*step_inp/total_inp))
     total = 32
@@ -67,8 +68,10 @@ def show_progress(step_inp,total_inp,random_text = ""):
     random_text = random_text + " "
     if(len(random_text)>2*total):
         random_text = " "
-
-    progress_number = " "+str(step_inp)+"/"+str(total_inp)
+    if ratio :
+        progress_number = " "+str(step_inp)+"/"+str(total_inp)
+    else :
+        progress_number = " "+'{:.4g} %'.format(step_inp/total_inp*100)
 
     if len(random_text) > 2*step :
         random_text = random_text[(len(random_text)-2*step):]
@@ -203,7 +206,7 @@ class dense:
         if statistic != None:
             self.statistic = make_tuple(statistic)
             
-        if not default:
+        if not default and not skip_power_of_two_check:
             for i,dim in enumerate(self.data.shape):
                 if self.statistic[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
                     error("Error[dense]: Some of the fermionic tensor shapes are not a power of two.\n              Have you added the <statistic> argument when calling this function?")
@@ -468,7 +471,7 @@ class sparse:
         if statistic != None:
             self.statistic = make_tuple(statistic)
         
-        if not default:
+        if not default and not skip_power_of_two_check:
             for i,dim in enumerate(self.data.shape):
                 if self.statistic[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
                     error("Error[sparse]: Some of the fermionic tensor shapes are not a power of two.\n               Have you added the <statistic> argument when calling this function?")
@@ -883,84 +886,114 @@ def reordering(stringa,stringb,mylist):
 
 def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #   - canonical encoder                 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #   - standard format                   :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #                     Important variables and its meanings
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #
+    #       instruction_string = the whole input text with spaces removed
+    #               has_output = True if the <input_string> has the output section
+    #             input_string = the left side of the arrow
+    #            output_string = the right side of the arrow
+    #                  summand = <input_string> without commas
+    #                     nobj = number of input objects
+    #           obj_index_list = list of individual index strings of input objects
+    #                 obj_list = list of input objects
+    #               stats_list = input object's stats joined into a single list
+    #               shape_list = input object's shape joined into a single list
+    #        summed_index_info = [ [char, conjugated_char], [index locations in <input_string>] ]
+    #
+    #                 fsummand = summand but keep only fermionic indices
+    #          fsummand_unique = replace the conjugated variables in fsummand with new characters
+    #
+    #              fsummand_ur = rearrange fsummand_unique so that the conjugated index
+    #                            is next to the nonconjugated index
+    #                fstats_ur = rearrange stats_list similarly
+    #                fshape_ur = rearrange shape_list similarly
+    #
+    #                  xxx_urt = the same as xxx_ur but with the irrelevant
+    #                            beginning and ending removed
+    #              fsummand_ut = is fsummand_unique with the same removal as xxx_urt
+    #
+    #                 xxx_urtr = the same as xxx_urt but with the conjugated index removed if
+    #                            the unconjugated counterpart also exist
+    #
+    #             einsum_input = the input string (without output) for the final einsum
+    #          einsum_input_wi = einsum_input but with the vertices instead
+    #          vertex_obj_list = list of vertex tensors
+
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #                     Step 0: Error detection
+    #              Step 0: Input processing
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    input_string = args[0].replace(" ","")
+    # remove spaces ---------------------------------------------------------------------------------
+    instruction_string = args[0].replace(" ","")
 
-    n_separator = input_string.count("->")
-    result = ""
-    if n_separator == 0:
-        summand=input_string
-    elif n_separator==1:
-        [summand,result] = input_string.split("->")
+    has_output = instruction_string.count("->") > 0
+    if instruction_string.count("->") > 1 :
+        error("Error[einsum]: Only one arrow is allowed in the input string!")
+
+    if has_output:
+        input_string, output_string = instruction_string.split("->")
+        if output_string.count(",") > 0 :
+            error("Error[einsum]: Output string must not contain commas (',') !")
     else:
-        error("Error[einsum]: There can be no more than one '->' separator.")
-    n_obj = summand.count(",")+1
-    obj_list = [ obj for obj in args[1:n_obj+1] ]
-    stat_list = sum([ make_list(obj.statistic) for obj in args[1:n_obj+1] ],[])
-    dim_list = sum([ make_list(obj.shape) for obj in args[1:n_obj+1] ],[])
+        input_string = instruction_string
 
-    for stat in stat_list:
-        if stat == hybrid_symbol:
-            error("Error[einsum]: Split the hybrid indices before performing einsum.")
+    summand = input_string.replace(",","")
 
-    # make sure that all objects are in standard format
+    obj_index_list = input_string.split(",")
+    nobj = len(obj_index_list)
 
-    for i in range(len(obj_list)):
-        #obj_list[i].info("*")
-        if obj_list[i].encoder != 'canonical':
-            obj_list[i] = obj_list[i].switch_encoder().copy()
-        if obj_list[i].format != 'standard':
-            obj_list[i] = obj_list[i].switch_format().copy()
+    obj_list = make_list(args[1:1+nobj])
+    stats_list = sum([ make_list(obj.statistic) for obj in obj_list ],[])
+    shape_list = sum([ make_list(obj.shape) for obj in obj_list ],[])
 
-    #force all objects to be either dense or sparse
+    # force everything to be canonical and standard -------------------------------------------------
+    # also force everything to be of the same type
+
     this_type = type(obj_list[0])
-    for obj in obj_list:
-        if type(obj) != this_type:
-            error("Error[einsum]: The summands must be either all dense or all sparse.")
+    this_encoder = obj_list[0].encoder
+    this_format = obj_list[0].format
+    for i in range(len(obj_list)):
+        obj_list[i] = this_type(obj_list[i].force_encoder('canonical').force_format('standard')).data
 
-    summand_with_comma = summand
-    while summand.count(",")>0:
-        summand = summand.replace(",","")
-
-    # get some information about the indices
-    # [ f=<char>, [lf,rf], [index locations in lf], [statistics] ]
-    index_info = []
+    # get some information about the summed indices -------------------------------------------------
+    # [ f=<char>, [index locations in lf], [statistics] ]
+    summed_index_info = []
     for i,char in enumerate(summand):
 
         # skip if bosonic
-        if stat_list[i] in bose_type:
+        if stats_list[i] in bose_type:
             continue
 
-        lf = summand.count(char)
-        rf = result.count(char)
-
-        if lf >2 or rf > 1 or (lf+rf)%2==1 :
-            error("Error[einsum]: Inconsistent index statistics. (lf >2 or rf > 1 or (lf+rf)%2==1)")
+        lf =  input_string.count(char)
+        if has_output :
+            rf = output_string.count(char)
+            if lf>2 or rf>1 or (lf+rf)%2==1 :
+                if lf>2 :
+                    reason = "lf>2"
+                elif rf>1 :
+                    reason = "rf>1"
+                else :
+                    reason = "(lf+rf)%2==1"
+                error("Error[einsum]: Inconsistent index statistics. (reason:",reason,")")
+        else :
+            if lf>2:
+                reason = "lf>2"
+                error("Error[einsum]: Inconsistent index statistics. (reason:",reason,")")
 
         if lf==1:
             continue
 
         # add a new entry if it is a new character
         if summand[:i].count(char)==0 :
-            if n_separator==0:
-                index_info += [ [ char, [i] , [stat_list[i]] ] ]
-            else:
-                index_info += [ [ char, [i] , [stat_list[i]] ] ]
+            summed_index_info += [ [ char, [i] , [stats_list[i]] ] ]
         else:
-            for k in range(len(index_info)):
-                if(index_info[k][0]==char):
-                    index_info[k][1] += [i]
-                    index_info[k][2] += [stat_list[i]]
+            for k in range(len(summed_index_info)):
+                if(summed_index_info[k][0]==char):
+                    summed_index_info[k][1] += [i]
+                    summed_index_info[k][2] += [stats_list[i]]
 
     def is_statwise_inconsistent(stat1,stat2):
         if [stat1,stat2] == [0,0]:
@@ -974,369 +1007,413 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         else:
             return True
 
-    for elem in index_info:
-        if len(elem[2])==2 and is_statwise_inconsistent(elem[2][0],elem[2][1]):
+    for [char,location,stats] in summed_index_info:
+        if len(stats)==2 and is_statwise_inconsistent(stats[0],stats[1]):
             error("Error[einsum]: The contracted indices have inconsistent statistic!")
 
-    # count fermions number
-    fermion_num_left = 0
-    fermion_num_right = 0
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #              Step 1: replace the conjugated variable's index with a new character
+    #                      and remove bosonic string
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    fsummand        = ""
+    fsummand_unique = ""
+    fstats_list = []
+    fshape_list = []
+    charlist = summand
     for i,char in enumerate(summand):
-        if stat_list[i] in fermi_type:
-            fermion_num_left+=1
-    for char in result:
-        i = summand.index(char)
-        if stat_list[i] in fermi_type:
-            fermion_num_right+=1
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #                     Step 1: Strings for sign factor computation
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    if debug_mode :
-        t0 = time.time()
-        print()
-        print("Step 1: Strings for sign factor computation",end="")
-
-    fsummand = ""
-    fstat_list = []
-    fdim_list = []
-    for i,char in enumerate(summand):
-        if stat_list[i] in fermi_type:
-            fsummand += char
-            fstat_list += [stat_list[i]]
-            fdim_list += [dim_list[i]]
-
-    xsummand = fsummand
-    summed_pairs = [] # This is a list of the index character of the summed pairs
-    for i,char in enumerate(fsummand):
-        if fstat_list[i]==-1 and fsummand.count(char)==2:
-            new_char = get_char(xsummand+summand)
-            xsummand = xsummand[:i]+new_char+xsummand[i+1:]
-            summed_pairs += [ [new_char,char] ]
-    xstat_list = fstat_list.copy()
-    xdim_list = fdim_list.copy()
-
-    fsorted = sorted(fsummand)
-    xsorted = ""
-    for i,char in enumerate(fsorted):
-        if xsorted[:i].count(char)>0:
-            for [k2,k] in summed_pairs:
-                if k==char :
-                    xsorted+=k2
-        else:
-            xsorted+=char
-
-    xsorted_stat_list = reordering(xsummand,xsorted,fstat_list)
-    xsorted_dim_list = reordering(xsummand,xsorted,fdim_list)
-
-    str_step1 = xsummand+"->"+xsorted
-    str_sgn1 = xsummand
-
-    if fermion_num_right>0 :
-        ysorted = xsorted
-        for pair in summed_pairs:
-            ysorted = ysorted.replace(pair[0],"")
-            ysorted = ysorted.replace(pair[1],"")
-
-        yresult = ""
-        # remove bosonic indices
-        for char in result:
-            index = summand.index(char)
-            if stat_list[index] in fermi_type:
-                yresult+=char
-
-        ysorted_dim_list = []
-        for char in ysorted:
-            ysorted_dim_list += [xsorted_dim_list[xsorted.index(char)]]
-
-        str_step2 = ysorted+"->"+yresult
-        str_sgn2 = ysorted
-        #print(str_step2)
-
-        xstr_sgn2 = str_sgn2
-        for [f2,f1] in summed_pairs:
-            xstr_sgn2 = xstr_sgn2.replace(f2,f1)
-
-    xstr_sgn1 = str_sgn1
-    for [f2,f1] in summed_pairs:
-        xstr_sgn1 = xstr_sgn1.replace(f2,"")
-
-    xstr_sf = ""
-    sf_dim_list = []
-    for [f2,f1] in summed_pairs:
-        xstr_sf += f1
-        sf_dim_list += [xsorted_dim_list[xsorted.index(f1)]]
-
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #                     Step 2: Get the sign tensors
-    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    if debug_mode :
-        print(" (",time.time()-t0,"s )...")
-        t0 = time.time()
-        print("Step 2: Get the sign tensors",end="")
-    # S1
-
-    # this is a little complicate...
-    # let's remove the index that is to be summed later for faster computation
-    xdim_list_reduced = []
-    to_duplicate_list = [] # [duplicated_index, index_to_be_duplicated_from]
-    for i,char in enumerate(xsummand):
-        to_skip = False
-        original_char = ""
-        for [f2,f1] in summed_pairs:
-            if f2==char:
-                to_skip = True
-                original_char = f1
-                break
-        if to_skip:
-            to_duplicate_list += [ [i, xsummand.index(original_char) ] ]
+        if stats_list[i] == 0:
             continue
+
+        fsummand    += char
+        fstats_list += stats_list[i],
+        fshape_list += shape_list[i],
+
+        if stats_list[i] == -1 and summand.count(char)>1:
+            new_char = get_char(charlist)
+            charlist += new_char
+            fsummand_unique += new_char
+
+            # edit the summed_index_info, with the position swapped a little bit as well
+            for j,[char2,location,stats] in enumerate(summed_index_info):
+                if char2==char :
+                    summed_index_info[j][0] = [char,new_char]
+                    if stats == [-1,1]:
+                        summed_index_info[j][1] = [ summed_index_info[j][1][1], summed_index_info[j][1][0] ]
+                        summed_index_info[j][2] = [ summed_index_info[j][2][1], summed_index_info[j][2][0] ]
+
+
         else:
-            xdim_list_reduced += [ dim_list[ summand.index(char) ] ]
-    xdim_list_reduced = make_tuple(xdim_list_reduced)
-    
-    if debug_mode :
-        print(" (",time.time()-t0,"s )...")
-        t0 = time.time()
-        print("    S1:",end="")
-    
-    #==========================================
-    S1 = np.zeros(xdim_list_reduced,dtype=int)
-    iterator = np.nditer(S1, flags=['multi_index'])
-    individual_parity_list = []
-    sgn_list = []
-    for element in iterator:
-        coords = iterator.multi_index
-        dupped_coords = list(coords)
-        
-        for [f1,f2] in to_duplicate_list:
-            dupped_coords.insert(f1,0)
+            fsummand_unique += char
 
-        for [f1,f2] in to_duplicate_list:
-            dupped_coords[f1] = dupped_coords[f2]
+    # remove the stat entry as it is redundant
+    for i,elem in enumerate(summed_index_info):
+        summed_index_info[i] = elem[:2]
 
-        individual_parity = tuple([ param.gparity(i)%2 for i in dupped_coords ])
-        
-        if individual_parity not in individual_parity_list:
-            individual_parity_list += [individual_parity]
-            sgn1 = relative_parity(str_step1,individual_parity)
-            sgn_list += [sgn1]
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #              Step 2: Arrange the indices (presum) and compute the sign factor
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+    # the summed indices are now next to each other with the conjugated one to the right
+
+    fsummand_ur = fsummand_unique
+    for [ [c1,c2], loc ] in summed_index_info:
+        fsummand_ur = fsummand_ur.replace(c2,"")
+        fsummand_ur = fsummand_ur.replace(c1,c1+c2)
+
+    fstats_ur = reordering(fsummand_unique,fsummand_ur,fstats_list)
+    fshape_ur = reordering(fsummand_unique,fsummand_ur,fshape_list)
+
+    # remove the leading and trailing chars that is the same as the pre-rearranged string
+
+    nall_ur = len(fsummand_ur)
+
+    nl = 0
+    for i in range(nall_ur):
+        if fsummand_ur[i] != fsummand_unique[i]:
+            break
+        nl+=1
+
+    nr = 0
+    for i in range(nall_ur):
+        if fsummand_ur[nall_ur-1-i] != fsummand_unique[nall_ur-1-i]:
+            break
+        nr+=1
+    nr = nall_ur-nr
+
+    fsummand_ut  = fsummand_unique[nl:nr]
+    fsummand_urt = fsummand_ur[nl:nr]
+    fstats_urt   = fstats_ur[nl:nr]
+    fshape_urt   = fshape_ur[nl:nr]
+
+    if nl>nr :
+        skip_S1 = True
+    else:
+        skip_S1 = False
+
+    nall_urt = len(fsummand_urt)
+
+
+    # remove the conjugated character if both the nonnconjugated and conjugated are present
+    fsummand_urtr = ""
+    fstats_urtr   = []
+    fshape_urtr   = []
+    copy_positions = []
+    for i in range(nall_urt):
+        c = fsummand_urt[i]
+        to_skip = False
+        if fstats_urt[i]==-1 :
+            for [ [c1,c2], loc ] in summed_index_info:
+                if c==c2 and fsummand_urt.count(c1)>0:
+                    to_skip = True
+                    copy_positions += i-1,
+        if to_skip :
+            continue
+        fsummand_urtr += fsummand_urt[i]
+        fstats_urtr   += fstats_urt[i],
+        fshape_urtr   += fshape_urt[i],
+    S1dim = len(fsummand_urtr)
+
+    S1_sgn_computation_string = fsummand_ut+"->"+fsummand_urt
+
+    # replace the new characters in fsummand_urtr with the original char to obtain S1_index_string
+    S1_index_string  = ""
+    for c in fsummand_urtr:
+        if c in summand:
+            S1_index_string += c
         else:
-            index = individual_parity_list.index(individual_parity)
-            sgn1 = sgn_list[index]
+            for [ [c1,c2], loc ] in summed_index_info:
+                if c==c2 :
+                    S1_index_string += c1
+                    break
 
-        S1[coords] = sgn1
+    # sign factor computation -------------------------------------------------------------------------
     
-    if debug_mode :
-        print(" (",time.time()-t0,"s )...")
-        t0 = time.time()
-        print("    S2:",end="")
+    if S1dim>0 and not skip_S1:
 
-    # S2
-    individual_parity_list = []
-    sgn_list = []
-    if fermion_num_right>0 :
-        S2 = np.zeros(ysorted_dim_list,dtype=int)
-        iterator = np.nditer(S2, flags=['multi_index'])
+        display_progress_times = 0
+
+        if debug_mode :
+            print()
+            print(fshape_urtr)
+            print()
+
+        S1 = np.zeros(fshape_urtr,dtype=int)
+        iterator = np.nditer(S1, flags=['multi_index'])
+        individual_parity_list = []
+        sgn_list = []
+
+        #clear_progress()
+
+        k=1
+        kmax = 1
+        for d in fshape_urtr:
+            kmax*=d
+
+        s0 = time.time()
 
         for element in iterator:
             coords = iterator.multi_index
-            individual_parity = tuple([ param.gparity(i) for i in coords ])
+            dupped_coords = list(coords)
+            
+            for loc in copy_positions:
+                dupped_coords.insert(loc,dupped_coords[loc])
+
+            individual_parity = [ param.gparity(i)%2 for i in dupped_coords ]
+
             if individual_parity not in individual_parity_list:
-                individual_parity_list += [individual_parity]
-                sgn2 = relative_parity(str_step2,individual_parity)
-                sgn_list += [sgn2]
+                individual_parity_list += individual_parity,
+                sgn = relative_parity(S1_sgn_computation_string,individual_parity)
+                sgn_list += sgn,
             else:
                 index = individual_parity_list.index(individual_parity)
-                sgn2 = sgn_list[index]
-            S2[coords] = sgn2
+                sgn = sgn_list[index]
 
-    #dense(S2).switch_encoder().display("S2:"+str_step2)
+            S1[coords] = sgn
 
-    if debug_mode :
-        print(" (",time.time()-t0,"s )...")
-        t0 = time.time()
-        print("    SF:",end="")
-    # SF
-    SF = np.zeros(sf_dim_list,dtype=int)
-    iterator = np.nditer(SF, flags=['multi_index'])
-    for element in iterator:
-        coords = iterator.multi_index
-        sgnf = 1
-        for ind in coords:
-            sgnf *= param.sgn(ind)
-        SF[coords] = sgnf
-    #dense(SF).switch_encoder().display("SF")
+            if time.time()-s0 > 5 :
+                #if display_progress_times == 0 :
+                #    clear_progress()
+                #show_progress(k,kmax+1,random_text = "einsum_sgn1",ratio = False)
+                s0 = time.time()
+                display_progress_times+=1
+            
+            k+=1
+
+        #if display_progress_times > 0 :
+        #    clear_progress()
+    
+    #  ::: Summary :::
+    #
+    #  S1 is the sign factor from the initial rearrangement
+    #  Its index string is S1_index_string
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #                     Step 3: Do the summation
+    #              Step 3: Sign factor from the summed pair
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    if debug_mode :
-        print(" (",time.time()-t0,"s )...")
-        t0 = time.time()
-        print("Step 3: Do the summation",end="")
+    result_after_sum = fsummand_ur
+    S2_shape = []
+    S2_index_string = ""
+    summed_indices = fsummand_ur
+    for [ [c1,c2], loc ] in summed_index_info:
+        S2_shape += shape_list[ summand.index(c1) ],
+        S2_index_string += c1
+        summed_indices = summed_indices.replace(c1+c2,"")
+    S2_shape = make_tuple(S2_shape)
+    S2dim = len(S2_shape)
 
-    if this_type == dense:
-        einsum_string1 = summand_with_comma
-        einsum_obj_list = obj_list.copy()
-        if fermion_num_right > 1:
-            if len(xstr_sgn1)>0 :
-                einsum_string1 += ","+xstr_sgn1
-                einsum_obj_list += [S1]
-            if len(xstr_sgn2)>0 :
-                einsum_string1 += ","+xstr_sgn2
-                einsum_obj_list += [S2]
-            if len(xstr_sf)>0 :
-                einsum_string1 += ","+xstr_sf
-                einsum_obj_list += [SF]
-        else:
-            if len(xstr_sgn1)>0 :
-                einsum_string1 += ","+xstr_sgn1
-                einsum_obj_list += [S1]
-            if len(xstr_sf)>0 :
-                einsum_string1 += ","+xstr_sf
-                einsum_obj_list += [SF]
-        einsum_string = einsum_string1
-        if len(result)>0 :
-            einsum_string += "->"+result
+    if S2dim>0 :
+        S2 = np.zeros(S2_shape,dtype=int)
+        iterator = np.nditer(S2, flags=['multi_index'])
+        for element in iterator:
+            coords = iterator.multi_index
 
-        for i,obj in enumerate(einsum_obj_list):
-            if type(obj)==dense :
-                einsum_obj_list[i] = obj.data.copy()
+            sgn = 1
+            for ind in coords:
+                sgn *= param.sgn(ind)
 
+            S2[coords] = sgn
 
-        ret = oe.contract(*tuple([einsum_string]+einsum_obj_list))
+    #  ::: Summary :::
+    #
+    #  S2 is the sign factor from the pairs summation
+    #  Its index string is S2_index_string
 
-        if len(result)>0:
-            ret_stat = []
-            for char in result:
-                ret_stat += [ stat_list[ summand.index(char) ] ]
-            ret = dense(ret,statistic=make_tuple(ret_stat))
-        else:
-            #ret = dense(ret)
-            #ret.statistic = make_tuple(0)
-            if type(ret)==np.ndarray :
-                return ret.flatten()[0]
-            else :
-                return ret
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #              Step 4: rearrange to the final form
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-        if format=="matrix":
-            ret = ret.switch_format().copy()
-        if encoder=="parity-preserving":
-            ret = ret.switch_encoder().copy()
+    if has_output :
 
-    elif this_type == sparse:
-
-        # the pre-processed summand string
-        einsum_string1 = summand_with_comma
-        einsum_obj_list = obj_list.copy()
-        if fermion_num_right > 1:
-            if len(xstr_sgn1)>0 :
-                einsum_string1 += ","+xstr_sgn1
-                einsum_obj_list += [S1]
-            if len(xstr_sgn2)>0 :
-                einsum_string1 += ","+xstr_sgn2
-                einsum_obj_list += [S2]
-            if len(xstr_sf)>0 :
-                einsum_string1 += ","+xstr_sf
-                einsum_obj_list += [SF]
-        else:
-            if len(xstr_sgn1)>0 :
-                einsum_string1 += ","+xstr_sgn1
-                einsum_obj_list += [S1]
-            if len(xstr_sf)>0 :
-                einsum_string1 += ","+xstr_sf
-                einsum_obj_list += [SF]
-
-        # generate a list containing information about the summing vertices
-        summed_pairs2 = []
-        for i,char in enumerate(einsum_string1):
-
-            if char == ",":
-                einsum_string2 += ","
+        foutput = ""
+        for c in output_string:
+            if stats_list[ summand.index(c) ] == 0 :
                 continue
+            else:
+                foutput+=c
 
-            nchar = einsum_string1.count(char)
+        S3_shape=[]
+        for c in summed_indices:
+            d = shape_list[ summand.index(c) ]
+            S3_shape += d,
 
-            if nchar>2:
-                char_replaced = [char]
-                for j in range(nchar-1):
-                    char_replaced += [get_char(einsum_string1+''.join(char_replaced))]
+        # again... remove the leading and trailing duplicates
 
-                einsum_string2 = einsum_string1
-                for rchar in char_replaced[1:]:
-                    einsum_string2 = einsum_string2.replace(char,rchar,1)
+        nall_ur = len(summed_indices)
+        nl = 0
+        for i in range(nall_ur):
+            if summed_indices[i] != foutput[i]:
+                break
+            nl+=1
 
-                summed_pairs2 += [ char_replaced ]
+        nr = 0
+        for i in range(nall_ur):
+            if summed_indices[nall_ur-1-i] != foutput[nall_ur-1-i]:
+                break
+            nr+=1
+        nr = nall_ur-nr
 
-                einsum_string1 = einsum_string2
+        final = foutput[nl:nr]
+        prefinal = summed_indices[nl:nr]
+        S3_shape   = S3_shape[nl:nr]
 
-        for i in range(len(summed_pairs2)):
-            summed_pairs2[i] = ''.join(summed_pairs2[i])
-            einsum_string1 += ","+summed_pairs2[i]
-
-        # generate a list of vertices
-        einsum_string = einsum_string1
-        vertex_shape_list = []
-        for x in summed_pairs2:
-            if(len(x)==1):
-                continue
-            dim = dim_list[summand.index(x[0])]
-            shape = tuple( [ dim for i in range(len(x)) ] )
-
-            coords = [ [] for i in range(len(x)) ]
-            value = []
-            for index in range(dim):
-                for i in range(len(x)):
-                    coords[i] += [index]
-                value += [1]
-
-            vertex = sp.COO(coords,value,shape)
-
-            vertex_shape_list += [vertex.copy()]
-
-        einsum_obj_list += vertex_shape_list
-
-        for i,obj in enumerate(einsum_obj_list):
-            if(type(obj)==sparse):
-                einsum_obj_list[i] = obj.data
-            if(type(obj)==np.array or type(obj)==np.ndarray):
-                einsum_obj_list[i] = sp.COO.from_numpy(obj)
-
-        if len(result)>0:
-            einsum_string += "->"+result
-
-        ret = oe.contract(*tuple([einsum_string]+einsum_obj_list))
-
-        if len(result)>0:
-            ret_stat = []
-            for char in result:
-                ret_stat += [ stat_list[ summand.index(char) ] ]
-            ret = sparse(ret,statistic=make_tuple(ret_stat))
+        if nl>nr :
+            skip_S3 = True
         else:
-            #coords = [0]
-            #value = make_list(ret)
-            #ret = sparse(sp.COO([[0]],value,make_tuple(1)),statistic=make_tuple(0))
-            if type(ret)==sp.COO :
-                return make_list(ret.data)[0]
-            else :
-                return ret
+            skip_S3 = False
 
-        if format=="matrix":
-            ret = ret.switch_format().copy()
-        if encoder=="parity-preserving":
-            ret = ret.switch_encoder().copy()
+        S3_sgn_computation_string = prefinal+"->"+final
+        S3_index_string = prefinal
+
+        if not skip_S3 :
+            S3 = np.zeros(S3_shape,dtype=int)
+            iterator = np.nditer(S3, flags=['multi_index'])
+            individual_parity_list = []
+            sgn_list = []
+            for element in iterator:
+                coords = iterator.multi_index
+
+                individual_parity = [ param.gparity(i)%2 for i in coords ]
+
+                if individual_parity not in individual_parity_list:
+                    individual_parity_list += individual_parity,
+                    sgn = relative_parity(S3_sgn_computation_string,individual_parity)
+                    sgn_list += sgn,
+                else:
+                    index = individual_parity_list.index(individual_parity)
+                    sgn = sgn_list[index]
+
+                S3[coords] = sgn
+
+    #  ::: Summary :::
+    #
+    #  S3 is the sign factor from the final rearrangement
+    #  Its index string is S3_index_string
+
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #              Step 5: add the vertices
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    einsum_input = input_string
+    einsum_obj_list = obj_list
+
+    if S1dim>0 and not skip_S1:
+        einsum_input += ","+S1_index_string
+        einsum_obj_list += S1,
+
+    if S2dim>0 :
+        einsum_input += ","+S2_index_string
+        einsum_obj_list += S2,
+
+    if has_output :
+        if not skip_S3 :
+            einsum_input += ","+S3_index_string
+            einsum_obj_list += S3,
+
+    einsum_input_no_comma = einsum_input.replace(",","")
+
+    # make a listing of duplicated indices
+    einsum_input_unique = ""
+    vertex_list = [] # [ indices , shape , number_of_legs ]
+    unique_char = ""
+    for i,c in enumerate(einsum_input_no_comma):
+        if einsum_input_no_comma[:i].count(c) == 0 :
+            vertex_list += [ c, shape_list[ summand.index(c) ] , einsum_input_no_comma.count(c) ],
+            unique_char += c
+
+    for i,[char,dim,nlegs] in enumerate(vertex_list) :
+        legchar = char
+        for leg in range(nlegs-1):
+            new_char = get_char(unique_char)
+            unique_char += new_char
+            legchar += new_char
+        vertex_list[i][0] = legchar
+
+    vertex_list_final = []
+    for elem in vertex_list :
+        if elem[2] > 2:
+            vertex_list_final += elem[:2],
+
+    # now replace the einsum string with these new characters
+    einsum_input_wi = ""
+    for i,c in enumerate(einsum_input):
+        if c=="," :
+            einsum_input_wi+=","
+            continue
+
+        #if stats_list[ summand.index(c) ] == 0 :
+        #    einsum_input_wi += c
+        #    continue
+
+        k = einsum_input[:i].count(c)
+
+        do_continue = False
+        if k==0 :
+            einsum_input_wi += c
+            continue
+        else:
+            for [string,dim] in vertex_list_final :
+                if string[0]==c :
+                    einsum_input_wi += string[k]
+                    do_continue = True
+
+        if do_continue :
+            continue
+
+        einsum_input_wi += c
+
+    for [string,dim] in vertex_list_final :
+        einsum_input_wi += ","+string
+
+    # construct the vertex tensors
+    vertex_obj_list = []
+    for [string,dim] in vertex_list_final :
+        shape=tuple([dim]*len(string))
+        coords = np.array([ [ i for i in range(dim) ] for j in range(len(string))])
+        data = np.array( [ 1 for i in range(dim) ] )
+        vertex = sp.COO( coords, data, shape=shape )
+        vertex_obj_list += vertex.copy(),
+
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #              Step 6: get the final statistics
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    final_stat = []
+    if has_output :
+        for c in output_string :
+            final_stat += stats_list[ summand.index(c) ],
+
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    #              Step 7: the actual sum
+    #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    if this_type == sparse :
+        einsum_input = einsum_input_wi
+        einsum_obj_list += vertex_obj_list
+
+    if has_output :
+        einsum_string = einsum_input+"->"+output_string
+    else :
+        einsum_string = einsum_input
 
     if debug_mode :
-        print(" (",time.time()-t0,"s )...")
-        t0 = time.time()
-        print("Step 4: Finish")
+        print()
+        print(einsum_string)
+        for obj in einsum_obj_list :
+            print(obj.shape)
         print()
 
-    return ret
+    ret = oe.contract(*tuple([einsum_string]+einsum_obj_list))
+
+    if has_output :
+        return this_type(ret,statistic=final_stat).force_encoder(this_encoder).force_format(this_format)
+    else:
+        if this_type == sparse :
+            return ret.data[0]
+        else:
+            return np.array(ret).flatten()[0]
 
 ####################################################
 ##                     Reshape                    ##
@@ -1818,7 +1895,7 @@ def BlockSVD(Obj,cutoff=None):
 
     def padding(Ux, Λx, Vx, padding_dimension):
         Ux = np.pad(Ux,((0,0),(0,padding_dimension)),'constant',constant_values=((0,0),(0,0)))
-        Λx = np.diag(np.pad(Λx,(0,padding_dimension),'constant',constant_values=(0,0)       ))
+        Λx = np.diag(np.pad(Λx,(0,padding_dimension),'constant',constant_values=   (0,0)    ))
         Vx = np.pad(Vx,((0,padding_dimension),(0,0)),'constant',constant_values=((0,0),(0,0)))
         return Ux, Λx, Vx
 
@@ -1844,6 +1921,8 @@ def BlockSVD(Obj,cutoff=None):
 display_stage_svd = []
 
 def svd(XGobj,string,cutoff=None):
+
+    global skip_power_of_two_check
 
     # the string is of the form aaaa|bbb
 
@@ -1966,9 +2045,12 @@ def svd(XGobj,string,cutoff=None):
     #:::::      STEP 3 - RECONSTRUCT U, Λ, and V AS GRASSMANN TENSORS                           :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+    skip_power_of_two_check = True
+
     #the first way is to form the tensor first, then split
     Λstatleft = -1
     Λstatright = +1
+    
     if Obj.statistic[0]==0:
         U = dense(U,encoder="parity-preserving",format="matrix",statistic=(0,0))
         Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistic=(0,0))
@@ -1991,7 +2073,8 @@ def svd(XGobj,string,cutoff=None):
         U.display("U (stage 3)")
         Λ.display("Λ (stage 3)")
         V.display("V (stage 3)")
-        
+
+    skip_power_of_two_check = False
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 4 - Split the legs                                                         :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2604,8 +2687,8 @@ def trg(T,dcut=16):
     T1 = einsum('ijkl->jkli',T)
     T2 = einsum('ijkl->klij',T)
 
-    U1,S1,V1 = T1.svd('ab cd')
-    U2,S2,V2 = T2.svd('ab cd')
+    U1,S1,V1 = T1.svd('ab cd',dcut)
+    U2,S2,V2 = T2.svd('ab cd',dcut)
 
     #
     #                             j                                     j
@@ -2632,7 +2715,6 @@ def trg(T,dcut=16):
     sqrtS = sqrt(S2)
     U2 = einsum('abx,xc->abc',U2,sqrtS)
     V2 = einsum('ax,xbc->abc',sqrtS,V2)
-
     
     #===============================================================================#
     #   Step 3: Renormalization                                                     #
@@ -2656,7 +2738,7 @@ def trg(T,dcut=16):
     
     VV = einsum('kwz,lxw->lxzk',V1,V2);
     UU = einsum('yxi,zyj->jzxi',U1,U2);
-    T2 = einsum('lxzk,jzxi->ijkl',VV,UU);
+    T2 = einsum('lxzk,jzxi->ijkl',VV,UU,debug_mode=True);
 
     tr1 = einsum('ijkl,klij',T,T);
     tr2 = einsum('ijij',T2);
@@ -2711,7 +2793,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     C = einsum("ab,bjk->ajk",S2,V2)
     D = U2.copy()
 
-    M = einsum("ajk,jib->aibk",C,B)
+    M = einsum("ajk,jib->aibk",C,B,debug_mode=True)
 
     del U1,S1,V1,U2,S2,V2,B,C
     gc.collect()
@@ -2844,13 +2926,13 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     gc.collect()
 
     step = show_progress(step,process_length,process_name)
-    Upx, Spx, Vpx = Mpx.eig('ij IJ',dcut)
+    Spx, Upx = Mpx.eig('ij IJ',dcut)
     step = show_progress(step,process_length,process_name)
-    Umx, Smx, Vmx = Mmx.eig('ij IJ',dcut)
+    Smx, Umx = Mmx.eig('ij IJ',dcut)
     step = show_progress(step,process_length,process_name)
-    Upy, Spy, Vpy = Mpy.eig('ij IJ',dcut)
+    Spy, Upy = Mpy.eig('ij IJ',dcut)
     step = show_progress(step,process_length,process_name)
-    Umy, Smy, Vmy = Mmy.eig('ij IJ',dcut)
+    Smy, Umy = Mmy.eig('ij IJ',dcut)
     
     del Mpx,Mmx,Mpy,Mmy
     gc.collect()
