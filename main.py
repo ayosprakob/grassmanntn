@@ -4,6 +4,7 @@ os.system('clear')
 
 import sparse as sp
 import numpy as np
+import argparse
 import random
 import time
 import math
@@ -17,57 +18,90 @@ from grassmanntn import param
 from grassmanntn.grassmanntn import sparse as sparse
 from grassmanntn.grassmanntn import dense as dense
 
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+#                               Argument Parser                               #
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+
+parse = argparse.ArgumentParser()
+parse.add_argument('--beta',    default=1.0, type=float)
+parse.add_argument('--mass',    default=1.0, type=float)
+parse.add_argument('--charge',  default=1.0,   type=float)
+parse.add_argument('--spacing', default=1.0,   type=float)
+parse.add_argument('--mu',      default=0.0, type=float)
+parse.add_argument('--Nf',      default=1,   type=int)
+parse.add_argument('--Ngauge',  default=2,   type=int)
+#parse.add_argument('--cgsteps', default='')
+parse.add_argument('--cgsteps', default=5,   type=int)
+parse.add_argument('--Dcutc',   default=32,  type=int)
+parse.add_argument('--Dcutz',   default=32,  type=int)
+parse.add_argument('--Dcutxy',  default=32,  type=int)
+parse.add_argument('--boundary_conditions', default="anti-periodic")
+
+args = parse.parse_args()
+
+
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+
+
+
 def main():
-	Nf=1
-	fcut=32
-	dcut=32
-	for imu in range(50+1):
 
-		mu = 3*imu/50
+	β = args.beta             # inverse coupling
+	m = args.mass             # mass
+	μ = args.mu               # chemical potential
+	q = args.charge           # charge
+	a = args.spacing          # lattice spacing
+	Nf = args.Nf              # fermion species
+	Nphi = args.Ngauge        # Z_Nphi group
+	Zcut  = args.Dcutz        # Zcut for flavors
+	XYcut = args.Dcutxy       # XYcut for TRG
+	bc = args.boundary_conditions
 
+	t0 = time.time()
+	T = tensor_preparation(Nphi=Nphi, beta=β, Nf=Nf, spacing=a, mass=m, charge=q, mu=μ, mute=True)
+	logNorm = 0
+
+	#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+	#                      Flavor Coarse-graining Procedure                       #
+	#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+
+	Log2Nf = int(np.log2(Nf))
+	for i in range(Log2Nf):
 		t0 = time.time()
-		T = tensor_preparation(Nphi=2, beta=1, Nf=Nf, spacing=1, mass=1, charge=1, mu=mu, mute=True)
-		logNorm = 0
+		T, Tnorm = gtn.hotrg3dz(T,T,Zcut,iternum=i)
+		#logNorm = 2*logNorm + np.log(Tnorm)
+		print(" flavor_cg:",2**(i+1),"    ",gtn.time_display(time.time()-t0))
 
-		#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
-		#                      Flavor Coarse-graining Procedure                       #
-		#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+	T = zcap(T)
 
-		Log2Nf = int(np.log2(Nf))
-		for i in range(Log2Nf):
-			t0 = time.time()
-			T, Tnorm = gtn.hotrg3dz(T,T,fcut,iternum=i)
-			#logNorm = 2*logNorm + np.log(Tnorm)
-			print("f",2**(i+1),"    ",gtn.time_display(time.time()-t0))
-			exit()
-		T = zcap(T)
+	#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+	#                         2D Coarse-graining Procedure                        #
+	#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
 
-		#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
-		#                         2D Coarse-graining Procedure                        #
-		#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+	vol = 1
+	F = logZ(T,boundary_conditions=bc)
 
-		vol = 1
-		F = logZ(T)
+	print(" trg:",vol,β,m,μ,q,a,Nf,Nphi,"   ",np.real(F),"   ",np.imag(F),"   ",gtn.time_display(time.time()-t0))
+	for i in range(8):
+		t0 = time.time()
+		
+		if i%2==0 :
+			T, Tnorm = gtn.atrg2dx(T,T,XYcut,iternum=i)
+		else:
+			T, Tnorm = gtn.atrg2dy(T,T,XYcut,iternum=i)
 
-		print(vol,"    ",mu,"    ",np.real(F),"    ",np.imag(F),"    ",gtn.time_display(time.time()-t0))
-		for i in range(8):
-			t0 = time.time()
-			
-			if i%2==0 :
-				T, Tnorm = gtn.atrg2dx(T,T,dcut,iternum=i)
-			else:
-				T, Tnorm = gtn.atrg2dy(T,T,dcut,iternum=i)
+		#print("                            atrg["+str(i)+"]: "+gtn.time_display(time.time()-t0))
 
-			#print("                            atrg["+str(i)+"]: "+gtn.time_display(time.time()-t0))
+		#T.info()
 
-			#T.info()
-
-			vol = 2**(i+1)
-			logNorm = 2*logNorm + np.log(Tnorm)
-			F = (logZ(T)+logNorm)/vol
-			
-			#print(gtn.clean_format(F))
-			print(vol,"    ",mu,"    ",np.real(F),"    ",np.imag(F),"    ",gtn.time_display(time.time()-t0))
+		vol = 2**(i+1)
+		logNorm = 2*logNorm + np.log(Tnorm)
+		F = (logZ(T,bc)+logNorm)/vol
+		
+		#print(gtn.clean_format(F))
+		print(" trg:",vol,β,m,μ,q,a,Nf,Nphi,"   ",np.real(F),"   ",np.imag(F),"   ",gtn.time_display(time.time()-t0))
 
 ####################################################
 ##           Initial tensor compression           ##
@@ -87,7 +121,6 @@ def tensor_preparation(Nphi, beta, Nf, spacing, mass, charge, mu, mute=True):
 	B = fcompress_B(B)
 	if not mute:
 		print("                       B compression (1): "+gtn.time_display(time.time()-t0))
-
 
 	t0 = time.time()
 	B, [U1,U2,U3,U4] = compress_B(B)
@@ -1076,7 +1109,8 @@ def get_ABtensors(Nphi=2, beta=1, Nf=1, spacing=1, mass=1, charge=1, mu=1):
 def fcompress_B(B,cutoff=64,mute=True):
 
 	process_name = "B compression (1)"
-	process_length = 2*8
+	process_length = 16
+	print()
 
 	if not mute:
 		B.info("B (uncompressed)")
@@ -1155,6 +1189,7 @@ def fcompress_B(B,cutoff=64,mute=True):
 	B = gtn.einsum('JB,AJCLijkl->ABCLijkl',U2,B)
 	B = gtn.einsum('DL,ABCLijkl->ABCDijkl',U2.hconjugate('I J'),B)
 	gtn.clear_progress()
+	sys.stdout.write("\033[F")
 	
 	if not mute:
 		U2.info("U2")
@@ -1165,6 +1200,7 @@ def compress_B(B,cutoff=64,mute=True):
 
 	process_name = "B compression (2)"
 	process_length = 4*8
+	print()
 
 	Npsi = B.shape[0]
 	Nphi = B.shape[4]
@@ -1327,6 +1363,7 @@ def compress_B(B,cutoff=64,mute=True):
 	step = gtn.show_progress(step,process_length,process_name)
 	Bfin = gtn.einsum('ABCLl,DLl->ABCD',Bfin,U4.hconjugate('ij k'))
 	gtn.clear_progress()
+	sys.stdout.write("\033[F")
 	
 	if not mute:
 		U1.info("U4")
@@ -1340,6 +1377,7 @@ def compress_A(A,Upack,mute=True):
 
 	process_name = "A compression"
 	process_length = 3
+	print()
 
 	Nphi = A.shape[0]
 	δ = np.zeros([Nphi,Nphi],dtype=int)
@@ -1359,6 +1397,7 @@ def compress_A(A,Upack,mute=True):
 	step = gtn.show_progress(step,process_length,process_name)
 	Afin = gtn.einsum('ijkl,KIl,LJk,km,ln->IJKLijklmn',A,Ix,Iy,δ,δ)
 	gtn.clear_progress()
+	sys.stdout.write("\033[F")
 
 	if not mute:
 		Afin.info("A (compressed)")
@@ -1369,6 +1408,7 @@ def compress_T(T,cutoff=64,mute=True):
 
 	process_name = "T compression"
 	process_length = 16
+	print()
 
 	# x direction =====================================================================
 
@@ -1440,6 +1480,7 @@ def compress_T(T,cutoff=64,mute=True):
 	step = gtn.show_progress(step,process_length,process_name)
 	Tfin = gtn.einsum('ACJLjlmn,JjB,DLl->ABCDmn',Tfin,U,U.hconjugate('ij k'))
 	gtn.clear_progress()
+	sys.stdout.write("\033[F")
 
 	if not mute:
 		Tfin.info("T (y-compression)")
@@ -1468,7 +1509,7 @@ def logZ(T,boundary_conditions='periodic'):
 	if boundary_conditions=='anti-periodic' :
 		Tdat = T.data
 		d = Tdat.shape[1]
-		sgn = [ (-1)**param.gparity[i] for i in range(d) ]
+		sgn = [ (-1)**param.gparity(i) for i in range(d) ]
 		Tdat = np.einsum('IJKL,J->IJKL',Tdat,sgn)
 		T.data = Tdat
 

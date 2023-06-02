@@ -9,6 +9,7 @@ import gc
 
 hybrid_symbol = "*"
 separator_list = ("|",":",";",",","."," ")
+number_character = ("0","1","2","3","4","5","6","7","8","9")
 
 skip_parity_blocking_check = False
 skip_power_of_two_check = False
@@ -19,7 +20,7 @@ encoder_type = ("canonical","parity-preserving")
 format_type = ("standard","matrix")
 numer_cutoff = 1.0e-14
 numer_display_cutoff = 1000*numer_cutoff
-char_list = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
+char_list = ("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z")
 
 '''
         USAGE ADVICES
@@ -46,6 +47,7 @@ def make_list(obj):
         return list(obj)
 
 def error(text="Error[]: Unknown error."):
+    print()
     print(text)
     exit()
 
@@ -55,51 +57,75 @@ def get_char(string):
             return char
     error("Error[get_char]: Running out of index character!")    
 
-def show_progress(step_inp,total_inp,random_text = "", ratio=True):
+def show_progress(step_inp,total_inp,process_name = "", ratio=True, color="blue"):
 
-    step = int(np.floor(32*step_inp/total_inp))
-    total = 32
+    step = int(np.floor(37*step_inp/total_inp))
+    total = 37
+
+    color = color.lower()
+    if   color=="black":
+        color="0"
+    elif color=="red":
+        color="1"
+    elif color=="green":
+        color="2"
+    elif color=="yellow":
+        color="3"
+    elif color=="blue":
+        color="4"
+    elif color=="purple":
+        color="5"
+    elif color=="cyan":
+        color="6"
 
     if step > total:
         #gtn.error("Error[show_progress]: <step> cannot be larger than <total>!")
         step = total
     print("\r",end="")
 
-    random_text = random_text + " "
-    if(len(random_text)>2*total):
-        random_text = " "
+    process_name = process_name + " "
+    if(len(process_name)>2*total):
+        process_name = " "
     if ratio :
         progress_number = " "+str(step_inp)+"/"+str(total_inp)
     else :
         progress_number = " "+'{:.4g} %'.format(step_inp/total_inp*100)
 
-    if len(random_text) > 2*step :
-        random_text = random_text[(len(random_text)-2*step):]
-    styled_random_text = "\u001b[1;37;44m"+random_text+"\u001b[0;0m"
+    if len(process_name) > 2*step :
+        process_name = process_name[(len(process_name)-2*step):]
+    styled_process_name = "\u001b[1;37;4"+color+"m"+process_name+"\u001b[0;0m"
 
-    if 2*step-len(random_text)+len(random_text)+len(progress_number) > 2*total :
+    if 2*step-len(process_name)+len(process_name)+len(progress_number) > 2*total :
         progress_number = progress_number[:(2*total-2*step)]
-    styled_number = "\u001b[1;34;47m"+progress_number+"\u001b[0;0m"
+    styled_number = "\u001b[1;3"+color+";47m"+progress_number+"\u001b[0;0m"
 
-    filled_bar = "\u001b[0;;44m \u001b[0;0m"
+    filled_bar = "\u001b[0;;4"+color+"m \u001b[0;0m"
     blank_bar = "\u001b[0;;47m \u001b[0;0m"
 
 
-    n_filled = 2*step-len(random_text)
-    n_blank  = 2*total-n_filled-len(random_text)-len(progress_number)
+    n_filled = 2*step-len(process_name)
+    n_blank  = 2*total-n_filled-len(process_name)-len(progress_number)
 
-    total = n_filled+len(random_text)+len(progress_number)+n_blank
+    total = n_filled+len(process_name)+len(progress_number)+n_blank
 
-    print("   progress: ",end="")
+    #print("   progress: ",end="")
+    print("   ",end="")
     for i in range(n_filled):
         print(filled_bar,end="")
     
-    print(styled_random_text,end="")
+    print(styled_process_name,end="")
     print(styled_number,end="")
 
     for i in range(n_blank):
         print(blank_bar,end="")
     return step_inp+1
+
+def clear_progress():
+    print("\r",end="")
+    for i in range(90):
+        print(" ",end="")
+    print("\r",end="")
+    return 1
 
 def time_display(time_seconds):
 
@@ -122,13 +148,6 @@ def time_display(time_seconds):
         ret = str(days)+" d "+str(hours)+" hr "+str(minutes)+" m "+'{:.4g}'.format(seconds)+" s"
 
     return ret
-
-def clear_progress():
-    print("\r",end="")
-    for i in range(80):
-        print(" ",end="")
-    print("\r",end="")
-    return 1
 
 def clean_format(number):
     order = -int(np.log10(numer_display_cutoff))
@@ -929,6 +948,27 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     # remove spaces ---------------------------------------------------------------------------------
     instruction_string = args[0].replace(" ","")
 
+    # turn numbered indices to just single indices --------------------------------------------------
+    index_char = []
+    for c in instruction_string :
+        if c not in number_character:
+            index_char += c,
+        else:
+            index_char[len(index_char)-1] += c
+    unique_tokens = list(dict.fromkeys(index_char))
+    to_be_replaced = []
+    for item in unique_tokens:
+        if len(item) > 1 :
+            to_be_replaced += item,
+    to_be_replaced = sorted(to_be_replaced, key=len, reverse=True)
+    token_list = instruction_string
+    for i in range(len(to_be_replaced)) :
+        new_char = get_char(token_list)
+        token_list += new_char
+        to_be_replaced[i] = [to_be_replaced[i],new_char]
+    for [c1,c2] in to_be_replaced :
+        instruction_string = instruction_string.replace(c1,c2)
+
     has_output = instruction_string.count("->") > 0
     if instruction_string.count("->") > 1 :
         error("Error[einsum]: Only one arrow is allowed in the input string!")
@@ -1132,25 +1172,18 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     
     if S1dim>0 and not skip_S1:
 
-        display_progress_times = 0
-
-        if debug_mode :
-            print()
-            print(fshape_urtr)
-            print()
-
         S1 = np.zeros(fshape_urtr,dtype=int)
         iterator = np.nditer(S1, flags=['multi_index'])
         individual_parity_list = []
         sgn_list = []
 
-        #clear_progress()
 
         k=1
         kmax = 1
         for d in fshape_urtr:
             kmax*=d
 
+        print()
         s0 = time.time()
 
         for element in iterator:
@@ -1172,17 +1205,14 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
             S1[coords] = sgn
 
-            if time.time()-s0 > 5 :
-                #if display_progress_times == 0 :
-                #    clear_progress()
-                #show_progress(k,kmax+1,random_text = "einsum_sgn1",ratio = False)
+            if time.time()-s0 > 2 :
+                show_progress(k,kmax+1,process_name = "einsum_sgn1",ratio = False,color="red")
                 s0 = time.time()
-                display_progress_times+=1
             
             k+=1
 
-        #if display_progress_times > 0 :
-        #    clear_progress()
+        clear_progress()
+        sys.stdout.write("\033[F")
     
     #  ::: Summary :::
     #
@@ -1267,7 +1297,17 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         S3_sgn_computation_string = prefinal+"->"+final
         S3_index_string = prefinal
 
+
         if not skip_S3 :
+
+            k=1
+            kmax = 1
+            for d in S3_shape:
+                kmax*=d
+
+            print()
+            s0 = time.time()
+
             S3 = np.zeros(S3_shape,dtype=int)
             iterator = np.nditer(S3, flags=['multi_index'])
             individual_parity_list = []
@@ -1286,6 +1326,14 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
                     sgn = sgn_list[index]
 
                 S3[coords] = sgn
+
+                if time.time()-s0 > 2 :
+                    show_progress(k,kmax+1,process_name = "einsum_sgn3",ratio = False,color="red")
+                    s0 = time.time()
+
+                k+=1
+            clear_progress()
+            sys.stdout.write("\033[F")
 
     #  ::: Summary :::
     #
@@ -1398,13 +1446,6 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     else :
         einsum_string = einsum_input
 
-    if debug_mode :
-        print()
-        print(einsum_string)
-        for obj in einsum_obj_list :
-            print(obj.shape)
-        print()
-
     ret = oe.contract(*tuple([einsum_string]+einsum_obj_list))
 
     if has_output :
@@ -1422,8 +1463,16 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 display_stage = []
 
 def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
+
+    process_name = "join_legs"
+    process_length = 6
+    process_color="green"
+    step = 1
+    print()
+
     intermediate_stat = make_tuple(intermediate_stat)
     
+    step = show_progress(step,process_length,process_name,color=process_color)
     # Always output the parity-preserving encoder
     #===============================================================================#
     #   Step 0: Preconditioning the initial Object to standard & canonical          #
@@ -1444,6 +1493,7 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
     if 0 in display_stage:
         Obj.display("After stage 0")
     
+    step = show_progress(step,process_length,process_name,color=process_color)
     #===============================================================================#
     #   Step 1: Move bosonic indices to the left of each group                      #
     #===============================================================================#
@@ -1484,6 +1534,7 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
     if 1 in display_stage:
         Obj.display("After stage 1")
     
+    step = show_progress(step,process_length,process_name,color=process_color)
     #===============================================================================#
     #   Step 2: Join fermionic indices with np.reshape                              #
     #===============================================================================#
@@ -1498,6 +1549,7 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
         Obj.display("After stage 2")
     
     
+    step = show_progress(step,process_length,process_name,color=process_color)
     #===============================================================================#
     #   Step 3: Switch format if make_format='matrix'                               #
     #===============================================================================#
@@ -1510,6 +1562,7 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
         if 3 in display_stage:
             print("Step 3 is skipped.")
     
+    step = show_progress(step,process_length,process_name,color=process_color)
     #===============================================================================#
     #   Step 4: Switch encoder                                                      #
     #===============================================================================#
@@ -1519,6 +1572,7 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
     if 4 in display_stage:
         Obj.display("After stage 4")
     
+    step = show_progress(step,process_length,process_name,color=process_color)
     #===============================================================================#
     #   Step 5: Merge bosons and fermions                                           #
     #===============================================================================#
@@ -1529,13 +1583,24 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
     if 5 in display_stage:
         Obj.display("After stage 5")
     
+    clear_progress()
+    sys.stdout.write("\033[F")
+
     return Obj
     
 def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1)):
+
+    print()
+    process_name = "split_legs"
+    process_length = 6
+    process_color="green"
+    step = 1
+
     intermediate_stat = make_tuple(intermediate_stat)
     final_stat = make_tuple(final_stat)
     final_shape = make_tuple(final_shape)
 
+    step = show_progress(step,process_length,process_name,color=process_color)
     #===============================================================================#
     #   Step 0: Preparation                                                         #
     #===============================================================================#
@@ -1548,6 +1613,7 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     if 5 in display_stage:
         Obj.display("Before stage 5")
     
+    step = show_progress(step,process_length,process_name,color=process_color)
     #===============================================================================#
     #   Step 5: Split bosons and fermions                                           #
     #===============================================================================#
@@ -1562,6 +1628,7 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     if 4 in display_stage:
         Obj.display("Before stage 4")
     
+    step = show_progress(step,process_length,process_name,color=process_color)
     #===============================================================================#
     #   Step 4: Switch encoder                                                      #
     #===============================================================================#
@@ -1575,6 +1642,7 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
         if 3 in display_stage:
                 print("Step 3 is skipped.")
                 
+    step = show_progress(step,process_length,process_name,color=process_color)
     #===============================================================================#
     #   Step 3: Switch format if this_format='matrix'                               #
     #===============================================================================#
@@ -1585,6 +1653,7 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     if 2 in display_stage:
         Obj.display("Before stage 2")
     
+    step = show_progress(step,process_length,process_name,color=process_color)
     #===============================================================================#
     #   Step 2: Split fermionic indices with np.reshape                              #
     #===============================================================================#
@@ -1604,6 +1673,7 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
         Obj.display("Before stage 1")
     
     
+    step = show_progress(step,process_length,process_name,color=process_color)
     #===============================================================================#
     #   Step 1: Move bosonic indices to the left of each group                      #
     #===============================================================================#
@@ -1615,6 +1685,9 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     Obj.data = oe.contract(*make_tuple( [npeinsum_string] + npeinsum_obj ))
     Obj.statistic = final_stat
     
+    clear_progress()
+    sys.stdout.write("\033[F")
+
     #Obj.display()
     if 0 in display_stage:
         Obj.display("Before stage 0")
@@ -1622,6 +1695,7 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     if this_format=='matrix':
         return Obj.switch_format()
     
+
     return Obj
     
 def get_group_info(grouping_string, ungroup_stat, ungroup_shape):
@@ -2463,6 +2537,12 @@ display_stage_hconjugate = []
 
 def hconjugate(XGobj,string):
 
+    process_name = "hconjugate"
+    process_length = 6
+    process_color="yellow"
+    step = 1
+    print()
+
     # the string is of the form aaaa|bbb
 
     this_type = type(XGobj)
@@ -2503,6 +2583,7 @@ def hconjugate(XGobj,string):
     if 0 in display_stage_hconjugate :
         Obj.display("After stage 0")
 
+    step = show_progress(step,process_length,process_name,color=process_color)
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                       :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2555,12 +2636,12 @@ def hconjugate(XGobj,string):
                 return 0
         elif(boson_count>0 and fermi_count>0):
             return hybrid_symbol
-            
+    step = show_progress(step,process_length,process_name,color=process_color)
     Obj = Obj.join_legs(join_legs_string_input,"matrix")
     
     if 1 in display_stage_hconjugate :
         Obj.display("After stage 1")
-        
+    step = show_progress(step,process_length,process_name,color=process_color)
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 2 - Perform Hermitian Conjugation                                          :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2585,7 +2666,7 @@ def hconjugate(XGobj,string):
     
     if 2 in display_stage_hconjugate :
         Obj.display("After stage 2")
-        
+    step = show_progress(step,process_length,process_name,color=process_color)
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 3 - Split legs                                                             :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2619,7 +2700,7 @@ def hconjugate(XGobj,string):
         if new_stats[i] in fermi_type :
             new_stats[i]*=-1
     new_stats = make_tuple(new_stats)
-    
+    step = show_progress(step,process_length,process_name,color=process_color)
     Obj = Obj.split_legs(new_ind,new_stats,new_shape)
     
     if 3 in display_stage_hconjugate :
@@ -2631,6 +2712,9 @@ def hconjugate(XGobj,string):
         Obj = Obj.switch_format()
     if this_encoder!=Obj.encoder :
         Obj = Obj.switch_encoder()
+
+    clear_progress()
+    sys.stdout.write("\033[F")
 
     return Obj
 
@@ -2763,7 +2847,9 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     if iternum != None:
         process_name = process_name+"["+str(iternum)+"]"
     process_length = 6
+    process_color = "purple"
     step = 1
+    print()
 
     if intermediate_dcut==None:
         intermediate_dcut=dcut
@@ -2787,7 +2873,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     #                             :
     #                             l
     #
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color)
     A = V1.copy()
     B = einsum("lia,ab->lib",U1,S1)
     C = einsum("ab,bjk->ajk",S2,V2)
@@ -2808,7 +2894,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     #        a                    
     #
 
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color)
     U, S, V = M.svd("ai bk",intermediate_dcut)
 
     sqrtS = sqrt(S)
@@ -2818,13 +2904,13 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     del U,S,V,sqrtS
     gc.collect()
 
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color)
     Q1 = einsum('iax,xbj->ijab',D,Y)
     Q2 = einsum('kya,ylb->abkl',X,A)
 
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color)
     Q = einsum('ijab,abkl->ijkl',Q1,Q2)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color)
     
     U,S,V = Q.svd("ij kl",dcut)
 
@@ -2835,11 +2921,12 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     del U,S,V,sqrtS
     gc.collect()
 
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color)
 
     T = einsum('lai,kaj->ijkl',H,G)
 
     clear_progress()
+    sys.stdout.write("\033[F")
 
     Tnorm = T.norm
     T.data = T.data/Tnorm
@@ -2848,6 +2935,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
 
 def atrg2dx(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     T1 = einsum('ijkl->jilk',T1)
+    T2 = einsum('ijkl->jilk',T2)
     T, Tnorm = atrg2dy(T1,T2,dcut,intermediate_dcut,iternum)
     T = einsum('jilk->ijkl',T)
     return T, Tnorm
@@ -2861,77 +2949,87 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     process_name = "hotrg3d"
     if iternum != None:
         process_name = process_name+"["+str(iternum)+"]"
-    process_length = 32
+    process_color = "purple"
+    process_length = 39
     step = 1
+    print()
 
     if intermediate_dcut==None:
         intermediate_dcut=dcut
 
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #1
     T1 = einsum('ijklmn->ikmn jl',T1)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #2
     X1,S1,Y1 = T1.svd('ikmn jl',intermediate_dcut)
     sqrtS = sqrt(S1)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #3
     X1 = einsum('ikmna,ab->ikbmn',X1,sqrtS)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #4
     Y1 = einsum('ab,bjl->ajl',sqrtS,Y1)
 
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #5
     T1b = einsum('ikbmn,bjl->ikmn jl',X1,Y1)
 
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #6
     T2 = einsum('ijklmn->ikmn jl',T2)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #7
     X2,S2,Y2 = T2.svd('ikmn jl',intermediate_dcut)
     sqrtS = sqrt(S2)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #8
     X2 = einsum('ikmna,ab->ikbmn',X2,sqrtS)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #9
     Y2 = einsum('ab,bjl->ajl',sqrtS,Y2)
 
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #10
     Qpx = einsum('iIKmn,jJLmn->IKJLmn ij',X1,X2)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #11
     Qmx = einsum('IKJLmn ij->IJ iKjLmn',Qpx)
 
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #12
     Qpy = einsum('KiI,LjJ->KILJ ij',Y1,Y2)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #13
     Qmy = einsum('KILJ ij->IJ KiLj',Qpy)
-
-    del X1,S1,Y1,X2,S2,Y2,sqrtS
+    
+    del S1,S2,sqrtS
     gc.collect()
-
-    step = show_progress(step,process_length,process_name)
+    
+    step = show_progress(step,process_length,process_name,color=process_color) #14
     cQpx = Qpx.hconjugate('IKJLmn ij')
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #15
+    cQpx = einsum('ij abcdef -> ij fedcba',cQpx)
+    step = show_progress(step,process_length,process_name,color=process_color) #16
     cQmx = Qmx.hconjugate('IJ iKjLmn')
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #17
+    cQmx = einsum('abcdef ij -> fedcba ij',cQmx)
+    step = show_progress(step,process_length,process_name,color=process_color) #18
     cQpy = Qpy.hconjugate('KILJ ij')
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #19
+    cQpy = einsum('ij abcd -> ij dcba',cQpy)
+    step = show_progress(step,process_length,process_name,color=process_color) #20
     cQmy = Qmy.hconjugate('IJ KiLj')
+    step = show_progress(step,process_length,process_name,color=process_color) #21
+    cQmy = einsum('abcd ij -> dcba ij',cQmy)
 
 
-    step = show_progress(step,process_length,process_name)
-    Mpx = einsum('ij abcdef,abcdef IJ-> ij IJ ',cQpx,Qpx)
-    step = show_progress(step,process_length,process_name)
-    Mmx = einsum('ij abcdef,abcdef IJ-> ij IJ ',Qmx,cQmx)
-    step = show_progress(step,process_length,process_name)
-    Mpy = einsum('ij abcd,abcd IJ-> ij IJ ',cQpy,Qpy)
-    step = show_progress(step,process_length,process_name)
-    Mmy = einsum('ij abcd,abcd IJ-> ij IJ ',Qmy,cQmy)
+    step = show_progress(step,process_length,process_name,color=process_color) #22
+    Mpx = einsum('ij fedcba,abcdef IJ-> ij IJ ',cQpx,Qpx)
+    step = show_progress(step,process_length,process_name,color=process_color) #23
+    Mmx = einsum('ij abcdef,fedcba IJ-> ij IJ ',Qmx,cQmx)
+    step = show_progress(step,process_length,process_name,color=process_color) #24
+    Mpy = einsum('ij dcba,abcd IJ-> ij IJ ',cQpy,Qpy)
+    step = show_progress(step,process_length,process_name,color=process_color) #25
+    Mmy = einsum('ij abcd,dcba IJ-> ij IJ ',Qmy,cQmy)
 
     del Qpx,Qmx,Qpy,Qmy,cQpx,cQmx,cQpy,cQmy
     gc.collect()
 
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #26
     Spx, Upx = Mpx.eig('ij IJ',dcut)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #27
     Smx, Umx = Mmx.eig('ij IJ',dcut)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #28
     Spy, Upy = Mpy.eig('ij IJ',dcut)
-    step = show_progress(step,process_length,process_name)
+    step = show_progress(step,process_length,process_name,color=process_color) #29
     Smy, Umy = Mmy.eig('ij IJ',dcut)
     
     del Mpx,Mmx,Mpy,Mmy
@@ -2946,6 +3044,43 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     else:
         Uy = Umy.copy()
 
-    clear_progress()
+    step = show_progress(step,process_length,process_name,color=process_color) #30
+    cUx = Ux.hconjugate("ij a")
+    step = show_progress(step,process_length,process_name,color=process_color) #31
+    cUy = Uy.hconjugate("ij a")
 
-    return 1,2
+
+    step = show_progress(step,process_length,process_name,color=process_color) #32
+    YYprime = einsum('a i2 i4, b j2 j4 -> j4 i4 ba j2 i2',Y1,Y2)
+    del Y1,Y2
+    gc.collect()
+
+    step = show_progress(step,process_length,process_name,color=process_color) #33
+    XXprime = einsum('i1 i3 a mn, j1 j3 b mn -> j3 i3 ab j1 i1 mn',X1,X2)
+    del X1,X2
+    gc.collect()
+
+    step = show_progress(step,process_length,process_name,color=process_color) #34
+    Ytilde = einsum(' j4 i4 ba j2 i2 , i2 j2 t -> j4 i4 ba t',YYprime,Uy)
+    step = show_progress(step,process_length,process_name,color=process_color) #35
+    Ytilde = einsum(' s i4 j4 , j4 i4 ba t -> s ba t',cUy,Ytilde)
+    del YYprime, Uy, cUy
+    gc.collect()
+
+    step = show_progress(step,process_length,process_name,color=process_color) #36
+    Xtilde = einsum(' j3 i3 ab j1 i1 mn , i1 j1 t -> j3 i3 ab t mn',XXprime,Ux)
+    step = show_progress(step,process_length,process_name,color=process_color) #37
+    Xtilde = einsum(' s i3 j3 , j3 i3 ab t mn -> s ab t mn',cUx,Xtilde)
+    del XXprime, Ux, cUx
+    gc.collect()
+
+    step = show_progress(step,process_length,process_name,color=process_color) #38
+    T = einsum(' t1 t2 ab mn, b a t2 t4 -> t1 t2 t3 t4 mn ',Xtilde,Ytilde)
+
+    clear_progress()
+    sys.stdout.write("\033[F")
+
+    Tnorm = T.norm
+    T.data = T.data/Tnorm
+
+    return T, Tnorm

@@ -17,26 +17,8 @@ def main():
 
 	#test_svd()
 	#test_trg()
+	test_einsum()
 
-	n=16
-	A = gtn.random( (n,n,n,n) , (1,1,-1,-1), tensor_format=dense, dtype=complex)
-
-	U,S,V = A.svd('ij kl')
-
-	t0 = time.time()
-	B = gtn.einsum('ijx,xy,ykl->ijkl',U,S,V)
-	t1 = time.time()
-	print()
-	print()
-	print(" optimized:  error=",(A-B).norm, "    calculatine time=", t1-t0,"s")
-
-	t0 = time.time()
-	B = gtn.einsum_old('ijx,xy,ykl->ijkl',U,S,V)
-	t1 = time.time()
-
-	print()
-	print("       old:  error=",(A-B).norm, "    calculatine time=", t1-t0,"s")
-	print()
 	exit()
 
 #----------------------------------------------------------------------------------#
@@ -76,6 +58,30 @@ def test_trg():
 	A = gtn.random( (n,n,n,n) , (1,1,-1,-1), tensor_format=dense, dtype=complex)
 
 	gtn.trg(A,n**2)
+
+	return 1
+
+def test_einsum():
+
+	# Starting with a random complex 4-legged tensor
+
+	n=8
+	A = gtn.random( (n,n,n,n) , (1,1,-1,-1), tensor_format=dense, dtype=complex)
+	B = gtn.random( (n,n,n,n) , (1,1,-1,-1), tensor_format=dense, dtype=complex)
+
+	C1 = gtn.einsum('i1 i2 k1 k2, k1 k2 i3 i4-> i1 i2 i3 i4',A,B)
+	C2 = gtn.einsum('ijab,abkl->ijkl',A,B)
+
+	print( (C1-C2).norm )
+
+	n = 4
+	A = gtn.random( (n,3,3) , (1,0,0), tensor_format=sparse, dtype=float)
+	B = gtn.random( (n,3,3) , (-1,0,0), tensor_format=sparse, dtype=float)
+	C = gtn.einsum( 'amn,amn->mn', A,B)
+
+	A.display()
+	B.display()
+	C.display()
 
 	return 1
 
