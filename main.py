@@ -1,6 +1,6 @@
 import os
 # Clearing the Screen
-os.system('clear')
+#os.system('clear')
 
 import sparse as sp
 import numpy as np
@@ -57,6 +57,7 @@ def main():
 	Nphi = args.Ngauge        # Z_Nphi group
 	Zcut  = args.Dcutz        # Zcut for flavors
 	XYcut = args.Dcutxy       # XYcut for TRG
+	cgsteps = args.cgsteps    # the number of 2dtrgs
 	bc = args.boundary_conditions
 
 	t0 = time.time()
@@ -71,7 +72,7 @@ def main():
 	for i in range(Log2Nf):
 		t0 = time.time()
 		T, Tnorm = gtn.hotrg3dz(T,T,Zcut,iternum=i)
-		#logNorm = 2*logNorm + np.log(Tnorm)
+		logNorm = 2*logNorm + np.log(Tnorm)
 		print(" flavor_cg:",2**(i+1),"    ",gtn.time_display(time.time()-t0))
 
 	T = zcap(T)
@@ -84,7 +85,7 @@ def main():
 	F = logZ(T,boundary_conditions=bc)
 
 	print(" trg:",vol,β,m,μ,q,a,Nf,Nphi,"   ",np.real(F),"   ",np.imag(F),"   ",gtn.time_display(time.time()-t0))
-	for i in range(8):
+	for i in range(cgsteps):
 		t0 = time.time()
 		
 		if i%2==0 :
