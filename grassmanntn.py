@@ -3075,7 +3075,7 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     gc.collect()
 
     step = show_progress(step,process_length,process_name,color=process_color) #38
-    T = einsum(' t1 t2 ab mn, b a t2 t4 -> t1 t2 t3 t4 mn ',Xtilde,Ytilde)
+    T = einsum(' t1 t3 ab mn, ba t2 t4 -> t1 t2 t3 t4 mn ',Xtilde,Ytilde)
 
     clear_progress()
     sys.stdout.write("\033[F")
