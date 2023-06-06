@@ -1,6 +1,5 @@
 import numpy as np
 import math
-import scipy
 from grassmanntn import param
 import sparse as sp
 import opt_einsum as oe
@@ -187,6 +186,12 @@ def memory_display(raw_memory):
         return str(raw_memory/(2**30))+" GiB"
     else:
         return str(raw_memory/(2**40))+" TiB"
+
+def getsize(shape):
+    ret = 1
+    for d in shape:
+        ret *= d
+    return ret
 
 ####################################################
 ##             Densed Grassmann Array             ##
@@ -1028,25 +1033,6 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     #               stats_list = input object's stats joined into a single list
     #               shape_list = input object's shape joined into a single list
     #        summed_index_info = [ [char, conjugated_char], [index locations in <input_string>] ]
-    #
-    #                 fsummand = summand but keep only fermionic indices
-    #          fsummand_unique = replace the conjugated variables in fsummand with new characters
-    #
-    #              fsummand_ur = rearrange fsummand_unique so that the conjugated index
-    #                            is next to the nonconjugated index
-    #                fstats_ur = rearrange stats_list similarly
-    #                fshape_ur = rearrange shape_list similarly
-    #
-    #                  xxx_urt = the same as xxx_ur but with the irrelevant
-    #                            beginning and ending removed
-    #              fsummand_ut = is fsummand_unique with the same removal as xxx_urt
-    #
-    #                 xxx_urtr = the same as xxx_urt but with the conjugated index removed if
-    #                            the unconjugated counterpart also exist
-    #
-    #             einsum_input = the input string (without output) for the final einsum
-    #          einsum_input_wi = einsum_input but with the vertices instead
-    #          vertex_obj_list = list of vertex tensors
 
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -1139,14 +1125,21 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     for [char,location,stats] in summed_index_info:
         if len(stats)==2 and is_statwise_inconsistent(stats[0],stats[1]):
             error("Error[einsum]: The contracted indices have inconsistent statistic!")
-
+    
+    if debug_mode :
+        print()
+        print("input:",instruction_string)
+        print("obj indices:")
+        for elem in obj_index_list:
+            print(" ",elem)
+    
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #              Step 1: replace the conjugated variable's index with a new character
     #                      and remove bosonic string
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    fsummand        = ""
-    fsummand_unique = ""
+    fsummand   = ""
+    fsummand_u = ""
     fstats_list = []
     fshape_list = []
     charlist = summand
@@ -1161,7 +1154,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         if stats_list[i] == -1 and summand.count(char)>1:
             new_char = get_char(charlist)
             charlist += new_char
-            fsummand_unique += new_char
+            fsummand_u += new_char
 
             # edit the summed_index_info, with the position swapped a little bit as well
             for j,[char2,location,stats] in enumerate(summed_index_info):
@@ -1170,49 +1163,70 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
                     if stats == [-1,1]:
                         summed_index_info[j][1] = [ summed_index_info[j][1][1], summed_index_info[j][1][0] ]
                         summed_index_info[j][2] = [ summed_index_info[j][2][1], summed_index_info[j][2][0] ]
-
-
         else:
-            fsummand_unique += char
+            fsummand_u += char
+    fstats = fstats_list.copy()
+    fshape = fshape_list.copy()
+    fstats_u = fstats_list.copy()
+    fshape_u = fshape_list.copy()
 
     # remove the stat entry as it is redundant
     for i,elem in enumerate(summed_index_info):
         summed_index_info[i] = elem[:2]
 
+    if debug_mode :
+        print()
+        print(" :::::::::: replace conjugated indices by unique characters :::::::::: ")
+        print(fsummand,"<--- fsummand = original indices")
+        print(fsummand_u,"<--- fsummand_u = replace conjugated indices by unique characters")
+        print(fstats_u,"<--- fstats_u")
+        print(fshape_u,"<--- fshape_u")
+        print("summed indices info:")
+        for elem in summed_index_info:
+            print(" "," = ".join(elem[0]),"( location =",elem[1],")")
+        
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #              Step 2: Arrange the indices (presum) and compute the sign factor
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-
     # the summed indices are now next to each other with the conjugated one to the right
 
-    fsummand_ur = fsummand_unique
+    fsummand_ur = fsummand_u
     for [ [c1,c2], loc ] in summed_index_info:
         fsummand_ur = fsummand_ur.replace(c2,"")
         fsummand_ur = fsummand_ur.replace(c1,c1+c2)
 
-    fstats_ur = reordering(fsummand_unique,fsummand_ur,fstats_list)
-    fshape_ur = reordering(fsummand_unique,fsummand_ur,fshape_list)
+    fstats_ur = reordering(fsummand_u,fsummand_ur,fstats_list)
+    fshape_ur = reordering(fsummand_u,fsummand_ur,fshape_list)
 
+    if debug_mode :
+        print()
+        print(" :::::::::::: move the conjugated to the right of its pair ::::::::::: ")
+        print(fsummand_u,"<--- fsummand_u")
+        print(fsummand_ur,"<--- fsummand_ur = move the conjugated to the right of its pair")
+        print(fstats_ur,"<--- fstats_ur")
+        print(fshape_ur,"<--- fshape_ur")
+        
     # remove the leading and trailing chars that is the same as the pre-rearranged string
 
-    nall_ur = len(fsummand_ur)
+    nall_u = len(fsummand_u)
 
     nl = 0
-    for i in range(nall_ur):
-        if fsummand_ur[i] != fsummand_unique[i]:
+    for i in range(nall_u):
+        if fsummand_u[i] != fsummand_ur[i]:
             break
         nl+=1
-
     nr = 0
-    for i in range(nall_ur):
-        if fsummand_ur[nall_ur-1-i] != fsummand_unique[nall_ur-1-i]:
+    for i in range(nall_u):
+        if fsummand_u[nall_u-1-i] != fsummand_ur[nall_u-1-i]:
             break
         nr+=1
-    nr = nall_ur-nr
+    nr = nall_u-nr
 
-    fsummand_ut  = fsummand_unique[nl:nr]
-    fsummand_urt = fsummand_ur[nl:nr]
+    fsummand_ut  = fsummand_u[nl:nr]
+    fstats_ut   = fstats_u[nl:nr]
+    fshape_ut   = fshape_u[nl:nr]
+    fsummand_urt  = fsummand_ur[nl:nr]
     fstats_urt   = fstats_ur[nl:nr]
     fshape_urt   = fshape_ur[nl:nr]
 
@@ -1221,34 +1235,95 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     else:
         skip_S1 = False
 
-    nall_urt = len(fsummand_urt)
-
-
+    if debug_mode :
+        print()
+        print(" :::::::::::::::::::::::: trim left and right :::::::::::::::::::::::: ")
+        if skip_S1 :
+            print("fsummand_u and fsummand_ur are identical.")
+            print("S1 calculation is skipped.")
+        else :
+            print(fsummand_u,"<--- fsummand_u")
+            print(fsummand_ut,"<--- fsummand_ut = trim fsummand_u left and right")
+            print(fstats_ut,"<--- fstats_ut")
+            print(fshape_ut,"<--- fshape_ut")
+            print()
+            print(fsummand_ur,"<--- fsummand_ur")
+            print(fsummand_urt,"<--- fsummand_urt = trim fsummand_ur left and right")
+            print(fstats_urt,"<--- fstats_urt")
+            print(fshape_urt,"<--- fshape_urt")
+        
+    S1_sgn_computation_string = fsummand_ut+"->"+fsummand_urt
+    
+    if debug_mode and not skip_S1 :
+        print()
+        print(S1_sgn_computation_string,"<--- string used in S1 computation")
+    
     # remove the conjugated character if both the nonnconjugated and conjugated are present
-    fsummand_urtr = ""
-    fstats_urtr   = []
-    fshape_urtr   = []
-    copy_positions = []
-    for i in range(nall_urt):
-        c = fsummand_urt[i]
+    
+    # do the ut only
+    fsummand_utx = ""
+    fstats_utx   = []
+    fshape_utx   = []
+    nall_ut = len(fsummand_ut)
+    for i in range(nall_ut):
+        c = fsummand_ut[i]
         to_skip = False
-        if fstats_urt[i]==-1 :
+        if fstats_ut[i]==-1 :
             for [ [c1,c2], loc ] in summed_index_info:
-                if c==c2 and fsummand_urt.count(c1)>0:
+                if c==c2 and fsummand_ut.count(c1)>0:
                     to_skip = True
-                    copy_positions += i-1,
         if to_skip :
             continue
-        fsummand_urtr += fsummand_urt[i]
-        fstats_urtr   += fstats_urt[i],
-        fshape_urtr   += fshape_urt[i],
-    S1dim = len(fsummand_urtr)
+        fsummand_utx += fsummand_ut[i]
+        fstats_utx   += fstats_ut[i],
+        fshape_utx   += fshape_ut[i],
+    S1dim = len(fsummand_utx)
 
-    S1_sgn_computation_string = fsummand_ut+"->"+fsummand_urt
-
-    # replace the new characters in fsummand_urtr with the original char to obtain S1_index_string
+    if debug_mode and not skip_S1 :
+        print()
+        print(" ::::::: remove the conjugated if both of the pair are present ::::::: ")
+        print(fsummand_ut,"<--- fsummand_ut")
+        print(fsummand_utx,"<--- fsummand_utx = remove on of the pair")
+        print(fstats_utx,"<--- fstats_utx")
+        print(fshape_utx,"<--- fshape_utx")
+    
+    # make the copy map
+    copy_map = []
+    fsummand_utx_r = list(fsummand_utx) #this is used in the mock reconstruction
+    for i_ut, c in enumerate(fsummand_ut):
+        if c not in fsummand_utx:
+            #find the location of its pair first
+            c_pair = "?"
+            for [[c1,c2],_] in summed_index_info:
+                if c==c2 :
+                    i_utx = fsummand_utx_r.index(c1)
+                    c_pair = c1
+                    break
+            copy_map += [i_ut,i_utx],
+            fsummand_utx_r.insert(i_ut,c)
+    
+    def use_copy_map(the_map,the_list,apply_negative=False):
+        new_list = list(the_list).copy()
+        for [i2,i1] in the_map :
+            if apply_negative :
+                new_list.insert(i2,-new_list[i1])
+            else :
+                new_list.insert(i2,new_list[i1])
+        return new_list
+    
+    if debug_mode and not skip_S1:
+        print()
+        print(" :::::::::::::::::::::::::: testing copy_map ::::::::::::::::::::::::: ")
+        fsummand_ut2 = ''.join(use_copy_map(copy_map,list(fsummand_utx)))
+        fstats_ut2 = use_copy_map(copy_map,fstats_utx,apply_negative=True)
+        fshape_ut2 = use_copy_map(copy_map,fshape_utx)
+        print(" ",fsummand_ut2,"vs",fsummand_ut)
+        print(" ",fstats_ut2,"vs",fstats_ut)
+        print(" ",fshape_ut2,"vs",fshape_ut)
+        
+    # fsummand_utx needs to be replaced with the original indices to obtain S1_index_string
     S1_index_string  = ""
-    for c in fsummand_urtr:
+    for c in fsummand_utx:
         if c in summand:
             S1_index_string += c
         else:
@@ -1256,21 +1331,29 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
                 if c==c2 :
                     S1_index_string += c1
                     break
-
+    S1_shape = []
+    for c in S1_index_string:
+        ind = fsummand.index(c)
+        S1_shape += fshape[ind],
+    S1_shape = make_tuple(S1_shape)
+    
+    if debug_mode and not skip_S1 :
+        print()
+        print(" :::::::::::::::::::::::::::::: S1 stuff ::::::::::::::::::::::::::::: ")
+        print(S1_index_string,"<--- S1's index string")
+        print(S1_shape,"<--- S1's shape")
+        
     # sign factor computation -------------------------------------------------------------------------
     
     if S1dim>0 and not skip_S1:
 
-        S1 = np.zeros(fshape_urtr,dtype=int)
+        S1 = np.zeros(S1_shape,dtype=int)
         iterator = np.nditer(S1, flags=['multi_index'])
         individual_parity_list = []
         sgn_list = []
 
-
         k=1
-        kmax = 1
-        for d in fshape_urtr:
-            kmax*=d
+        kmax = getsize(S1_shape)
 
         s0 = time.time()
         s00 = s0
@@ -1278,11 +1361,8 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
         for element in iterator:
             coords = iterator.multi_index
-            dupped_coords = list(coords)
+            dupped_coords = use_copy_map(copy_map,coords)
             
-            for loc in copy_positions:
-                dupped_coords.insert(loc,dupped_coords[loc])
-
             individual_parity = [ param.gparity(i)%2 for i in dupped_coords ]
 
             if individual_parity not in individual_parity_list:
@@ -1303,7 +1383,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
         clear_progress()
         sys.stdout.write("\033[F")
-    
+        
     #  ::: Summary :::
     #
     #  S1 is the sign factor from the initial rearrangement
@@ -1323,8 +1403,22 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         summed_indices = summed_indices.replace(c1+c2,"")
     S2_shape = make_tuple(S2_shape)
     S2dim = len(S2_shape)
-
-    if S2dim>0 :
+    
+    
+    skip_S2 = S2dim == 0
+    
+    if debug_mode :
+        print()
+        print(" :::::::::::::::::::::::::::::: S2 stuff ::::::::::::::::::::::::::::: ")
+        if skip_S2 :
+            print("There is no summed indices.")
+            print("S2 calculation is skipped.")
+        else :
+            print(fsummand,"<--- fsummand")
+            print(S2_index_string,"<--- S2 index string")
+            print(S2_shape,"<--- S2's shape")
+    
+    if not skip_S2 :
         S2 = np.zeros(S2_shape,dtype=int)
         iterator = np.nditer(S2, flags=['multi_index'])
         for element in iterator:
@@ -1344,7 +1438,8 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #              Step 4: rearrange to the final form
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
+    
+    skip_S3 = True
     if has_output :
 
         foutput = ""
@@ -1429,7 +1524,14 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     #
     #  S3 is the sign factor from the final rearrangement
     #  Its index string is S3_index_string
-
+    
+    if debug_mode and not skip_S3:
+        print()
+        print(" :::::::::::::::::::::::::::::: S3 stuff ::::::::::::::::::::::::::::: ")
+        print(S3_sgn_computation_string,"<--- string used in the S3 computation")
+        print(S3_index_string,"<--- S3_index_string")
+        print(S3_shape,"<--- S3_shape")
+    
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #              Step 5: add the vertices
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -1450,15 +1552,23 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
             einsum_input += ","+S3_index_string
             einsum_obj_list += S3,
 
-    einsum_input_no_comma = einsum_input.replace(",","")
+    instruction_all_indices = instruction_string.replace(",","")
+    instruction_all_indices = instruction_all_indices.replace("->","")
+    instruction_all_indices = instruction_all_indices.replace(" ","")
+    if not skip_S1:
+        instruction_all_indices=instruction_all_indices+S1_index_string
+    if not skip_S2:
+        instruction_all_indices=instruction_all_indices+S2_index_string
+    if not skip_S3:
+        instruction_all_indices=instruction_all_indices+S3_index_string
 
     # make a listing of duplicated indices
     einsum_input_unique = ""
     vertex_list = [] # [ indices , shape , number_of_legs ]
     unique_char = ""
-    for i,c in enumerate(einsum_input_no_comma):
-        if einsum_input_no_comma[:i].count(c) == 0 :
-            vertex_list += [ c, shape_list[ summand.index(c) ] , einsum_input_no_comma.count(c) ],
+    for i,c in enumerate(instruction_all_indices):
+        if instruction_all_indices[:i].count(c) == 0 :
+            vertex_list += [ c, shape_list[ summand.index(c) ] , instruction_all_indices.count(c) ],
             unique_char += c
 
     for i,[char,dim,nlegs] in enumerate(vertex_list) :
@@ -1473,38 +1583,49 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     for elem in vertex_list :
         if elem[2] > 2:
             vertex_list_final += elem[:2],
-
+            
+    for i,elem in enumerate(vertex_list_final):
+        x = list(elem[0])
+        x.reverse()
+        vertex_list_final[i][0] = ''.join(x)
+    
+    if debug_mode :   
+        print()    
+        print(" :::::::::::::::::::::::::::::: vertices ::::::::::::::::::::::::::::: ")
+        print(instruction_all_indices,"<-- the instruction strings with all char combined into one string")
+        print("vertex list:")
+        for vert in vertex_list_final:
+            print(" ",vert)
+    
+    
     # now replace the einsum string with these new characters
-    einsum_input_wi = ""
-    for i,c in enumerate(einsum_input):
-        if c=="," :
-            einsum_input_wi+=","
-            continue
-
-        #if stats_list[ summand.index(c) ] == 0 :
-        #    einsum_input_wi += c
-        #    continue
-
-        k = einsum_input[:i].count(c)
-
-        do_continue = False
-        if k==0 :
-            einsum_input_wi += c
-            continue
-        else:
-            for [string,dim] in vertex_list_final :
-                if string[0]==c :
-                    einsum_input_wi += string[k]
-                    do_continue = True
-
-        if do_continue :
-            continue
-
-        einsum_input_wi += c
-
-    for [string,dim] in vertex_list_final :
-        einsum_input_wi += ","+string
-
+    
+    #get the correct einsum string first
+    einsum_string = input_string
+    if not skip_S1 :
+        einsum_string += ","+S1_index_string
+    if not skip_S2 :
+        einsum_string += ","+S2_index_string
+    if not skip_S3 :
+        einsum_string += ","+S3_index_string
+    if debug_mode :   
+        print()    
+        print(einsum_string,"<-- einsum_string = einsum string without vertices")
+    
+    einsum_string_replaced = einsum_string
+    for [vert,dim] in vertex_list_final:
+        c = vert[len(vert)-1]
+        nreplace = einsum_string_replaced.count(c)
+        for i in range(nreplace):
+            einsum_string_replaced = einsum_string_replaced.replace(c,vert[i],1)
+        einsum_string_replaced+=","+vert
+    if has_output :
+        einsum_string_replaced = einsum_string_replaced+"->"+output_string
+        
+    if debug_mode :   
+        print()    
+        print(einsum_string_replaced,"<-- einsum_string with replacement")
+    
     # construct the vertex tensors
     vertex_obj_list = []
     for [string,dim] in vertex_list_final :
@@ -1518,42 +1639,54 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     #              Step 6: get the final statistics
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    final_stat = []
+    final_stats = []
     if has_output :
         for c in output_string :
-            final_stat += stats_list[ summand.index(c) ],
+            final_stats += stats_list[ summand.index(c) ],
 
+    if debug_mode and has_output:
+        print()
+        print(" :::::::::::::::::::::::::: final statistics ::::::::::::::::::::::::: ")
+        print(final_stats,"<--- final stats")
+        
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #              Step 7: the actual sum
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+    einsum_obj_list += vertex_obj_list
+        
+    einsum_string = einsum_string_replaced
+    
+    # convert all object to this_type
     if this_type == sparse :
-        einsum_input = einsum_input_wi
-        einsum_obj_list += vertex_obj_list
-
-    if has_output :
-        einsum_string = einsum_input+"->"+output_string
-    else :
-        einsum_string = einsum_input
-
+        for i, obj in enumerate(einsum_obj_list):
+            if type(obj) == np.ndarray:
+                einsum_obj_list[i] = sp.COO.from_numpy(obj)
+    if this_type == dense :
+        for i, obj in enumerate(einsum_obj_list):
+            if type(obj) != np.ndarray:
+                einsum_obj_list[i] = sp.COO.todense(obj)
+    
+    if debug_mode :
+        print(" ::::::::::::::::::::::::::: the actual sum :::::::::::::::::::::::::: ")
+        print(einsum_string,"<-- einsum string")
+        print("[shape,type]:")
+        for obj in einsum_obj_list:
+            print(" ",[obj.shape,type(obj)])
+            
     ret = oe.contract(*tuple([einsum_string]+einsum_obj_list))
 
     if has_output :
-        return this_type(ret,statistic=final_stat).force_encoder(this_encoder).force_format(this_format)
+        return this_type(ret,statistic=final_stats).force_encoder(this_encoder).force_format(this_format)
     else:
         if this_type == sparse :
-            return ret
+            return ret.data[0]
         else:
-            if np.isscalar(np.array(ret).flatten()) :
-                return np.array(ret).flatten()
-            else:
-                return np.array(ret).flatten()[0]
+            return np.array(ret).flatten()[0]
 
 ####################################################
 ##                     Reshape                    ##
 ####################################################
-
-display_stage = []
 
 def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
 
@@ -1586,9 +1719,6 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
         #force convert to standard
         Obj = Obj.switch_encoder()
         
-    if 0 in display_stage:
-        Obj.display("After stage 0")
-    
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 1: Move bosonic indices to the left of each group                      #
@@ -1626,10 +1756,6 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
     Obj.data = oe.contract(*make_tuple( [npeinsum_string] + npeinsum_obj ))
     Obj.statistic = sorted_stat
     
-    #Obj.display()
-    if 1 in display_stage:
-        Obj.display("After stage 1")
-
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 2: Join fermionic indices with np.reshape                              #
@@ -1641,9 +1767,6 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
     Obj.data = np.reshape(Obj.data,new_shape)
     Obj.statistic = new_stats
     
-    if 2 in display_stage:
-        Obj.display("After stage 2")
-    
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 3: Switch format if make_format='matrix'                               #
@@ -1651,11 +1774,6 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
     
     if make_format == 'matrix':
         Obj = Obj.switch_format()
-        if 3 in display_stage:
-            Obj.display("After stage 3")
-    else:
-        if 3 in display_stage:
-            print("Step 3 is skipped.")
     
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
     #===============================================================================#
@@ -1664,9 +1782,6 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
     
     Obj = Obj.switch_encoder()
     
-    if 4 in display_stage:
-        Obj.display("After stage 4")
-    
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 5: Merge bosons and fermions                                           #
@@ -1674,9 +1789,6 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
     
     Obj.data = np.reshape(Obj.data,final_shape)
     Obj.statistic = final_stats
-    
-    if 5 in display_stage:
-        Obj.display("After stage 5")
     
     clear_progress()
     sys.stdout.write("\033[F")
@@ -1708,9 +1820,6 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     this_format = XGobj.format
     this_encoder = XGobj.encoder
     
-    if 5 in display_stage:
-        Obj.display("Before stage 5")
-    
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 5: Split bosons and fermions                                           #
@@ -1723,9 +1832,6 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     Obj.data = np.reshape(Obj.data,new_shape)
     Obj.statistic = new_stats
     
-    if 4 in display_stage:
-        Obj.display("Before stage 4")
-    
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 4: Switch encoder                                                      #
@@ -1733,13 +1839,6 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     
     Obj = Obj.switch_encoder()
     
-    if this_format == 'matrix':
-        if 3 in display_stage:
-            Obj.display("Before stage 3")
-    else:
-        if 3 in display_stage:
-                print("Step 3 is skipped.")
-                
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 3: Switch format if this_format='matrix'                               #
@@ -1748,9 +1847,6 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     if this_format == 'matrix':
         Obj = Obj.switch_format()
         
-    if 2 in display_stage:
-        Obj.display("Before stage 2")
-    
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 2: Split fermionic indices with np.reshape                              #
@@ -1767,10 +1863,6 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     Obj.data = np.reshape(Obj.data,new_shape)
     Obj.statistic = new_stats
     
-    if 1 in display_stage:
-        Obj.display("Before stage 1")
-    
-    
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 1: Move bosonic indices to the left of each group                      #
@@ -1786,14 +1878,9 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     clear_progress()
     sys.stdout.write("\033[F")
 
-    #Obj.display()
-    if 0 in display_stage:
-        Obj.display("Before stage 0")
-    
     if this_format=='matrix':
         return Obj.switch_format()
     
-
     return Obj
     
 def get_group_info(grouping_string, ungroup_stat, ungroup_shape):
@@ -2944,12 +3031,15 @@ def trg(T,dcut=16):
 ##                     2D ATRG                    ##
 ####################################################
 
-def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
-
-    process_name = "atrg2d"
+def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,alignment="y"):
+    
+    T1ori = T1.copy()
+    T2ori = T2.copy()
+    
+    process_name = "atrg2d"+alignment
     if iternum != None:
         process_name = process_name+"["+str(iternum)+"]"
-    process_length = 6
+    process_length = 8
     process_color = "purple"
     step = 1
     s00 = time.time()
@@ -2983,7 +3073,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     C = einsum("ab,bjk->ajk",S2,V2)
     D = U2.copy()
 
-    M = einsum("ajk,jib->aibk",C,B,debug_mode=True)
+    M = einsum("ajk,jib->aibk",C,B)
 
     del U1,S1,V1,U2,S2,V2,B,C
     gc.collect()
@@ -3029,32 +3119,51 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
 
     T = einsum('lai,kaj->ijkl',H,G)
 
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+
+    if error_test :
+        Z1 = einsum('IJIK,iKiJ',T1ori,T2ori)
+        Z2 = einsum('IJIJ',T)
+        error = np.abs(1-Z2/Z1)
+    
     clear_progress()
     sys.stdout.write("\033[F")
-
+    
     Tnorm = T.norm
     T.data = T.data/Tnorm
 
-    return T, Tnorm
+    if error_test :
+        return T, Tnorm, error
+    else :
+        return T, Tnorm
 
-def atrg2dx(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
+def atrg2dx(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False):
     T1 = einsum('ijkl->jilk',T1)
     T2 = einsum('ijkl->jilk',T2)
-    T, Tnorm = atrg2dy(T1,T2,dcut,intermediate_dcut,iternum)
+    if error_test :
+        T, Tnorm, err = atrg2dy(T1,T2,dcut,intermediate_dcut,iternum,True,alignment="x")
+    else:
+        T, Tnorm = atrg2dy(T1,T2,dcut,intermediate_dcut,iternum,alignment="x")
     T = einsum('jilk->ijkl',T)
-    return T, Tnorm
+    if error_test :
+        return T, Tnorm, err
+    else :
+        return T, Tnorm
 
 ####################################################
 ##                     3D ATRG                    ##
 ####################################################
 
-def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
+def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False):
+
+    T1ori = T1.copy()
+    T2ori = T2.copy()
 
     process_name = "hotrg3d"
     if iternum != None:
         process_name = process_name+"["+str(iternum)+"]"
     process_color = "purple"
-    process_length = 32
+    process_length = 28
     step = 1
     s00 = time.time()
     print() # << Don't remove this. This is for the show_progress!
@@ -3072,13 +3181,6 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #4
     Y1 = einsum('ab,b i2 i4->a i2 i4',sqrtS,Y1)
 
-    #---------------------------- Test ----------------------------
-    T1b = einsum('i1 i3 a mn, a i2 i4 -> i1 i3 mn i2 i4',X1,Y1)
-    clear_progress()
-    print("----------- svd -----------")
-    print( (T1-T1b).norm/T1.norm )
-    print()
-
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #5
     T2 = einsum('i1 i2 i3 i4 mn-> i1 i3 mn i2 i4',T2)
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #6
@@ -3088,54 +3190,76 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None):
     X2 = einsum('i1 i3 mn a,ab->i1 i3 b mn',X2,sqrtS)
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #8
     Y2 = einsum('ab,b i2 i4->a i2 i4',sqrtS,Y2)
-
-    #---------------------------- Test ----------------------------
-    T2b = einsum('i1 i3 a mn, a i2 i4 -> i1 i3 mn i2 i4',X2,Y2)
-    clear_progress()
-    print( (T2-T2b).norm/T2.norm )
-    print()
-
+    
+    # Do SVD instead of Eig because doing conjugate is slow
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #9
-    print()
     XX = einsum('i1 i3 a mn, j1 j3 b mn -> i3 j3 ab mn i1 j1 ',X1,X2)
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #10
     _ , S1, V1 = XX.svd('(i3 j3 ab mn)(i1 j1)')
-    U1 = V1.hconjugate('a ij')
-
-    #test1 = XX.copy()
-    #test2 = einsum('i3 j3 ab mn i1 j1, i1 j1 k, k x1 y1 -> i3 j3 ab mn x1 y1',XX,U1,V1)
-    test1 = einsum('i3 j3 ab mn i1 j1 -> i3 j3 ab mn i1 j1',XX)
-    test2 = einsum('i3 j3 ab mn i1 j1, i1 j1 k, k x1 y1 -> i3 j3 ab mn x1 y1',XX,U1,V1)
-    print("~~~~~~~~~~~", (test1 - test2).norm )
-    test1 = einsum('i1 j1 ab mn i1 j1 -> ab mn',test1)
-    test2 = einsum('i1 j1 ab mn i1 j1 -> ab mn',test2)
-    print("~~~~~~~~~~~", (test1 - test2).norm )
-    test1 = einsum('i3 j3 ab mn i3 j3 -> ab mn',XX)
-    test2 = einsum('i3 j3 ab mn i1 j1, i1 j1 k, k i3 j3 -> ab mn',XX,U1,V1)
-    print("~~~~~~~~~~~", (test1 - test2).norm )
-
-    test1.info("test1")
-    test2.info("test2")
-
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #11
     U3, S3,  _ = XX.svd('(i3 j3)(ab mn i1 j1)')
-
-
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #12
+    U1 = V1.hconjugate('a ij')
     if S1.shape[0] < S3.shape[0] :
         Ux = U1.copy()
     else:
         Ux = U3.copy()
-
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #13
     cUx = Ux.hconjugate('ij a')
-
-    test1 = einsum('ijabmnij->abmn',XX)
-    test2 = einsum('cij,ijabmnkl,klc->abmn',cUx,XX,Ux)
-    print((test1-test2).norm)
-
-    exit()
-
+    
+    #switch the i and j
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #14
+    XX = einsum('i3 j3 ab mn i1 j1 -> j3 i3 ab mn i1 j1',XX)
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #15
+    XX = einsum('j3 i3 ab mn i1 j1 -> j3 i3 ab mn j1 i1',XX)
+    
+    # Do SVD instead of Eig because doing conjugate is slow
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #16
+    YY = einsum('a i2 i4, b j2 j4 -> i4 j4 b a i2 j2 ',Y1,Y2)
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #17
+    _ , S2, V2 = YY.svd('(i4 j4 b a)(i2 j2)')
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #18
+    U4, S4,  _ = YY.svd('(i4 j4)(b a i2 j2)')
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #19
+    U2 = V2.hconjugate('a ij')
+    if S2.shape[0] < S4.shape[0] :
+        Uy = U2.copy()
+    else:
+        Uy = U4.copy()
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #20
+    cUy = Uy.hconjugate('ij a')
+    
+    #switch the i and j
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #21
+    YY = einsum('i4 j4 b a i2 j2 -> j4 i4 b a i2 j2',YY)
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #22
+    YY = einsum('j4 i4 b a i2 j2 -> j4 i4 b a j2 i2',YY)
+    
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #23
+    Xprime = einsum('s i3 j3,j3 i3 kl mn j1 i1 -> s kl mn j1 i1',cUx,XX)
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #24
+    Xprime = einsum('s kl mn j1 i1, i1 j1 t -> t s kl mn',Xprime,Ux)
+    
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #25
+    Yprime = einsum('s i4 j4,j4 i4 lk j2 i2 -> s lk j2 i2',cUy,YY)
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #26
+    Yprime = einsum('s lk j2 i2, i2 j2 t -> lk t s',Yprime,Uy)
+    
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #27
+    T = einsum(' t1 t3 kl mn, lk t2 t4 -> t1 t2 t3 t4 mn ',Xprime,Yprime)
+    
     clear_progress()
     sys.stdout.write("\033[F")
-
+    
+    if error_test :
+        Z1 = einsum('IJIJmn,KLKLmn->mn',T1ori,T2ori)
+        Z2 = einsum('IJIJmn->mn',T)
+        error = (Z1-Z2).norm/Z1.norm
+    
     Tnorm = T.norm
     T.data = T.data/Tnorm
-
-    return T, Tnorm
+    
+    if error_test :
+        return T, Tnorm, error
+    else :
+        return T, Tnorm
