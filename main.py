@@ -50,6 +50,19 @@ if args.clear_screen or args.cs:
 
 def main():
 
+	n=2
+	A = gtn.random( (n,n,n,n), (1,1,-1,-1) )
+	B = gtn.random( (n,n,n,n), (1,1,-1,-1) )
+	C = gtn.random( (n,n,n,n), (1,1,-1,-1) )
+
+	ABC = gtn.einsum( 'ijab,abxy,xykl -> ijkl',A,B,C )
+	trABC1 = gtn.einsum( 'ijij' ,ABC )
+	trABC2 = gtn.einsum( 'ijab,abxy,xyij',A,B,C )
+
+	print(trABC1-trABC2)
+
+	exit()
+
 	β = args.beta             # inverse coupling
 	m = args.mass             # mass
 	μ = args.mu               # chemical potential
@@ -82,7 +95,7 @@ def main():
 
 	print("tensor shape:",T.shape)
 	F0 = logZhotrg3dz(T,T,boundary_conditions=bc)+2*logNorm
-	print(F0)
+	print(">>",F0)
 
 
 	#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
@@ -98,8 +111,8 @@ def main():
 		logNorm = 2*logNorm + np.log(Tnorm)
 
 		F1 = logZ(zcap(T),boundary_conditions=bc)+logNorm
-		print(F1)
-		#print(" flavor_cg[Nf="+str(2**i)+"→ "+str(2**(i+1))+"]: err =",np.abs(F1-F0),",",gtn.time_display(time.time()-t0))
+		print(">>>",F1)
+
 		t0 = time.time()
 		print("tensor shape:",T.shape)
 
@@ -1169,13 +1182,15 @@ def fcompress_B(B,cutoff=64,mute=True):
 	gc.collect()
 
 	step = gtn.show_progress(step,process_length,process_name,time=time.time()-s00)
-	Λp, Up = Mp.eig("I J",cutoff)
-	Λm, Um = Mm.eig("I J",cutoff)
+	Up, Λp, cUp = Mp.eig("I J",cutoff)
+	Um, Λm, cUm = Mm.eig("I J",cutoff)
 
 	if Λp.shape[0] < Λm.shape[0] :
 		U1 = Up.copy()
+		cU1 = cUp.copy()
 	else:
 		U1 = Um.copy()
+		cU1 = cUm.copy()
 
 	step = gtn.show_progress(step,process_length,process_name,time=time.time()-s00)
 	B = gtn.einsum('IA,IJKLijkl->AJKLijkl',U1,B)
@@ -1207,17 +1222,19 @@ def fcompress_B(B,cutoff=64,mute=True):
 	gc.collect()
 
 	step = gtn.show_progress(step,process_length,process_name,time=time.time()-s00)
-	Λp, Up = Mp.eig("I J",cutoff)
-	Λm, Um = Mm.eig("I J",cutoff)
+	Up, Λp, cUp = Mp.eig("I J",cutoff)
+	Um, Λm, cUm = Mm.eig("I J",cutoff)
 
 	if Λp.shape[0] < Λm.shape[0] :
 		U2 = Up.copy()
+		cU2 = cUp.copy()
 	else:
 		U2 = Um.copy()
+		cU2 = cUm.copy()
 
 	step = gtn.show_progress(step,process_length,process_name,time=time.time()-s00)
 	B = gtn.einsum('JB,AJCLijkl->ABCLijkl',U2,B)
-	B = gtn.einsum('DL,ABCLijkl->ABCDijkl',U2.hconjugate('I J'),B)
+	B = gtn.einsum('DL,ABCLijkl->ABCDijkl',cU2,B)
 	gtn.clear_progress()
 	sys.stdout.write("\033[F")
 	
@@ -1267,8 +1284,8 @@ def compress_B(B,cutoff=64,mute=True):
 	gc.collect()
 
 	step = gtn.show_progress(step,process_length,process_name,time=time.time()-s00)
-	Λp, Up = Mp.eig("Ii Jj",cutoff)
-	Λm, Um = Mm.eig("Ii Jj",cutoff)
+	Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
+	Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
 
 	if Λp.shape[0] < Λm.shape[0] :
 		U1 = Up.copy()
@@ -1306,8 +1323,8 @@ def compress_B(B,cutoff=64,mute=True):
 	gc.collect()
 
 	step = gtn.show_progress(step,process_length,process_name,time=time.time()-s00)
-	Λp, Up = Mp.eig("Ii Jj",cutoff)
-	Λm, Um = Mm.eig("Ii Jj",cutoff)
+	Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
+	Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
 
 	if Λp.shape[0] < Λm.shape[0] :
 		U2 = Up.copy()
@@ -1344,8 +1361,8 @@ def compress_B(B,cutoff=64,mute=True):
 	gc.collect()
 
 	step = gtn.show_progress(step,process_length,process_name,time=time.time()-s00)
-	Λp, Up = Mp.eig("Ii Jj",cutoff)
-	Λm, Um = Mm.eig("Ii Jj",cutoff)
+	Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
+	Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
 
 	if Λp.shape[0] < Λm.shape[0] :
 		U3 = Up.copy()
@@ -1383,8 +1400,8 @@ def compress_B(B,cutoff=64,mute=True):
 	gc.collect()
 
 	step = gtn.show_progress(step,process_length,process_name,time=time.time()-s00)
-	Λp, Up = Mp.eig("Ii Jj",cutoff)
-	Λm, Um = Mm.eig("Ii Jj",cutoff)
+	Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
+	Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
 
 	if Λp.shape[0] < Λm.shape[0] :
 		U4 = Up.copy()
@@ -1466,8 +1483,8 @@ def compress_T(T,cutoff=64,mute=True):
 
 
 	step = gtn.show_progress(step,process_length,process_name,time=time.time()-s00)
-	Λp, Up = Mp.eig("Ii Jj",cutoff)
-	Λm, Um = Mm.eig("Ii Jj",cutoff)
+	Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
+	Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
 
 	if Λp.shape[0] < Λm.shape[0] :
 		U = Up.copy()
@@ -1502,8 +1519,8 @@ def compress_T(T,cutoff=64,mute=True):
 	gc.collect()
 
 	step = gtn.show_progress(step,process_length,process_name,time=time.time()-s00)
-	Λp, Up = Mp.eig("Ii Jj",cutoff)
-	Λm, Um = Mm.eig("Ii Jj",cutoff)
+	Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
+	Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
 
 	if Λp.shape[0] < Λm.shape[0] :
 		U = Up.copy()
