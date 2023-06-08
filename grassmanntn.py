@@ -1393,19 +1393,18 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     #              Step 3: Sign factor from the summed pair
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    result_after_sum = fsummand_ur
-    S2_shape = []
+    S2_dimlist = []
     S2_index_string = ""
     summed_indices = fsummand_ur
     for [ [c1,c2], loc ] in summed_index_info:
-        S2_shape += shape_list[ summand.index(c1) ],
-        S2_index_string += c1
+        S2_dimlist += shape_list[ summand.index(c1) ],
+        S2_index_string += ","+c1
         summed_indices = summed_indices.replace(c1+c2,"")
-    S2_shape = make_tuple(S2_shape)
-    S2dim = len(S2_shape)
+    S2_index_string = S2_index_string[1:]
+    nS2 = len(S2_dimlist)
     
     
-    skip_S2 = S2dim == 0
+    skip_S2 = nS2 == 0
     
     if debug_mode :
         print()
@@ -1416,24 +1415,14 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         else :
             print(fsummand,"<--- fsummand")
             print(S2_index_string,"<--- S2 index string")
-            print(S2_shape,"<--- S2's shape")
+            print(S2_dimlist,"<--- S2's dim list")
     
     if not skip_S2 :
-        S2 = np.zeros(S2_shape,dtype=int)
-        iterator = np.nditer(S2, flags=['multi_index'])
-        for element in iterator:
-            coords = iterator.multi_index
 
-            sgn = 1
-            for ind in coords:
-                sgn *= param.sgn(ind)
-
-            S2[coords] = sgn
-
-    #  ::: Summary :::
-    #
-    #  S2 is the sign factor from the pairs summation
-    #  Its index string is S2_index_string
+        S2_list = []
+        for i in range(nS2):
+            S2i = [ param.sgn(j) for j in range(S2_dimlist[i]) ]
+            S2_list += np.array(S2i),
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #              Step 4: rearrange to the final form
@@ -1535,7 +1524,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #              Step 5: add the vertices
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
+    
     einsum_input = input_string
     einsum_obj_list = obj_list
 
@@ -1543,59 +1532,64 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         einsum_input += ","+S1_index_string
         einsum_obj_list += S1,
 
-    if S2dim>0 :
-        einsum_input += ","+S2_index_string
-        einsum_obj_list += S2,
+    if nS2>0 :
+        einsum_input += S2_index_string
+        einsum_obj_list += S2_list
 
     if has_output :
         if not skip_S3 :
             einsum_input += ","+S3_index_string
             einsum_obj_list += S3,
 
-    instruction_all_indices = instruction_string.replace(",","")
-    instruction_all_indices = instruction_all_indices.replace("->","")
-    instruction_all_indices = instruction_all_indices.replace(" ","")
-    if not skip_S1:
-        instruction_all_indices=instruction_all_indices+S1_index_string
-    if not skip_S2:
-        instruction_all_indices=instruction_all_indices+S2_index_string
-    if not skip_S3:
-        instruction_all_indices=instruction_all_indices+S3_index_string
+    if this_type == sparse :
+        
 
-    # make a listing of duplicated indices
-    einsum_input_unique = ""
-    vertex_list = [] # [ indices , shape , number_of_legs ]
-    unique_char = ""
-    for i,c in enumerate(instruction_all_indices):
-        if instruction_all_indices[:i].count(c) == 0 :
-            vertex_list += [ c, shape_list[ summand.index(c) ] , instruction_all_indices.count(c) ],
-            unique_char += c
+        instruction_all_indices = instruction_string.replace(",","")
+        instruction_all_indices = instruction_all_indices.replace("->","")
+        instruction_all_indices = instruction_all_indices.replace(" ","")
+        if not skip_S1:
+            instruction_all_indices=instruction_all_indices+S1_index_string
+        if not skip_S2:
+            instruction_all_indices=instruction_all_indices+S2_index_string
+        if not skip_S3:
+            instruction_all_indices=instruction_all_indices+S3_index_string
 
-    for i,[char,dim,nlegs] in enumerate(vertex_list) :
-        legchar = char
-        for leg in range(nlegs-1):
-            new_char = get_char(unique_char)
-            unique_char += new_char
-            legchar += new_char
-        vertex_list[i][0] = legchar
+        # make a listing of duplicated indices
+        einsum_input_unique = ""
+        vertex_list = [] # [ indices , shape , number_of_legs ]
+        unique_char = ""
+        for i,c in enumerate(instruction_all_indices):
+            if c=="," :
+                continue
+            if instruction_all_indices[:i].count(c) == 0 :
+                vertex_list += [ c, shape_list[ summand.index(c) ] , instruction_all_indices.count(c) ],
+                unique_char += c
 
-    vertex_list_final = []
-    for elem in vertex_list :
-        if elem[2] > 2:
-            vertex_list_final += elem[:2],
-            
-    for i,elem in enumerate(vertex_list_final):
-        x = list(elem[0])
-        x.reverse()
-        vertex_list_final[i][0] = ''.join(x)
-    
-    if debug_mode :   
-        print()    
-        print(" :::::::::::::::::::::::::::::: vertices ::::::::::::::::::::::::::::: ")
-        print(instruction_all_indices,"<-- the instruction strings with all char combined into one string")
-        print("vertex list:")
-        for vert in vertex_list_final:
-            print(" ",vert)
+        for i,[char,dim,nlegs] in enumerate(vertex_list) :
+            legchar = char
+            for leg in range(nlegs-1):
+                new_char = get_char(unique_char)
+                unique_char += new_char
+                legchar += new_char
+            vertex_list[i][0] = legchar
+
+        vertex_list_final = []
+        for elem in vertex_list :
+            if elem[2] > 2:
+                vertex_list_final += elem[:2],
+                
+        for i,elem in enumerate(vertex_list_final):
+            x = list(elem[0])
+            x.reverse()
+            vertex_list_final[i][0] = ''.join(x)
+        
+        if debug_mode :   
+            print()    
+            print(" :::::::::::::::::::::::::::::: vertices ::::::::::::::::::::::::::::: ")
+            print(instruction_all_indices,"<-- the instruction strings with all char combined into one string")
+            print("vertex list:")
+            for vert in vertex_list_final:
+                print(" ",vert)
     
     
     # now replace the einsum string with these new characters
@@ -1612,28 +1606,27 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         print()    
         print(einsum_string,"<-- einsum_string = einsum string without vertices")
     
-    einsum_string_replaced = einsum_string
-    for [vert,dim] in vertex_list_final:
-        c = vert[len(vert)-1]
-        nreplace = einsum_string_replaced.count(c)
-        for i in range(nreplace):
-            einsum_string_replaced = einsum_string_replaced.replace(c,vert[i],1)
-        einsum_string_replaced+=","+vert
-    if has_output :
-        einsum_string_replaced = einsum_string_replaced+"->"+output_string
+    if this_type == sparse :
+        einsum_string_replaced = einsum_string
+        for [vert,dim] in vertex_list_final:
+            c = vert[len(vert)-1]
+            nreplace = einsum_string_replaced.count(c)
+            for i in range(nreplace):
+                einsum_string_replaced = einsum_string_replaced.replace(c,vert[i],1)
+            einsum_string_replaced+=","+vert
+            
+        if debug_mode :   
+            print()    
+            print(einsum_string_replaced,"<-- einsum_string with replacement")
         
-    if debug_mode :   
-        print()    
-        print(einsum_string_replaced,"<-- einsum_string with replacement")
-    
-    # construct the vertex tensors
-    vertex_obj_list = []
-    for [string,dim] in vertex_list_final :
-        shape=tuple([dim]*len(string))
-        coords = np.array([ [ i for i in range(dim) ] for j in range(len(string))])
-        data = np.array( [ 1 for i in range(dim) ] )
-        vertex = sp.COO( coords, data, shape=shape )
-        vertex_obj_list += vertex.copy(),
+        # construct the vertex tensors
+        vertex_obj_list = []
+        for [string,dim] in vertex_list_final :
+            shape=tuple([dim]*len(string))
+            coords = np.array([ [ i for i in range(dim) ] for j in range(len(string))])
+            data = np.array( [ 1 for i in range(dim) ] )
+            vertex = sp.COO( coords, data, shape=shape )
+            vertex_obj_list += vertex.copy(),
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #              Step 6: get the final statistics
@@ -1653,10 +1646,13 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     #              Step 7: the actual sum
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    einsum_obj_list += vertex_obj_list
-        
-    einsum_string = einsum_string_replaced
+    if this_type==sparse :
+        einsum_obj_list += vertex_obj_list
+        einsum_string = einsum_string_replaced
     
+    if has_output :
+        einsum_string += "->"+output_string
+
     # convert all object to this_type
     if this_type == sparse :
         for i, obj in enumerate(einsum_obj_list):
@@ -1673,6 +1669,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         print("[shape,type]:")
         for obj in einsum_obj_list:
             print(" ",[obj.shape,type(obj)])
+
             
     ret = oe.contract(*tuple([einsum_string]+einsum_obj_list))
 
@@ -1680,7 +1677,10 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         return this_type(ret,statistic=final_stats).force_encoder(this_encoder).force_format(this_format)
     else:
         if this_type == sparse :
-            return ret.data[0]
+            if type(ret.data)==memoryview:
+                return ret
+            else:
+                return ret.data[0]
         else:
             return np.array(ret).flatten()[0]
 
@@ -3117,10 +3117,11 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
 
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
 
-    T = einsum('lai,kaj->ijkl',H,G)
+    H = einsum('lai->ila',H)
+    G = einsum('kaj->ajk',G)
+    T = einsum('ila,ajk->ijkl',H,G)
 
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
-
     if error_test :
         Z1 = einsum('IJIK,iKiJ',T1ori,T2ori)
         Z2 = einsum('IJIJ',T)
@@ -3138,13 +3139,16 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
         return T, Tnorm
 
 def atrg2dx(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False):
-    T1 = einsum('ijkl->jilk',T1)
-    T2 = einsum('ijkl->jilk',T2)
+    T1 = einsum('ijkl->jikl',T1)
+    T1 = einsum('jikl->jilk',T1)
+    T2 = einsum('ijkl->jikl',T2)
+    T2 = einsum('jikl->jilk',T2)
     if error_test :
         T, Tnorm, err = atrg2dy(T1,T2,dcut,intermediate_dcut,iternum,True,alignment="x")
     else:
         T, Tnorm = atrg2dy(T1,T2,dcut,intermediate_dcut,iternum,alignment="x")
-    T = einsum('jilk->ijkl',T)
+    T = einsum('ijkl->jikl',T)
+    T = einsum('jikl->jilk',T)
     if error_test :
         return T, Tnorm, err
     else :
@@ -3171,6 +3175,7 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False)
     if intermediate_dcut==None:
         intermediate_dcut=dcut
 
+    #=================================================================================================
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #1
     T1 = einsum('i1 i2 i3 i4 mn-> i1 i3 mn i2 i4',T1)
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #2
@@ -3181,6 +3186,7 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False)
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #4
     Y1 = einsum('ab,b i2 i4->a i2 i4',sqrtS,Y1)
 
+    #=================================================================================================
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #5
     T2 = einsum('i1 i2 i3 i4 mn-> i1 i3 mn i2 i4',T2)
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #6
@@ -3191,13 +3197,18 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False)
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #8
     Y2 = einsum('ab,b i2 i4->a i2 i4',sqrtS,Y2)
     
+    #=================================================================================================
     # Do SVD instead of Eig because doing conjugate is slow
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #9
     XX = einsum('i1 i3 a mn, j1 j3 b mn -> i3 j3 ab mn i1 j1 ',X1,X2)
+
+    del X1,X2
+    gc.collect()
+
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #10
-    _ , S1, V1 = XX.svd('(i3 j3 ab mn)(i1 j1)')
+    _ , S1, V1 = XX.svd('(i3 j3 ab mn)(i1 j1)',dcut)
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #11
-    U3, S3,  _ = XX.svd('(i3 j3)(ab mn i1 j1)')
+    U3, S3,  _ = XX.svd('(i3 j3)(ab mn i1 j1)',dcut)
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #12
     U1 = V1.hconjugate('a ij')
     if S1.shape[0] < S3.shape[0] :
@@ -3213,40 +3224,56 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False)
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #15
     XX = einsum('j3 i3 ab mn i1 j1 -> j3 i3 ab mn j1 i1',XX)
     
-    # Do SVD instead of Eig because doing conjugate is slow
+    #=================================================================================================
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #16
-    YY = einsum('a i2 i4, b j2 j4 -> i4 j4 b a i2 j2 ',Y1,Y2)
+    Xprime = einsum('s i3 j3,j3 i3 kl mn j1 i1 -> s kl mn j1 i1',cUx,XX)
+    
+    del XX
+    gc.collect()
+
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #17
-    _ , S2, V2 = YY.svd('(i4 j4 b a)(i2 j2)')
+    Xprime = einsum('s kl mn j1 i1, i1 j1 t -> s kl mn t',Xprime,Ux)
+    Xprime = einsum('s kl mn t -> t s kl mn',Xprime)
+    
+    #=================================================================================================
+    # Do SVD instead of Eig because doing conjugate is slow
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #18
-    U4, S4,  _ = YY.svd('(i4 j4)(b a i2 j2)')
+    YY = einsum('a i2 i4, b j2 j4 -> i4 j4 b a i2 j2 ',Y1,Y2)
+
+    del Y1,Y2
+    gc.collect()
+
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #19
+    _ , S2, V2 = YY.svd('(i4 j4 b a)(i2 j2)',dcut)
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #20
+    U4, S4,  _ = YY.svd('(i4 j4)(b a i2 j2)',dcut)
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #21
     U2 = V2.hconjugate('a ij')
     if S2.shape[0] < S4.shape[0] :
         Uy = U2.copy()
     else:
         Uy = U4.copy()
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #20
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #22
     cUy = Uy.hconjugate('ij a')
     
     #switch the i and j
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #21
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #23
     YY = einsum('i4 j4 b a i2 j2 -> j4 i4 b a i2 j2',YY)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #22
+    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #24
     YY = einsum('j4 i4 b a i2 j2 -> j4 i4 b a j2 i2',YY)
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #23
-    Xprime = einsum('s i3 j3,j3 i3 kl mn j1 i1 -> s kl mn j1 i1',cUx,XX)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #24
-    Xprime = einsum('s kl mn j1 i1, i1 j1 t -> t s kl mn',Xprime,Ux)
-    
+    #=================================================================================================
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #25
     Yprime = einsum('s i4 j4,j4 i4 lk j2 i2 -> s lk j2 i2',cUy,YY)
+    del YY
+    gc.collect()
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #26
     Yprime = einsum('s lk j2 i2, i2 j2 t -> lk t s',Yprime,Uy)
     
     step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #27
     T = einsum(' t1 t3 kl mn, lk t2 t4 -> t1 t2 t3 t4 mn ',Xprime,Yprime)
+    del Xprime,Yprime
+    gc.collect()
     
     clear_progress()
     sys.stdout.write("\033[F")

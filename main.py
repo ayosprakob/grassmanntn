@@ -52,34 +52,14 @@ if args.clear_screen or args.cls:
 def main():
 
     '''
-    n=4
-    m=2
-    A = gtn.random( (n,n,m,m), (1,1,-1,-1), tensor_format=gtn.sparse )
-    B = gtn.random( (m,m,n,n), (1,1,-1,-1), tensor_format=gtn.sparse )
-    trAB1 = gtn.einsum( 'ijab,abij',A,B, debug_mode=True)
-    #print(trAC1-trAC2)
-    Adat=A.data
-    Bdat=B.data
-    
-    trAB2 = 0
-    for i in range(n):
-        for j in range(n):
-            for a in range(m):
-                for b in range(m):
-                    sgn = (-1)**(param.gparity(a)+param.gparity(b)+param.gparity(a)*param.gparity(b))
-                    sgn *= (-1)**(param.gparity(i)*param.gparity(j))
-                    sgn *= param.sgn(i)
-                    sgn *= param.sgn(j)
-                    sgn *= param.sgn(a)
-                    sgn *= param.sgn(b)
-                    trAB2 += sgn*Adat[i,j,a,b]*Bdat[a,b,i,j]
-    
-    print()
-    print("trAB1 =",trAB1)
-    print("trAB2 =",trAB2)
+    n=8
+    m=3
+    T = gtn.random( (n,n,n,n,m,m), (1,1,-1,-1,0,0), tensor_format=gtn.sparse )
+    T = gtn.einsum('i1 i2 i3 i4 mn-> i1 i3 mn i2 i4',T,debug_mode=True)
+    T.info("T")
     exit()
     '''
-    
+
     β = args.beta             # inverse coupling
     m = args.mass             # mass
     μ = args.mu               # chemical potential
@@ -93,7 +73,7 @@ def main():
     bc = args.boundary_conditions
 
     print(
-        " parameters: β="+str(β)
+        " _parameters: β="+str(β)
         +", m="+str(m)
         +", μ="+str(μ)
         +", q="+str(q)
@@ -106,11 +86,11 @@ def main():
         )
 
     t0 = time.time()
-    T = tensor_preparation(Nphi=Nphi, beta=β, Nf=Nf, spacing=a, mass=m, charge=q, mu=μ, mute=True)
+    T, err = tensor_preparation(Nphi=Nphi, beta=β, Nf=Nf, spacing=a, mass=m, charge=q, mu=μ, mute=True)
     logNorm = 0
     vol = 1
 
-    print(" _tensor shape:",T.shape)
+    print(" _initial_tensor:",(T.shape[0],T.shape[1]),"   ",'{:.3g}'.format(err),"   ",gtn.time_display(time.time()-t0))
 
     #:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
     #                      Flavor Coarse-graining Procedure                       #
@@ -119,12 +99,11 @@ def main():
     Log2Nf = int(np.log2(Nf))
     for i in range(Log2Nf):
 
+        t0 = time.time()
         T, Tnorm, err = gtn.hotrg3dz(T,T,Zcut,iternum=i,error_test=True)
         logNorm = 2*logNorm + np.log(Tnorm)
 
-        t0 = time.time()
-        print(" _tensor shape:",T.shape)
-        print(" _error:",err)
+        print(" _flavor_cg:",(T.shape[0],T.shape[1]),"   ",'{:.3g}'.format(err),"   ",gtn.time_display(time.time()-t0))
 
     T = zcap(T)
 
@@ -134,27 +113,29 @@ def main():
 
     F = logZ(T,boundary_conditions=bc)+logNorm
 
-    print(" trg:",vol,β,m,μ,q,a,Nf,Nphi,"   ",np.real(F),"   ",np.imag(F),"   ",gtn.time_display(time.time()-t0))
+    cgxfirst = T.shape[0] <= T.shape[1]
+
+    print(" trg:",vol,β,m,μ,q,a,Nf,Nphi,"   ",np.real(F),"   ",np.imag(F),"   ",(T.shape[0],T.shape[1]))
     for i in range(cgsteps):
         t0 = time.time()
-        
-        if i%2==0 :
-            T, Tnorm, err = gtn.atrg2dx(T,T,XYcut,iternum=i,error_test=True)
+        direction=""
+        if cgxfirst :
+            if i%2==0 :
+                T, Tnorm, err = gtn.atrg2dx(T,T,XYcut,iternum=i,error_test=True)
+            else:
+                T, Tnorm, err = gtn.atrg2dy(T,T,XYcut,iternum=i,error_test=True)
         else:
-            T, Tnorm, err = gtn.atrg2dy(T,T,XYcut,iternum=i,error_test=True)
-
-        #print("                            atrg["+str(i)+"]: "+gtn.time_display(time.time()-t0))
-
-        #T.info()
+            if i%2==0 :
+                T, Tnorm, err = gtn.atrg2dy(T,T,XYcut,iternum=i,error_test=True)
+            else:
+                T, Tnorm, err = gtn.atrg2dx(T,T,XYcut,iternum=i,error_test=True)
 
         vol = 2**(i+1)
         logNorm = 2*logNorm + np.log(Tnorm)
         F = (logZ(T,bc)+logNorm)/vol
         
         #print(gtn.clean_format(F))
-        print(" trg:",vol,β,m,μ,q,a,Nf,Nphi,"   ",np.real(F),"   ",np.imag(F),"   ",gtn.time_display(time.time()-t0))
-        print(" _tensor shape:",T.shape)
-        print(" _error:",err)
+        print(" trg:",vol,β,m,μ,q,a,Nf,Nphi,"   ",np.real(F),"   ",np.imag(F),"   ",(T.shape[0],T.shape[1]),"   ",'{:.3g}'.format(err),"   ",gtn.time_display(time.time()-t0))
 
 ####################################################
 ##           Initial tensor compression           ##
@@ -208,7 +189,7 @@ def tensor_preparation(Nphi, beta, Nf, spacing, mass, charge, mu, mute=True):
 
     T = dense(T)
 
-    return T
+    return T, trace_error
 
 def myQuadrature(beta, npoints):
         
