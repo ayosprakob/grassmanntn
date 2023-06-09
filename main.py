@@ -113,7 +113,7 @@ def main():
 
     F = logZ(T,boundary_conditions=bc)+logNorm
 
-    cgxfirst = T.shape[0] <= T.shape[1]
+    cgxfirst = T.shape[0] > T.shape[1]
 
     print(" trg:",vol,β,m,μ,q,a,Nf,Nphi,"   ",np.real(F),"   ",np.imag(F),"   ",(T.shape[0],T.shape[1]))
     for i in range(cgsteps):
