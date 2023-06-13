@@ -6,6 +6,9 @@ import opt_einsum as oe
 import time
 import sys
 import gc
+import tracemalloc
+import os
+from datetime import datetime
 
 hybrid_symbol = "*"
 separator_list = ("|",":",";",",","."," ")
@@ -87,6 +90,32 @@ def show_progress(step_inp,total_inp,process_name = "", ratio=True, color="blue"
         step = total
     print("\r",end="")
 
+    if ratio :
+        progress = str(step_inp)+"/"+str(total_inp)
+    else :
+        progress = '{:.4g} %'.format(step_inp/total_inp*100)
+
+    time_text = ""
+    if time>1.0e-10 :
+        time_text = "("+time_display(time)+")"
+
+    if step_inp/total_inp > 0.75 :
+        left_text = progress+" "+time_text+" "+process_name+" "
+        rght_text = ""
+    elif step_inp/total_inp > 0.5:
+        left_text = time_text+" "+process_name+" "
+        rght_text = " "+progress
+    elif step_inp/total_inp > 0.25:
+        left_text = process_name+" "
+        rght_text = " "+progress+" "+time_text
+    else:
+        left_text = ""
+        rght_text = " "+process_name+" "+progress+" "+time_text
+
+    if len(left_text) > 2*step :
+        left_text = left_text[(len(left_text)-2*step):]
+
+    '''
     process_name = process_name + " "
     if(len(process_name)>2*total):
         process_name = " "
@@ -107,29 +136,30 @@ def show_progress(step_inp,total_inp,process_name = "", ratio=True, color="blue"
 
     if len(process_name) > 2*step :
         process_name = process_name[(len(process_name)-2*step):]
+    '''
 
-    styled_process_name = "\u001b[1;37;4"+color+"m"+process_name+"\u001b[0;0m"
+    styled_left_text = "\u001b[1;37;4"+color+"m"+left_text+"\u001b[0;0m"
 
-    if 2*step-len(process_name)+len(process_name)+len(progress_number) > 2*total :
-        progress_number = progress_number[:(2*total-2*step)]
-    styled_number = "\u001b[1;3"+color+";47m"+progress_number+"\u001b[0;0m"
+    if 2*step-len(left_text)+len(left_text)+len(rght_text) > 2*total :
+        rght_text = rght_text[:(2*total-2*step)]
+    styled_rght_text = "\u001b[1;3"+color+";47m"+rght_text+"\u001b[0;0m"
 
     filled_bar = "\u001b[0;;4"+color+"m \u001b[0;0m"
     blank_bar = "\u001b[0;;47m \u001b[0;0m"
 
 
-    n_filled = 2*step-len(process_name)
-    n_blank  = 2*total-n_filled-len(process_name)-len(progress_number)
+    n_filled = 2*step-len(left_text)
+    n_blank  = 2*total-n_filled-len(left_text)-len(rght_text)
 
-    total = n_filled+len(process_name)+len(progress_number)+n_blank
+    total = n_filled+len(left_text)+len(rght_text)+n_blank
 
     #print("   progress: ",end="")
     print("   ",end="")
     for i in range(n_filled):
         print(filled_bar,end="")
     
-    print(styled_process_name,end="")
-    print(styled_number,end="")
+    print(styled_left_text,end="")
+    print(styled_rght_text,end="")
 
     for i in range(n_blank):
         print(blank_bar,end="")
@@ -177,15 +207,18 @@ def clean_format(number):
 
 def memory_display(raw_memory):
     if raw_memory<2**10:
-        return str(raw_memory)+" B"
+        return '{:.4g}'.format(raw_memory)+" B"
     elif raw_memory<2**20:
-        return str(raw_memory/(2**10))+" KiB"
+        return '{:.4g}'.format(raw_memory/(2**10))+" KiB"
     elif raw_memory<2**30:
-        return str(raw_memory/(2**20))+" MiB"
+        return '{:.4g}'.format(raw_memory/(2**20))+" MiB"
     elif raw_memory<2**40:
-        return str(raw_memory/(2**30))+" GiB"
+        return '{:.4g}'.format(raw_memory/(2**30))+" GiB"
     else:
-        return str(raw_memory/(2**40))+" TiB"
+        return '{:.4g}'.format(raw_memory/(2**40))+" TiB"
+
+def current_memory_display():
+    return memory_display(tracemalloc.get_traced_memory()[0])+"/"+memory_display(tracemalloc.get_traced_memory()[1])
 
 def getsize(shape):
     ret = 1
@@ -376,7 +409,7 @@ class dense:
     def __repr__(self):
         return repr(self.data)
         
-    def switch_format(self):
+    def switch_format(self,save_memory=False):
         # multiply sign factor sigma[i] to every conjugated indices i
 
         #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -385,9 +418,12 @@ class dense:
         #   - canonical encoder                 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
         #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-        ret = self.copy()
+        if save_memory :
+            ret = self
+        else:
+            ret = self.copy()
         if(self.encoder=='parity-preserving'):
-            ret = ret.switch_encoder().copy()
+            ret = ret.switch_encoder(save_memory=True)
         to_calc = []
         for i in range(self.ndim):
             to_calc += (ret.statistic[i]==-1),
@@ -429,11 +465,15 @@ class dense:
             error("Error[switch_format]: unknown format")
             
         if(self.encoder=='parity-preserving'):
-            ret = ret.switch_encoder()
+            ret = ret.switch_encoder(save_memory=True)
         return ret
 
-    def switch_encoder(self):
-        ret = self.copy()
+    def switch_encoder(self,save_memory=False):
+
+        if save_memory :
+            ret = self
+        else:
+            ret = self.copy()
 
         k=0
         kmax = ret.ndim
@@ -462,106 +502,11 @@ class dense:
             ret.encoder='canonical'
         return ret
 
-    def switch_format_old(self):
-        # multiply sign factor sigma[i] to every conjugated indices i
-
-        #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-        # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-        # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-        #   - canonical encoder                 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-        #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-        ret = self.copy()
-        if(self.encoder=='parity-preserving'):
-            ret = ret.switch_encoder().copy()
-        iterator = np.nditer(ret.data, flags=['multi_index'])
-
-        to_calc = []
-        for i in range(self.ndim):
-            to_calc += (ret.statistic[i]==-1),
-            if(ret.statistic[i]==hybrid_symbol):
-                error("Error[switch_format]: Cannot switch format with a hybrid index.\n                      Split them into bosonic and fermionic ones first!")
-
-        all_elem = 1
-        for d in self.shape :
-            all_elem *= d
-        elem=0
-        s0 = time.time()
-        s00 = s0
-        print()
-        for element in iterator:
-            coords = iterator.multi_index
-            elem+=1
-            if np.abs(element) < 1.0e-14 :
-                continue
-
-            sgn_value = 1
-            for i,ind in enumerate(coords):
-                if to_calc[i] :
-                    sgn_value *= param.sgn(ind)
-                
-                    
-            ret[coords] *= sgn_value
-            if time.time()-s0 > 0.5 :
-                show_progress(elem,all_elem,"switch_format",color="red",ratio=False,time=time.time()-s00)
-                s0 = time.time()
-        clear_progress()
-        sys.stdout.write("\033[F")
-
-
-        if(ret.format=='standard'):
-            ret.format = 'matrix'
-        elif(ret.format=='matrix'):
-            ret.format = 'standard'
-        else:
-            error("Error[switch_format]: unknown format")
-            
-        if(self.encoder=='parity-preserving'):
-            ret = ret.switch_encoder()
-        return ret
-
-    def switch_encoder_old(self):
-        ret = self.copy()
-        
-        iterator = np.nditer(self.data, flags=['multi_index'])
-
-        all_elem = 1
-        for d in self.shape :
-            all_elem *= d
-        elem=0
-        s0 = time.time()
-        s00 = s0
-        print()
-        for element in iterator:
-            coords = iterator.multi_index
-            new_coords = []
-            for i,ind in enumerate(coords):
-                if(self.statistic[i] in fermi_type):
-                    new_coords += param.encoder(ind),
-                else:
-                    new_coords += ind,
-            new_coords = tuple(new_coords)
-            ret.data[coords] = self.data[new_coords]
-
-            if time.time()-s0 > 0.5 :
-                show_progress(elem,all_elem,"switch_encoder",color="blue",ratio=False,time=time.time()-s00)
-                s0 = time.time()
-            elem+=1
-        clear_progress()
-        sys.stdout.write("\033[F")
-        
-
-        if(ret.encoder=='canonical'):
-            ret.encoder='parity-preserving'
-        else:
-            ret.encoder='canonical'
-        return ret
-
     def force_encoder(self,target="canonical"):
         if target not in encoder_type:
             error("Error[dense.force_encoder]: Unrecognized target encoder.")
         if target != self.encoder :
-            return self.switch_encoder()
+            return self.switch_encoder(save_memory=True)
         else :
             return self.copy()
 
@@ -569,24 +514,24 @@ class dense:
         if target not in format_type:
             error("Error[dense.force_format]: Unrecognized target format.")
         if target != self.format :
-            return self.switch_format()
+            return self.switch_format(save_memory=True)
         else :
             return self.copy()
 
-    def join_legs(self,string_inp,make_format='standard',intermediate_stat=(-1,1)):
-        return join_legs(self,string_inp,make_format,intermediate_stat)
+    def join_legs(self,string_inp,make_format='standard',intermediate_stat=(-1,1),save_memory=False):
+        return join_legs(self,string_inp,make_format,intermediate_stat,save_memory)
 
-    def split_legs(self,string_inp,final_stat,final_shape,intermediate_stat=(-1,1)):
-        return split_legs(self,string_inp,final_stat,final_shape,intermediate_stat)
+    def split_legs(self,string_inp,final_stat,final_shape,intermediate_stat=(-1,1),save_memory=False):
+        return split_legs(self,string_inp,final_stat,final_shape,intermediate_stat,save_memory)
 
-    def hconjugate(self,input_string):
-        return hconjugate(self,input_string)
+    def hconjugate(self,input_string,save_memory=False):
+        return hconjugate(self,input_string,save_memory)
 
-    def svd(self,string_inp,cutoff=None):
-        return svd(self,string_inp,cutoff)
+    def svd(self,string_inp,cutoff=None,save_memory=False):
+        return svd(self,string_inp,cutoff,save_memory)
 
-    def eig(self,string_inp,cutoff=None,debug_mode=False):
-        return eig(self,string_inp,cutoff,debug_mode)
+    def eig(self,string_inp,cutoff=None,debug_mode=False,save_memory=False):
+        return eig(self,string_inp,cutoff,debug_mode,save_memory)
 
 ####################################################
 ##            Sparse Grassmann arrays             ##
@@ -808,99 +753,11 @@ class sparse:
     def __repr__(self):
         return repr(self.data)
 
-    def switch_format(self):
-        return sparse(dense(self).switch_format())
+    def switch_format(self,save_memory=False):
+        return sparse(dense(self).switch_format(save_memory=save_memory))
 
-    def switch_encoder(self):
-        return sparse(dense(self).switch_encoder())
-
-    def switch_format_old(self):
-        #multiply sign factor sigma[i] to every conjugated indices i
-
-        #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-        # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-        # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-        #   - canonical encoder                 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-        #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-        ret = self.copy()
-        if(self.encoder=='parity-preserving'):
-            ret = ret.switch_encoder()
-        C = self.coords
-
-        all_elem = self.nnz
-        elem=0
-        print()
-        s0 = time.time()
-        s00 = s0
-
-        for elem in range(self.nnz):
-            coords = C[elem]
-            sgn_value = 1
-            for i,ind in enumerate(coords):
-                if(ret.statistic[i]==-1):
-                    sgn_value *= param.sgn(ind)
-                if(ret.statistic[i]==hybrid_symbol):
-                    error("Error[switch_format]: Cannot switch format with a hybrid index.\n                      Split them into bosonic and fermionic ones first!")
-                    
-            ret.data.data[elem] *= sgn_value
-
-            if time.time()-s0 > 0.5 :
-                show_progress(elem,all_elem,"switch_format",color="red",ratio=False,time=time.time()-s00)
-                s0 = time.time()
-            elem+=1
-        clear_progress()
-        sys.stdout.write("\033[F")
-
-        if(ret.format=='standard'):
-            ret.format = 'matrix'
-        elif(ret.format=='matrix'):
-            ret.format = 'standard'
-        else:
-            error("Error[switch_format]: unknown format")
-            
-
-        if(self.encoder=='parity-preserving'):
-            ret = ret.switch_encoder()
-        return ret
-
-    def switch_encoder_old(self):
-        ret = self.copy()
-        C = self.coords
-
-        all_elem = self.nnz
-        elem=0
-        print()
-        s0 = time.time()
-        s00 = s0
-
-        for elem in range(self.nnz):
-            coords = C[elem]
-
-            new_coords = []
-            for i,ind in enumerate(coords):
-                if(self.statistic[i] in fermi_type):
-                    new_coords += [param.encoder(ind)]
-                else:
-                    new_coords += [ind]
-            new_coords = tuple(new_coords)
-
-            for ind in range(len(new_coords)):
-                ret.data.coords[ind][elem] = new_coords[ind]
-
-
-            if time.time()-s0 > 0.5 :
-                show_progress(elem,all_elem,"switch_encoder",color="blue",ratio=False,time=time.time()-s00)
-                s0 = time.time()
-            elem+=1
-        clear_progress()
-        sys.stdout.write("\033[F")
-
-        if(ret.encoder=='canonical'):
-            ret.encoder='parity-preserving'
-        else:
-            ret.encoder='canonical'
-        return ret
+    def switch_encoder(self,save_memory=False):
+        return sparse(dense(self).switch_encoder(save_memory=save_memory))
 
     def force_encoder(self,target="canonical"):
         if target not in encoder_type:
@@ -918,20 +775,20 @@ class sparse:
         else :
             return self.copy()
 
-    def join_legs(self,string_inp,make_format='standard',intermediate_stat=(-1,1)):
-        return join_legs(self,string_inp,make_format,intermediate_stat)
+    def join_legs(self,string_inp,make_format='standard',intermediate_stat=(-1,1),save_memory=False):
+        return join_legs(self,string_inp,make_format,intermediate_stat,save_memory)
 
-    def split_legs(self,string_inp,final_stat,final_shape,intermediate_stat=(-1,1)):
-        return split_legs(self,string_inp,final_stat,final_shape,intermediate_stat)
+    def split_legs(self,string_inp,final_stat,final_shape,intermediate_stat=(-1,1),save_memory=False):
+        return split_legs(self,string_inp,final_stat,final_shape,intermediate_stat,save_memory)
 
-    def hconjugate(self,input_string):
-        return hconjugate(self,input_string)
+    def hconjugate(self,input_string,save_memory=False):
+        return hconjugate(self,input_string,save_memory)
 
-    def svd(self,string_inp,cutoff=None):
-        return svd(self,string_inp,cutoff)
+    def svd(self,string_inp,cutoff=None,save_memory=False):
+        return svd(self,string_inp,cutoff,save_memory)
 
-    def eig(self,string_inp,cutoff=None,debug_mode=False):
-        return eig(self,string_inp,cutoff,debug_mode)
+    def eig(self,string_inp,cutoff=None,debug_mode=False,save_memory=False):
+        return eig(self,string_inp,cutoff,debug_mode,save_memory)
 
 ####################################################
 ##       Parity Calculation (internal tools)      ##
@@ -1170,6 +1027,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     # get some information about the summed indices -------------------------------------------------
     # [ f=<char>, [index locations in lf], [statistics] ]
     summed_index_info = []
+
     for i,char in enumerate(summand):
 
         # skip if bosonic
@@ -1784,7 +1642,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 ##                     Reshape                    ##
 ####################################################
 
-def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
+def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=(-1,1),save_memory=False):
 
     process_name = "join_legs"
     process_length = 6
@@ -1797,25 +1655,34 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
 
     intermediate_stat = make_tuple(intermediate_stat)
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     # Always output the parity-preserving encoder
     #===============================================================================#
     #   Step 0: Preconditioning the initial Object to standard & canonical          #
     #===============================================================================#
-    Obj = XGobj.copy()
-    this_type = type(XGobj)
-    this_format = XGobj.format
-    this_encoder = XGobj.encoder
-    if this_type   == sparse:
-        Obj = dense(Obj)
+    
+    Obj = InpObj.copy()
+    this_type = type(Obj)
+    this_format = Obj.format
+    this_encoder = Obj.encoder
+    XObj_stats = Obj.statistic
+    XObj_shape = Obj.shape
+
+    if save_memory :
+        del InpObj.data
+        del InpObj
+        gc.collect()
+        
+    #if this_type   == sparse:
+    #    Obj = dense(Obj)
     if this_format == 'matrix':
         #force convert to standard
-        Obj = Obj.switch_format()
+        Obj = Obj.switch_format(save_memory=True)
     if this_encoder == 'parity-preserving':
         #force convert to standard
-        Obj = Obj.switch_encoder()
-        
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+        Obj = Obj.switch_encoder(save_memory=True)
+
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 1: Move bosonic indices to the left of each group                      #
     #===============================================================================#
@@ -1841,18 +1708,12 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
             [ make_list(stats) for [indices, stats, shape] in sorted_group_info ] ,[]
         ))
     
-    #print(Obj.statistic)
-    #print(sorted_stat)
-    
-    #print(npeinsum_string)
-    #for obj in npeinsum_obj:
-    #    print(obj.shape)
-    
     #sorted tensor
     Obj.data = oe.contract(*make_tuple( [npeinsum_string] + npeinsum_obj ))
     Obj.statistic = sorted_stat
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    
     #===============================================================================#
     #   Step 2: Join fermionic indices with np.reshape                              #
     #===============================================================================#
@@ -1863,22 +1724,22 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
     Obj.data = np.reshape(Obj.data,new_shape)
     Obj.statistic = new_stats
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 3: Switch format if make_format='matrix'                               #
     #===============================================================================#
     
     if make_format == 'matrix':
-        Obj = Obj.switch_format()
+        Obj = Obj.switch_format(save_memory=True)
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 4: Switch encoder                                                      #
     #===============================================================================#
+
+    Obj = Obj.switch_encoder(save_memory=True)
     
-    Obj = Obj.switch_encoder()
-    
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 5: Merge bosons and fermions                                           #
     #===============================================================================#
@@ -1891,7 +1752,7 @@ def join_legs(XGobj,string_inp,make_format='standard',intermediate_stat=(-1,1)):
 
     return Obj
     
-def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1)):
+def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1),save_memory=False):
 
     process_name = "split_legs"
     process_length = 6
@@ -1906,17 +1767,24 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     final_stat = make_tuple(final_stat)
     final_shape = make_tuple(final_shape)
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 0: Preparation                                                         #
     #===============================================================================#
     
-    Obj = XGobj.copy()
-    this_type = type(XGobj)
-    this_format = XGobj.format
-    this_encoder = XGobj.encoder
-    
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    Obj = InpObj.copy()
+    this_type = type(Obj)
+    this_format = Obj.format
+    this_encoder = Obj.encoder
+    XObj_stats = Obj.statistic
+    XObj_shape = Obj.shape
+
+    if save_memory :
+        del InpObj.data
+        del InpObj
+        gc.collect()
+
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 5: Split bosons and fermions                                           #
     #===============================================================================#
@@ -1928,22 +1796,22 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     Obj.data = np.reshape(Obj.data,new_shape)
     Obj.statistic = new_stats
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 4: Switch encoder                                                      #
     #===============================================================================#
     
-    Obj = Obj.switch_encoder()
+    Obj = Obj.switch_encoder(save_memory=True)
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 3: Switch format if this_format='matrix'                               #
     #===============================================================================#
     
     if this_format == 'matrix':
-        Obj = Obj.switch_format()
+        Obj = Obj.switch_format(save_memory=True)
         
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 2: Split fermionic indices with np.reshape                              #
     #===============================================================================#
@@ -1959,7 +1827,7 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     Obj.data = np.reshape(Obj.data,new_shape)
     Obj.statistic = new_stats
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
     #   Step 1: Move bosonic indices to the left of each group                      #
     #===============================================================================#
@@ -1975,7 +1843,7 @@ def split_legs(XGobj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1))
     sys.stdout.write("\033[F")
 
     if this_format=='matrix':
-        return Obj.switch_format()
+        return Obj.switch_format(save_memory=True)
     
     return Obj
     
@@ -2130,15 +1998,12 @@ def get_intermediate_info(sorted_group_info,intermediate_stat):
 ##               (for testing only)               ##
 ####################################################
 
-def trim_grassmann_odd(Obj_input):
-    objtype=type(Obj_input)
-
-    Obj = Obj_input.copy()
+def trim_grassmann_odd(Obj):
+    objtype=type(Obj)
 
     if(Obj.encoder == 'canonical'):
-        Obj = Obj.switch_encoder()
+        Obj = Obj.switch_encoder(save_memory=True)
         
-
     if(objtype==dense):
         Obj = sparse(Obj)
     C = Obj.coords
@@ -2161,14 +2026,13 @@ def trim_grassmann_odd(Obj_input):
         Obj = dense(Obj)
 
     if(Obj_input.encoder == 'canonical'):
-        Obj = Obj.switch_encoder()
+        Obj = Obj.switch_encoder(save_memory=True)
 
     return Obj
 
-def is_grassmann_even(Obj_input):
-    Obj = Obj_input.copy()
+def is_grassmann_even(Obj):
     if Obj.encoder == 'canonical':
-        Obj = Obj.switch_encoder()
+        Obj = Obj.switch_encoder(save_memory=True)
     if type(Obj) == dense:
         Obj = sparse(Obj)
 
@@ -2186,9 +2050,10 @@ def is_grassmann_even(Obj_input):
 def SortedSVD(M,cutoff=None):
     U, Λ, V = np.linalg.svd(M, full_matrices=False)
 
+
     nnz = 0
-    if np.abs(Λ[0]) < numer_cutoff:
-        error("Error[SortedSVD]: np.linalg.svd() returns zero singular value vector!")
+    #if np.abs(Λ[0]) < numer_cutoff:
+    #    error("Error[SortedSVD]: np.linalg.svd() returns zero singular value vector!")
 
     for i,s in enumerate(Λ):
         if np.abs(s/Λ[0]) > numer_cutoff:
@@ -2200,7 +2065,8 @@ def SortedSVD(M,cutoff=None):
     Λ = Λ[:nnz]
     U = U[:,:nnz]
     V = V[:nnz,:]
-    
+
+
     return U, Λ, V
 # I = cUU = VcV
 def BlockSVD(Obj,cutoff=None):
@@ -2283,7 +2149,7 @@ def BlockSVD(Obj,cutoff=None):
 
     return U, Λ, V
 
-def svd(XGobj,string,cutoff=None):
+def svd(InpObj,string,cutoff=None,save_memory=False):
 
     process_name = "svd"
     process_color = "yellow"
@@ -2298,17 +2164,27 @@ def svd(XGobj,string,cutoff=None):
 
     string = denumerate(string)
 
-    this_type = type(XGobj)
-    this_format = XGobj.format
-    this_encoder = XGobj.encoder
-    Obj = XGobj.copy()
+    
+    Obj = InpObj.copy()
+    this_type = type(Obj)
+    this_format = Obj.format
+    this_encoder = Obj.encoder
+    XObj_stats = Obj.statistic
+    XObj_shape = Obj.shape
+
+    if save_memory :
+        del InpObj.data
+        del InpObj
+        gc.collect()
+        
+        
     if(this_type==sparse):
         Obj = dense(Obj)
     if(this_type not in [dense,sparse]):
         error("Error[svd]: Object type must only be dense or sparse!")
         
-    # check if XGobj.statistic or final_statistic is weird or not
-    for stat in XGobj.statistic:
+    # check if Obj.statistic or final_statistic is weird or not
+    for stat in Obj.statistic:
         if(stat not in allowed_stat):
             error("Error[svd]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
 
@@ -2340,7 +2216,7 @@ def svd(XGobj,string,cutoff=None):
 
         error("Error[svd]: The input string must contain one and only one partition "+partition_string+" in it.")
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #1
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #1
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                       :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2397,21 +2273,21 @@ def svd(XGobj,string,cutoff=None):
     
     intermediate_stat = ( zero_or_else(stats_left,-1),zero_or_else(stats_right,1) )
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #2
-    Obj = Obj.join_legs(join_legs_string_input,"matrix",intermediate_stat=intermediate_stat)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #2
+    Obj = Obj.join_legs(join_legs_string_input,"matrix",intermediate_stat=intermediate_stat,save_memory=True)
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 2 - BLOCK SVD (MAKE SURE IT'S PARITY-PRESERVING!)                          :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #3
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #3
     if Obj.statistic[0]==0 or Obj.statistic[1]==0:
         U, Λ, V = SortedSVD(Obj.data,cutoff)
         Λ = np.diag(Λ)
     else:
         U, Λ, V = BlockSVD(Obj.data,cutoff)
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #4
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #4
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 3 - RECONSTRUCT U, Λ, and V AS GRASSMANN TENSORS                           :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2441,7 +2317,7 @@ def svd(XGobj,string,cutoff=None):
     dΛ = Λ.shape[0]
 
     skip_power_of_two_check = False
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #5
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #5
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 4 - Split the legs                                                         :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2460,12 +2336,12 @@ def svd(XGobj,string,cutoff=None):
             continue
         if(partition_found):
             Vind+=char
-            Vstats+=[XGobj.statistic[i-1]]
-            Vshape+=[XGobj.shape[i-1]]
+            Vstats+=[XObj_stats[i-1]]
+            Vshape+=[XObj_shape[i-1]]
         else:
             Uind+=char
-            Ustats+=[XGobj.statistic[i]]
-            Ushape+=[XGobj.shape[i]]
+            Ustats+=[XObj_stats[i]]
+            Ushape+=[XObj_shape[i]]
 
     new_ind1 = ""
     for char in char_list:
@@ -2480,20 +2356,20 @@ def svd(XGobj,string,cutoff=None):
     Ushape = tuple(Ushape + [dΛ])
     Vshape = tuple([dΛ] + Vshape)
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #6
-    U = U.split_legs(Uind,Ustats,Ushape)
-    Λ = Λ.switch_encoder()
-    V = V.split_legs(Vind,Vstats,Vshape)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #6
+    U = U.split_legs(Uind,Ustats,Ushape,save_memory=True)
+    Λ = Λ.switch_encoder(save_memory=True)
+    V = V.split_legs(Vind,Vstats,Vshape,save_memory=True)
     
     if(this_format == 'standard'):
-        U = U.switch_format()
-        Λ = Λ.switch_format()
-        V = V.switch_format()
+        U = U.switch_format(save_memory=True)
+        Λ = Λ.switch_format(save_memory=True)
+        V = V.switch_format(save_memory=True)
 
     if(this_encoder == 'parity-preserving'):
-        U = U.switch_encoder()
-        Λ = Λ.switch_encoder()
-        V = V.switch_encoder()
+        U = U.switch_encoder(save_memory=True)
+        Λ = Λ.switch_encoder(save_memory=True)
+        V = V.switch_encoder(save_memory=True)
 
     if(this_type==sparse):
         U = sparse(U)
@@ -2518,8 +2394,8 @@ def SortedEig(M,cutoff=None,debug_mode=False):
     U, Λ, V = np.linalg.svd(M, full_matrices=False)
 
     nnz = 0
-    if np.abs(Λ[0]) < numer_cutoff:
-        error("Error[SortedSVD]: np.linalg.svd() returns zero singular value vector!")
+    #if np.abs(Λ[0]) < numer_cutoff:
+    #    error("Error[SortedSVD]: np.linalg.svd() returns zero singular value vector!")
 
     for i,s in enumerate(Λ):
         if np.abs(s/Λ[0]) > numer_cutoff:
@@ -2627,7 +2503,7 @@ def BlockEig(Obj,cutoff=None,debug_mode=False):
 
     return U, Λ, cU
 
-def eig(XGobj,string,cutoff=None,debug_mode=False):
+def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
 
     process_name = "eig"
     process_color = "yellow"
@@ -2642,17 +2518,27 @@ def eig(XGobj,string,cutoff=None,debug_mode=False):
 
     string = denumerate(string)
 
-    this_type = type(XGobj)
-    this_format = XGobj.format
-    this_encoder = XGobj.encoder
-    Obj = XGobj.copy()
+    
+    Obj = InpObj.copy()
+    this_type = type(Obj)
+    this_format = Obj.format
+    this_encoder = Obj.encoder
+    XObj_stats = Obj.statistic
+    XObj_shape = Obj.shape
+
+    if save_memory :
+        del InpObj.data
+        del InpObj
+        gc.collect()
+        
+        
     if(this_type==sparse):
         Obj = dense(Obj)
     if(this_type not in [dense,sparse]):
         error("Error[eig]: Object type must only be dense or sparse!")
         
-    # check if XGobj.statistic or final_statistic is weird or not
-    for stat in XGobj.statistic:
+    # check if Obj.statistic or final_statistic is weird or not
+    for stat in Obj.statistic:
         if(stat not in allowed_stat):
             error("Error[eig]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
 
@@ -2684,7 +2570,7 @@ def eig(XGobj,string,cutoff=None,debug_mode=False):
 
         error("Error[eig]: The input string must contain one and only one partition "+partition_string+" in it.")
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #1
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #1
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                       :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2739,22 +2625,22 @@ def eig(XGobj,string,cutoff=None,debug_mode=False):
         elif(boson_count>0 and fermi_count>0):
             return hybrid_symbol
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #2
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #2
     intermediate_stat = ( zero_or_else(stats_left,-1),zero_or_else(stats_right,1) )
-    Obj = Obj.join_legs(join_legs_string_input,"matrix",intermediate_stat=intermediate_stat)
+    Obj = Obj.join_legs(join_legs_string_input,"matrix",intermediate_stat=intermediate_stat,save_memory=True)
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 2 - BLOCK SVD (MAKE SURE IT'S PARITY-PRESERVING!)                          :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #3
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #3
     if Obj.statistic[0]==0 or Obj.statistic[1]==0:
         U, Λ, V = SortedEig(Obj.data,cutoff,debug_mode)
         Λ = np.diag(Λ)
     else:
         U, Λ, V = BlockEig(Obj.data,cutoff,debug_mode)
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #4
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #4
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 3 - RECONSTRUCT U, Λ, and V AS GRASSMANN TENSORS                           :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2783,7 +2669,7 @@ def eig(XGobj,string,cutoff=None,debug_mode=False):
         V = dense(V,encoder="parity-preserving",format="matrix",statistic=(-1,Obj.statistic[1]))
     dΛ = Λ.shape[0]
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #5
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #5
     skip_power_of_two_check = False
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 4 - Split the legs                                                         :::::
@@ -2803,12 +2689,12 @@ def eig(XGobj,string,cutoff=None,debug_mode=False):
             continue
         if(partition_found):
             Vind+=char
-            Vstats+=[XGobj.statistic[i-1]]
-            Vshape+=[XGobj.shape[i-1]]
+            Vstats+=[XObj_stats[i-1]]
+            Vshape+=[XObj_shape[i-1]]
         else:
             Uind+=char
-            Ustats+=[XGobj.statistic[i]]
-            Ushape+=[XGobj.shape[i]]
+            Ustats+=[XObj_stats[i]]
+            Ushape+=[XObj_shape[i]]
 
     new_ind1 = ""
     for char in char_list:
@@ -2823,20 +2709,20 @@ def eig(XGobj,string,cutoff=None,debug_mode=False):
     Ushape = tuple(Ushape + [dΛ])
     Vshape = tuple([dΛ] + Vshape)
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #6
-    U = U.split_legs(Uind,Ustats,Ushape)
-    Λ = Λ.switch_encoder()
-    V = V.split_legs(Vind,Vstats,Vshape)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #6
+    U = U.split_legs(Uind,Ustats,Ushape,save_memory=True)
+    Λ = Λ.switch_encoder(save_memory=True)
+    V = V.split_legs(Vind,Vstats,Vshape,save_memory=True)
     
     if(this_format == 'standard'):
-        U = U.switch_format()
-        Λ = Λ.switch_format()
-        V = V.switch_format()
+        U = U.switch_format(save_memory=True)
+        Λ = Λ.switch_format(save_memory=True)
+        V = V.switch_format(save_memory=True)
 
     if(this_encoder == 'parity-preserving'):
-        U = U.switch_encoder()
-        Λ = Λ.switch_encoder()
-        V = V.switch_encoder()
+        U = U.switch_encoder(save_memory=True)
+        Λ = Λ.switch_encoder(save_memory=True)
+        V = V.switch_encoder(save_memory=True)
 
     if(this_type==sparse):
         U = sparse(U)
@@ -2852,7 +2738,7 @@ def eig(XGobj,string,cutoff=None,debug_mode=False):
 ##                   Conjugation                  ##
 ####################################################
 
-def hconjugate(XGobj,string):
+def hconjugate(InpObj,string,save_memory=False):
 
     process_name = "hconjugate"
     process_length = 6
@@ -2874,18 +2760,25 @@ def hconjugate(XGobj,string):
 
     # the string is of the form aaaa|bbb
 
-    this_type = type(XGobj)
-    this_format = XGobj.format
-    this_encoder = XGobj.encoder
-    Obj = XGobj.copy()
+    Obj = InpObj.copy()
+    this_type = type(Obj)
+    this_format = Obj.format
+    this_encoder = Obj.encoder
+    XObj_stats = Obj.statistic
+    XObj_shape = Obj.shape
 
-    if this_type==sparse :
-        Obj = dense(Obj)
+    if save_memory :
+        del InpObj.data
+        del InpObj
+        gc.collect()
+
+    #if this_type==sparse :
+    #    Obj = dense(Obj)
     if this_type not in [dense,sparse] :
         error("Error[hconjugate]: Object type must only be dense or sparse!")
         
-    # check if XGobj.statistic or final_statistic is weird or not
-    for stat in XGobj.statistic:
+    # check if Obj.statistic or final_statistic is weird or not
+    for stat in Obj.statistic:
         if(stat not in allowed_stat):
             error("Error[hconjugate]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
             
@@ -2909,7 +2802,7 @@ def hconjugate(XGobj,string):
 
         error("Error[hconjugate]: The input string must contain one and only one partition "+partition_string+" in it.")
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 1 - JOIN LEGS BAESD ON THE GROUPINGS                                       :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2962,10 +2855,10 @@ def hconjugate(XGobj,string):
                 return 0
         elif(boson_count>0 and fermi_count>0):
             return hybrid_symbol
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
-    Obj = Obj.join_legs(join_legs_string_input,"matrix")
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    Obj = Obj.join_legs(join_legs_string_input,"matrix",save_memory=True)
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 2 - Perform Hermitian Conjugation                                          :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2988,7 +2881,7 @@ def hconjugate(XGobj,string):
     
     Obj.statistic = new_stat
     
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 3 - Split legs                                                             :::::
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -3008,12 +2901,12 @@ def hconjugate(XGobj,string):
             continue
         if(partition_found):
             Vind+=char
-            Vstats+=[XGobj.statistic[i-1]]
-            Vshape+=[XGobj.shape[i-1]]
+            Vstats+=[XObj_stats[i-1]]
+            Vshape+=[XObj_shape[i-1]]
         else:
             Uind+=char
-            Ustats+=[XGobj.statistic[i]]
-            Ushape+=[XGobj.shape[i]]
+            Ustats+=[XObj_stats[i]]
+            Ushape+=[XObj_shape[i]]
     
     new_ind = "("+Vind+")("+Uind+")"
     new_stats = Vstats + Ustats
@@ -3022,15 +2915,15 @@ def hconjugate(XGobj,string):
         if new_stats[i] in fermi_type :
             new_stats[i]*=-1
     new_stats = make_tuple(new_stats)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
-    Obj = Obj.split_legs(new_ind,new_stats,new_shape)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    Obj = Obj.split_legs(new_ind,new_stats,new_shape,save_memory=True)
     
-    if this_type==sparse :
-        Obj = sparse(Obj)
+    #if this_type==sparse :
+    #    Obj = sparse(Obj)
     if this_format!=Obj.format :
-        Obj = Obj.switch_format()
+        Obj = Obj.switch_format(save_memory=True)
     if this_encoder!=Obj.encoder :
-        Obj = Obj.switch_encoder()
+        Obj = Obj.switch_encoder(save_memory=True)
 
     clear_progress()
     sys.stdout.write("\033[F")
@@ -3196,7 +3089,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
     #                             :
     #                             l
     #
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     A = V1.copy()
     B = einsum("lia,ab->lib",U1,S1)
     C = einsum("ab,bjk->ajk",S2,V2)
@@ -3204,6 +3097,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
 
     M = einsum("ajk,jib->aibk",C,B)
 
+    del U1.data,S1.data,V1.data,U2.data,S2.data,V2.data,B.data,C.data
     del U1,S1,V1,U2,S2,V2,B,C
     gc.collect()
 
@@ -3217,23 +3111,24 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
     #        a                    
     #
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     U, S, V = M.svd("ai bk",intermediate_dcut)
 
     sqrtS = sqrt(S)
     Y = einsum('abx,xc->abc',U,sqrtS)
     X = einsum('ax,xbc->abc',sqrtS,V)
 
+    del U.data,S.data,V.data,sqrtS.data
     del U,S,V,sqrtS
     gc.collect()
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     Q1 = einsum('iax,xbj->ijab',D,Y)
     Q2 = einsum('kya,ylb->abkl',X,A)
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     Q = einsum('ijab,abkl->ijkl',Q1,Q2)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     
     U,S,V = Q.svd("ij kl",dcut)
 
@@ -3241,16 +3136,17 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
     H = einsum('abx,xc->abc',U,sqrtS)
     G = einsum('ax,xbc->abc',sqrtS,V)
 
+    del U.data,S.data,V.data,sqrtS.data
     del U,S,V,sqrtS
     gc.collect()
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
 
     H = einsum('lai->ila',H)
     G = einsum('kaj->ajk',G)
     T = einsum('ila,ajk->ijkl',H,G)
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     if error_test :
         Z1 = einsum('IJIK,iKiJ',T1ori,T2ori)
         Z2 = einsum('IJIJ',T)
@@ -3287,7 +3183,17 @@ def atrg2dx(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False):
 ##                     3D ATRG                    ##
 ####################################################
 
-def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False):
+def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,svd_only=False,print_svd=False):
+    dt_string = datetime.now().strftime("%y%m%d.%H%M%S.%f")
+    if(not os.path.exists("data/")):
+        os.mkdir("data/")
+    directory = "data/hotrg3dz_svd"+dt_string+".txt"
+    fsvd = open(directory, "a")
+
+    if print_svd :
+        print(" Singular values will be printed into <../"+directory+">.")
+    if svd_only :
+        print(" Most of the CG process will be skipped in favor of getting the singular values.")
 
     T1ori = T1.copy()
     T2ori = T2.copy()
@@ -3305,128 +3211,193 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False)
         intermediate_dcut=dcut
 
     #=================================================================================================
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #1
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #1
     T1 = einsum('i1 i2 i3 i4 mn-> i1 i3 mn i2 i4',T1)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #2
-    X1,S1,Y1 = T1.svd('(i1 i3 mn)(i2 i4)',intermediate_dcut)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #2
+    X1,S1,Y1 = T1.svd('(i1 i3 m)(n i2 i4)',intermediate_dcut)
     sqrtS = sqrt(S1)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #3
-    X1 = einsum('i1 i3 mn a,ab->i1 i3 b mn',X1,sqrtS)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #4
-    Y1 = einsum('ab,b i2 i4->a i2 i4',sqrtS,Y1)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #3
+    X1 = einsum('i1 i3 m a,ab->i1 i3 b m',X1,sqrtS)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #4
+    Y1 = einsum('ab,b n i2 i4->n a i2 i4',sqrtS,Y1)
 
     #=================================================================================================
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #5
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #5
     T2 = einsum('i1 i2 i3 i4 mn-> i1 i3 mn i2 i4',T2)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #6
-    X2,S2,Y2 = T2.svd('(i1 i3 mn)(i2 i4)',intermediate_dcut)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #6
+    X2,S2,Y2 = T2.svd('(i1 i3 m)(n i2 i4)',intermediate_dcut)
     sqrtS = sqrt(S2)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #7
-    X2 = einsum('i1 i3 mn a,ab->i1 i3 b mn',X2,sqrtS)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #8
-    Y2 = einsum('ab,b i2 i4->a i2 i4',sqrtS,Y2)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #7
+    X2 = einsum('i1 i3 m a,ab->i1 i3 b m',X2,sqrtS)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #8
+    Y2 = einsum('ab,b n i2 i4->n a i2 i4',sqrtS,Y2)
     
     #=================================================================================================
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #9
-    XX = einsum('i1 i3 a mn, j1 j3 b mn -> i3 j3 ab mn i1 j1 ',X1,X2)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #9
+    XX = einsum('i1 i3 a m, j1 j3 b m -> i1 i3 ab m j1 j3',X1,X2) #-> i3 j3 ab m i1 j1
+    XX = einsum('i1 i3 ab m j1 j3 -> i1 i3 ab j3 m j1 ',XX)
+    XX = einsum('i1 i3 ab j3 m j1 -> i1 i3 j3 ab m j1 ',XX)
+    XX = einsum('i1 i3 j3 ab m j1 -> i3 j3 i1 ab m j1 ',XX)
+    XX = einsum('i3 j3 i1 ab m j1 -> i3 j3 ab m i1 j1 ',XX)
 
+    del X1.data,X2.data
     del X1,X2
     gc.collect()
 
     # below here is the one different from the svd version
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #10
-    cXX1 = XX.hconjugate('(i3 j3 ab mn)(i1 j1)')
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #11
-    M1 = einsum(' I1 J1 i3 j3 ab mn, i3 j3 ab mn i1 j1 -> I1 J1 i1 j1',cXX1,XX)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #10
+    cXX1 = XX.hconjugate('(i3 j3 ab m)(i1 j1)')
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #11
+    M1 = einsum(' I1 J1 i3 j3 ab m, i3 j3 ab m i1 j1 -> I1 J1 i1 j1',cXX1,XX)
+    del cXX1.data
     del cXX1
     gc.collect()
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #12
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #12
     U1 , S1, _ = M1.eig('(I J)(i j)',dcut)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #13
-    cXX3 = XX.hconjugate('(i3 j3)(ab mn i1 j1)')
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #14
-    M3 = einsum(' I3 J3 ab mn i1 j1, ab mn i1 j1 i3 j3  -> I3 J3 i3 j3',XX,cXX3)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #13
+    cXX3 = XX.hconjugate('(i3 j3)(ab m i1 j1)')
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #14
+    M3 = einsum(' I3 J3 ab m i1 j1, ab m i1 j1 i3 j3  -> I3 J3 i3 j3',XX,cXX3)
+    del cXX3.data
     del cXX3
     gc.collect()
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #15
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #15
     U3, S3,  _ = M3.eig('(I J)(i j)',dcut)
     if S1.shape[0] < S3.shape[0] :
         Ux = U1.copy()
+        Sx = S1.copy()
     else:
         Ux = U3.copy()
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #16
-    cUx = Ux.hconjugate('ij a')
-    #switch the i and j
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #17
-    XX = einsum('i3 j3 ab mn i1 j1 -> j3 i3 ab mn i1 j1',XX)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #18
-    XX = einsum('j3 i3 ab mn i1 j1 -> j3 i3 ab mn j1 i1',XX)
+        Sx = S3.copy()
 
-    #=================================================================================================
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #19
-    Xprime = einsum('s i3 j3,j3 i3 kl mn j1 i1 -> s kl mn j1 i1',cUx,XX)
-    
-    del XX
-    gc.collect()
+    if not svd_only :
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #16
+        cUx = Ux.hconjugate('ij a')
+        #switch the i and j
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #17
+        XX = einsum('i3 j3 ab m i1 j1 -> j3 i3 ab m i1 j1',XX)
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #18
+        XX = einsum('j3 i3 ab m i1 j1 -> j3 i3 ab m j1 i1',XX)
 
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #20
-    Xprime = einsum('s kl mn j1 i1, i1 j1 t -> s kl mn t',Xprime,Ux)
-    Xprime = einsum('s kl mn t -> t s kl mn',Xprime)
+        #=================================================================================================
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #19
+        Xprime = einsum('s i3 j3,j3 i3 kl m j1 i1 -> s kl m j1 i1',cUx,XX)
+        
+        del XX.data
+        del XX
+        gc.collect()
+
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #20
+        Xprime = einsum('s kl m j1 i1, i1 j1 t -> s kl m t',Xprime,Ux)
+        Xprime = einsum('s kl m t -> t s kl m',Xprime)
     
     #=================================================================================================
     # Do SVD instead of Eig because doing conjugate is slow
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #21
-    YY = einsum('a i2 i4, b j2 j4 -> i4 j4 b a i2 j2 ',Y1,Y2)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #21
+    YY = einsum('n b j2 j4, n a i2 i4 -> j2 j4 n ba i2 i4 ',Y2,Y1) #-> i4 j4 n b a i2 j2
+    YY = einsum('j2 j4 n ba i2 i4 -> j2 j4 i4 n ba i2 ',YY)
+    YY = einsum('j2 j4 i4 n ba i2 -> j4 i4 n j2 ba i2 ',YY)
+    YY = einsum('j4 i4 n j2 ba i2 -> j4 i4 n ba i2 j2 ',YY)
+    YY = einsum('j4 i4 n ba i2 j2 -> i4 j4 n ba i2 j2 ',YY)
 
+    del Y1.data,Y2.data
     del Y1,Y2
     gc.collect()
 
     # below here is the one different from the svd version
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #22
-    cYY2 = YY.hconjugate('(i4 j4 ba)(i2 j2)')
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #23
-    M2 = einsum(' I2 J2 i4 j4 ba, i4 j4 ba i2 j2 -> I2 J2 i2 j2',cYY2,YY)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #22
+    cYY2 = YY.hconjugate('(i4 j4 n ba)(i2 j2)')
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #23
+    M2 = einsum(' I2 J2 i4 j4 n ba, i4 j4 n ba i2 j2 -> I2 J2 i2 j2',cYY2,YY)
+    del cYY2.data
     del cYY2
     gc.collect()
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #24
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #24
     U2 , S2, _ = M2.eig('(I J)(i j)',dcut)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #25
-    cYY4 = YY.hconjugate('(i4 j4)(ba i2 j2)')
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #26
-    M4 = einsum(' I4 J4 ba i2 j2, ba i2 j2 i4 j4  -> I4 J4 i4 j4',YY,cYY4)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #25
+    cYY4 = YY.hconjugate('(i4 j4)(n ba i2 j2)')
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #26
+    M4 = einsum(' I4 J4 n ba i2 j2, n ba i2 j2 i4 j4  -> I4 J4 i4 j4',YY,cYY4)
+    del cYY4.data
     del cYY4
     gc.collect()
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #27
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #27
     U4, S4,  _ = M4.eig('(I J)(i j)',dcut)
     if S2.shape[0] < S4.shape[0] :
         Uy = U2.copy()
+        Sy = S2.copy()
     else:
         Uy = U4.copy()
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #28
-    cUy = Uy.hconjugate('ij a')
+        Sy = S4.copy()
 
-    #switch the i and j
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #29
-    YY = einsum('i4 j4 b a i2 j2 -> j4 i4 b a i2 j2',YY)
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #30
-    YY = einsum('j4 i4 b a i2 j2 -> j4 i4 b a j2 i2',YY)
+
+    if not svd_only :
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #28
+        cUy = Uy.hconjugate('ij a')
+
+        #switch the i and j
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #29
+        YY = einsum('i4 j4 n b a i2 j2 -> j4 i4 n b a i2 j2',YY)
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #30
+        YY = einsum('j4 i4 n b a i2 j2 -> j4 i4 n b a j2 i2',YY)
+        
+        #=================================================================================================
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #31
+        Yprime = einsum('s i4 j4,j4 i4 n lk j2 i2 -> s n lk j2 i2',cUy,YY)
+
+        del YY.data
+        del YY
+        gc.collect()
+
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #32
+        Yprime = einsum('s n lk j2 i2, i2 j2 t -> s n lk t',Yprime,Uy)
+        Yprime = einsum('s n lk t -> n lk t s',Yprime)
     
-    #=================================================================================================
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #31
-    Yprime = einsum('s i4 j4,j4 i4 lk j2 i2 -> s lk j2 i2',cUy,YY)
-    del YY
-    gc.collect()
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #32
-    Yprime = einsum('s lk j2 i2, i2 j2 t -> lk t s',Yprime,Uy)
-    
-    step = show_progress(step,process_length,process_name,color=process_color,time=time.time()-s00) #33
-    T = einsum(' t1 t3 kl mn, lk t2 t4 -> t1 t2 t3 t4 mn ',Xprime,Yprime)
-    del Xprime,Yprime
-    gc.collect()
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #33
+        T = einsum(' t1 t3 kl m, n lk t2 t4 -> t1 t2 t3 t4 mn ',Xprime,Yprime)
+        del Xprime.data,Yprime.data
+        del Xprime,Yprime
+        gc.collect()
     
     clear_progress()
     sys.stdout.write("\033[F")
+
+    if print_svd :
+        Sx = np.sort(np.diag(Sx.force_format("matrix").data))[::-1]
+        Sy = np.sort(np.diag(Sy.force_format("matrix").data))[::-1]
+
+        Sxmax = 0
+        for s in Sx:
+            if np.abs(s) > np.abs(Sxmax):
+                Sxmax = s
+        Symax = 0
+        for s in Sy:
+            if np.abs(s) > np.abs(Symax):
+                Symax = s
+
+        nsvd = max(len(Sx),len(Sy))
+        fsvd.write("\n")
+        fsvd.write("   i "+"                  Sx          "+"                  Sy          "+"\n")
+        for i in range(nsvd):
+            display = '{:5d}'.format(i+1)
+            if i<len(Sx) and Sxmax > 10*numer_cutoff:
+                display += '{:30g}'.format(np.real(Sx[i]/Sxmax))
+            else:
+                display += '{:30g}'.format(0)
+
+            if i<len(Sy) and Symax > 10*numer_cutoff:
+                display += '{:30g}'.format(np.real(Sy[i]/Symax))
+            else:
+                display += '{:30g}'.format(0)
+            fsvd.write(display+"\n")
+            fsvd.flush()
+        fsvd.write("\n")
+    
+    if svd_only :
+        print("\n The code is terminated due to the svd_only option.")
+        print("Maximum memory usage:",memory_display(tracemalloc.get_traced_memory()[1]))
+        exit()
     
     if error_test :
         Z1 = einsum('IJIJmn,KLKLmn->mn',T1ori,T2ori)
