@@ -3185,13 +3185,14 @@ def atrg2dx(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False):
 
 def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,svd_only=False,print_svd=False):
     dt_string = datetime.now().strftime("%y%m%d.%H%M%S.%f")
-    if(not os.path.exists("data/")):
-        os.mkdir("data/")
-    directory = "data/hotrg3dz_svd"+dt_string+".txt"
-    fsvd = open(directory, "a")
 
     if print_svd :
+        if(not os.path.exists("data/")):
+            os.mkdir("data/")
+        directory = "data/hotrg3dz_svd"+dt_string+".txt"
+        fsvd = open(directory, "a")
         print(" Singular values will be printed into <../"+directory+">.")
+        
     if svd_only :
         print(" Most of the CG process will be skipped in favor of getting the singular values.")
 
@@ -3202,7 +3203,7 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,
     if iternum != None:
         process_name = process_name+"["+str(iternum)+"]"
     process_color = "purple"
-    process_length = 34
+    process_length = 38
     step = 1
     s00 = time.time()
     print() # << Don't remove this. This is for the show_progress!
@@ -3213,56 +3214,76 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,
     #=================================================================================================
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #1
     T1 = einsum('i1 i2 i3 i4 mn-> i1 i3 mn i2 i4',T1)
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #2
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     X1,S1,Y1 = T1.svd('(i1 i3 m)(n i2 i4)',intermediate_dcut)
     sqrtS = sqrt(S1)
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #3
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     X1 = einsum('i1 i3 m a,ab->i1 i3 b m',X1,sqrtS)
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #4
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     Y1 = einsum('ab,b n i2 i4->n a i2 i4',sqrtS,Y1)
 
+    X1,S1,P1 = X1.svd('(i1 i3)(a m)',intermediate_dcut)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    X1 = einsum('i1 i3 x, xy -> i1 i3 y',X1,S1)
+    #P1 = einsum('yx,xam->yam',S1,P1)
+
+    Q1,S1,Y1 = Y1.svd('(na)(i2 i4)',intermediate_dcut)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    Y1 = einsum('xy, y i2 i4 -> x i2 i4',S1,Y1)
+    #Q1 = einsum('nax,xy->nay',Q1,S1)
+
     #=================================================================================================
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #5
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #7
     T2 = einsum('i1 i2 i3 i4 mn-> i1 i3 mn i2 i4',T2)
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #6
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     X2,S2,Y2 = T2.svd('(i1 i3 m)(n i2 i4)',intermediate_dcut)
     sqrtS = sqrt(S2)
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #7
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     X2 = einsum('i1 i3 m a,ab->i1 i3 b m',X2,sqrtS)
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #8
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     Y2 = einsum('ab,b n i2 i4->n a i2 i4',sqrtS,Y2)
     
+    X2,S2,P2 = X2.svd('(i1 i3)(a m)',intermediate_dcut)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    X2 = einsum('i1 i3 x, xy -> i1 i3 y',X2,S2)
+    #P2 = einsum('yx,xam->yam',S2,P2)
+
+    Q2,S2,Y2 = Y2.svd('(na)(i2 i4)',intermediate_dcut)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    Y2 = einsum('xy, y i2 i4 -> x i2 i4',S2,Y2)
+    #Q2 = einsum('nax,xy->nay',Q2,S2)
+
     #=================================================================================================
 
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #9
-    XX = einsum('i1 i3 a m, j1 j3 b m -> i1 i3 ab m j1 j3',X1,X2) #-> i3 j3 ab m i1 j1
-    XX = einsum('i1 i3 ab m j1 j3 -> i1 i3 ab j3 m j1 ',XX)
-    XX = einsum('i1 i3 ab j3 m j1 -> i1 i3 j3 ab m j1 ',XX)
-    XX = einsum('i1 i3 j3 ab m j1 -> i3 j3 i1 ab m j1 ',XX)
-    XX = einsum('i3 j3 i1 ab m j1 -> i3 j3 ab m i1 j1 ',XX)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    XX = einsum('i1 i3 a, j1 j3 b -> i1 i3 ab j1 j3',X1,X2) #-> i3 j3 ab m i1 j1
+    XX = einsum('i1 i3 ab j1 j3 -> i1 i3 ab j3 j1 ',XX)
+    XX = einsum('i1 i3 ab j3 j1 -> i1 i3 j3 ab j1 ',XX)
+    XX = einsum('i1 i3 j3 ab j1 -> i3 j3 i1 ab j1 ',XX)
+    XX = einsum('i3 j3 i1 ab j1 -> i3 j3 ab i1 j1 ',XX)
 
     del X1.data,X2.data
     del X1,X2
     gc.collect()
 
     # below here is the one different from the svd version
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #10
-    cXX1 = XX.hconjugate('(i3 j3 ab m)(i1 j1)')
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #11
-    M1 = einsum(' I1 J1 i3 j3 ab m, i3 j3 ab m i1 j1 -> I1 J1 i1 j1',cXX1,XX)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #14
+    cXX1 = XX.hconjugate('(i3 j3 ab)(i1 j1)')
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    M1 = einsum(' I1 J1 i3 j3 ab, i3 j3 ab i1 j1 -> I1 J1 i1 j1',cXX1,XX)
     del cXX1.data
     del cXX1
     gc.collect()
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #12
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #16
     U1 , S1, _ = M1.eig('(I J)(i j)',dcut)
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #13
-    cXX3 = XX.hconjugate('(i3 j3)(ab m i1 j1)')
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #14
-    M3 = einsum(' I3 J3 ab m i1 j1, ab m i1 j1 i3 j3  -> I3 J3 i3 j3',XX,cXX3)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    cXX3 = XX.hconjugate('(i3 j3)(ab i1 j1)')
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    M3 = einsum(' I3 J3 ab i1 j1, ab i1 j1 i3 j3  -> I3 J3 i3 j3',XX,cXX3)
     del cXX3.data
     del cXX3
     gc.collect()
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #15
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #19
     U3, S3,  _ = M3.eig('(I J)(i j)',dcut)
     if S1.shape[0] < S3.shape[0] :
         Ux = U1.copy()
@@ -3272,57 +3293,60 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,
         Sx = S3.copy()
 
     if not svd_only :
-        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #16
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #20
         cUx = Ux.hconjugate('ij a')
         #switch the i and j
-        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #17
-        XX = einsum('i3 j3 ab m i1 j1 -> j3 i3 ab m i1 j1',XX)
-        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #18
-        XX = einsum('j3 i3 ab m i1 j1 -> j3 i3 ab m j1 i1',XX)
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+        XX = einsum('i3 j3 ab i1 j1 -> j3 i3 ab i1 j1',XX)
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+        XX = einsum('j3 i3 ab i1 j1 -> j3 i3 ab j1 i1',XX)
 
         #=================================================================================================
-        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #19
-        Xprime = einsum('s i3 j3,j3 i3 kl m j1 i1 -> s kl m j1 i1',cUx,XX)
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #23
+        Xprime = einsum('s i3 j3,j3 i3 kl j1 i1 -> s kl j1 i1',cUx,XX)
         
         del XX.data
         del XX
         gc.collect()
 
-        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #20
-        Xprime = einsum('s kl m j1 i1, i1 j1 t -> s kl m t',Xprime,Ux)
-        Xprime = einsum('s kl m t -> t s kl m',Xprime)
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #24
+        Xprime = einsum('s kl j1 i1, i1 j1 t -> s kl t',Xprime,Ux)
+        Xprime = einsum('s kl t -> t s kl',Xprime)
+
+        Xprime = einsum('t s kl , kam -> t s al m',Xprime, P1)
+        Xprime = einsum('t s al m , lbm -> t s ab m',Xprime, P2)
     
     #=================================================================================================
     # Do SVD instead of Eig because doing conjugate is slow
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #21
-    YY = einsum('n b j2 j4, n a i2 i4 -> j2 j4 n ba i2 i4 ',Y2,Y1) #-> i4 j4 n b a i2 j2
-    YY = einsum('j2 j4 n ba i2 i4 -> j2 j4 i4 n ba i2 ',YY)
-    YY = einsum('j2 j4 i4 n ba i2 -> j4 i4 n j2 ba i2 ',YY)
-    YY = einsum('j4 i4 n j2 ba i2 -> j4 i4 n ba i2 j2 ',YY)
-    YY = einsum('j4 i4 n ba i2 j2 -> i4 j4 n ba i2 j2 ',YY)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #25
+    YY = einsum('b j2 j4, a i2 i4 -> j2 j4 ba i2 i4 ',Y2,Y1) #-> i4 j4 n b a i2 j2
+    YY = einsum('j2 j4 ba i2 i4 -> j2 j4 i4 ba i2 ',YY)
+    YY = einsum('j2 j4 i4 ba i2 -> j4 i4 j2 ba i2 ',YY)
+    YY = einsum('j4 i4 j2 ba i2 -> j4 i4 ba i2 j2 ',YY)
+    YY = einsum('j4 i4 ba i2 j2 -> i4 j4 ba i2 j2 ',YY)
 
     del Y1.data,Y2.data
     del Y1,Y2
     gc.collect()
 
     # below here is the one different from the svd version
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #22
-    cYY2 = YY.hconjugate('(i4 j4 n ba)(i2 j2)')
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #23
-    M2 = einsum(' I2 J2 i4 j4 n ba, i4 j4 n ba i2 j2 -> I2 J2 i2 j2',cYY2,YY)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #26
+    cYY2 = YY.hconjugate('(i4 j4 ba)(i2 j2)')
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    M2 = einsum(' I2 J2 i4 j4 ba, i4 j4 ba i2 j2 -> I2 J2 i2 j2',cYY2,YY)
     del cYY2.data
     del cYY2
     gc.collect()
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #24
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #28
     U2 , S2, _ = M2.eig('(I J)(i j)',dcut)
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #25
-    cYY4 = YY.hconjugate('(i4 j4)(n ba i2 j2)')
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #26
-    M4 = einsum(' I4 J4 n ba i2 j2, n ba i2 j2 i4 j4  -> I4 J4 i4 j4',YY,cYY4)
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    cYY4 = YY.hconjugate('(i4 j4)(ba i2 j2)')
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+    M4 = einsum(' I4 J4 ba i2 j2, ba i2 j2 i4 j4  -> I4 J4 i4 j4',YY,cYY4)
     del cYY4.data
     del cYY4
     gc.collect()
-    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #27
+    step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #31
     U4, S4,  _ = M4.eig('(I J)(i j)',dcut)
     if S2.shape[0] < S4.shape[0] :
         Uy = U2.copy()
@@ -3333,28 +3357,31 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,
 
 
     if not svd_only :
-        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #28
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #32
         cUy = Uy.hconjugate('ij a')
 
         #switch the i and j
-        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #29
-        YY = einsum('i4 j4 n b a i2 j2 -> j4 i4 n b a i2 j2',YY)
-        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #30
-        YY = einsum('j4 i4 n b a i2 j2 -> j4 i4 n b a j2 i2',YY)
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #33
+        YY = einsum('i4 j4 b a i2 j2 -> j4 i4 b a i2 j2',YY)
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
+        YY = einsum('j4 i4 b a i2 j2 -> j4 i4 b a j2 i2',YY)
         
         #=================================================================================================
-        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #31
-        Yprime = einsum('s i4 j4,j4 i4 n lk j2 i2 -> s n lk j2 i2',cUy,YY)
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #35
+        Yprime = einsum('s i4 j4,j4 i4 lk j2 i2 -> s lk j2 i2',cUy,YY)
 
         del YY.data
         del YY
         gc.collect()
 
-        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #32
-        Yprime = einsum('s n lk j2 i2, i2 j2 t -> s n lk t',Yprime,Uy)
-        Yprime = einsum('s n lk t -> n lk t s',Yprime)
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #36
+        Yprime = einsum('s lk j2 i2, i2 j2 t -> s lk t',Yprime,Uy)
+        Yprime = einsum('s lk t -> lk t s',Yprime)
+
+        Yprime = einsum('nak, lk t s -> n la t s',Q1,Yprime)
+        Yprime = einsum('nbl, n la t s -> n ba t s',Q2,Yprime)
     
-        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #33
+        step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #37
         T = einsum(' t1 t3 kl m, n lk t2 t4 -> t1 t2 t3 t4 mn ',Xprime,Yprime)
         del Xprime.data,Yprime.data
         del Xprime,Yprime
