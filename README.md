@@ -3,6 +3,9 @@ This is a package that aims to simplify the coding involving Grassmann tensor ne
 I try to make the coding as convenient as when you use other standard packages like numpy or scipy.
 All the sign factors are computed automatically without explicit user inputs.
 
+> **Note**
+> The documentation page is under construction.
+
 ### Example: initialization
 To initialize the tensor, you can import it from either a `numpy.array()` or `sparse.COO()` object. You can also choose your Grassmann tensor to be stored in a `dense` or `sparse` format:
 
