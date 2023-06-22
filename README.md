@@ -70,4 +70,4 @@ Hermitian conjugate of a Grassmann tensor can be computed using the `.hconjugate
 ```
 cU = U.hconjugate('ij,a')
 ```
-Of course, you need to identify the index separation first. Hermitian conjugate is only well-defined when the indices are separated into two groups, corresponding to the two matrix indices.
+Of course, you need to identify the index separation first (in this case, it is `ij` and `a`). Hermitian conjugate is only well-defined when the indices are separated into two groups, corresponding to the two matrix indices.
