@@ -6,6 +6,12 @@ All the sign factors are computed automatically without explicit user inputs.
 > **Note**
 > The documentation page is under construction.
 
+## Prerequisites
+
+- [numpy](https://numpy.org/doc/stable/index.html)
+- [sparse](https://sparse.pydata.org/en/stable/)
+- [opt_einsum](https://optimized-einsum.readthedocs.io/en/stable/)
+
 ## Installation
 (I'm not used to this. I plan to make installation easier in the future.)
 
