@@ -72,3 +72,13 @@ cU = U.hconjugate('ij,a')
 ```
 Of course, you need to identify the index separation first (in this case, it is `ij` and `a`). Hermitian conjugate is only well-defined when the indices are separated into two groups, corresponding to the two matrix indices.
 After the conjugation, the indices are now arranged as `aij`.
+
+### Example: tensor renormalization group
+I also wrote some built-in functions for tensor coarse-graining such as the Grassmann TRG or Grassmann ATRG methods.
+```
+T_trg = gtn.trg(T,dcut=64)                  # TRG method
+T_atrgx = gtn.atrg2dx(T1,T2,dcut=64)        # anisotropic TRG along the x-axis
+T_atrgy = gtn.atrg2dy(T1,T2,dcut=64)        # anisotropic TRG along the y-axis
+```
+Of course, you need to identify the index separation first (in this case, it is `ij` and `a`). Hermitian conjugate is only well-defined when the indices are separated into two groups, corresponding to the two matrix indices.
+After the conjugation, the indices are now arranged as `aij`.
