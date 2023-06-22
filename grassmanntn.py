@@ -25,14 +25,6 @@ numer_cutoff = 1.0e-14
 numer_display_cutoff = 1000*numer_cutoff
 char_list = ("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z")
 
-'''
-        USAGE ADVICES
-        - Do not do einsum with hybrid indices (already prevent in the code)
-        - hconjugate and join/split opertions are not commutative!
-        - switch encoder before switching format!
-
-'''
-
 ####################################################
 ##                Random Utilities                ##
 ####################################################
