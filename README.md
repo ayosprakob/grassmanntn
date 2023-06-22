@@ -5,4 +5,4 @@ All the sign factors are computed automatically without explicit user inputs.
 
 ### Examples
 Typically, when two tensors are contracted, appropriate sign factor must be multiplied due to the Grassmann anti-commutativity; e.g.,
-$$\mathcal{A}_{\bar\psi\phi}$$
+$$\int d\bar\phi d\phi e^{-\bar\phi\cdot\phi} {\mathcal{A}_{\bar\psi\phi}}$$
