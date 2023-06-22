@@ -18,7 +18,7 @@ To initialize the tensor, you can import it from either a `numpy.array()` or `sp
 import numpy as np
 import grassmanntn as gtn
 
-A_coeff = np.arange(4096).reshape(8,8,8,8)             # defining an 8x8 coefficient matrix
+A_coeff = np.arange(4096).reshape(8,8,8,8)             # defining an 8x8x8x8 coefficient matrix
 A_stats = (1,1,-1,-1)                                  # -1 is a conjugated index,
                                                        # +1 is a non-conjugated index.
                                                        # 0 is a bosonic index
