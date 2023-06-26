@@ -14,8 +14,10 @@ All the sign factors are computed automatically without explicit user inputs.
 
 ## Installation
 ```
+pip install grassmanntn
 pip install grassmanntn --upgrade
 ```
+Don't forget to upgrade to the latest version.
 
 For manual installation: Download `__init__.py`, `grassmanntn.py`, and `param.py` and put them in a folder called `grassmanntn`. Put this folder in the same directory as your Python project.
 
