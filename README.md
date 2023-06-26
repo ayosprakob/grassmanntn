@@ -15,9 +15,7 @@ All the sign factors are computed automatically without explicit user inputs.
 ## Installation
 ```
 pip install grassmanntn
-pip install grassmanntn --upgrade
 ```
-Don't forget to upgrade to the latest version.
 
 Once the package is installed, download [example.py](https://github.com/ayosprakob/grassmanntn/blob/main/example.py) and try running it with
 ```
