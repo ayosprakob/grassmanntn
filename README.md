@@ -13,9 +13,11 @@ All the sign factors are computed automatically without explicit user inputs.
 - [opt_einsum](https://optimized-einsum.readthedocs.io/en/stable/)
 
 ## Installation
-(I'm not used to this. I plan to make installation easier in the future.)
+```
+pip install grassmanntn --upgrade
+```
 
-Download `__init__.py`, `grassmanntn.py`, and `param.py` and put them in a folder called `grassmanntn`. Put this folder in the same directory as your Python project.
+For manual installation: Download `__init__.py`, `grassmanntn.py`, and `param.py` and put them in a folder called `grassmanntn`. Put this folder in the same directory as your Python project.
 
 ### Example: initialization
 To initialize the tensor, you can import it from either a `numpy.array()` or `sparse.COO()` object. You can also choose your Grassmann tensor to be stored in a `dense` or `sparse` format:
