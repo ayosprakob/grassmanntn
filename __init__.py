@@ -1,3 +1,3 @@
-from .grassmanntn import *
-from .param import *
-from .gauge2d import *
+from grassmanntn.grassmanntn import *
+from grassmanntn.param import *
+from grassmanntn.gauge2d import *

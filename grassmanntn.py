@@ -23,7 +23,13 @@ encoder_type = ("canonical","parity-preserving")
 format_type = ("standard","matrix")
 numer_cutoff = 1.0e-14
 numer_display_cutoff = 1000*numer_cutoff
-char_list = ("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z")
+char_list = (
+    "a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"
+    ,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
+    ,"α","β","Γ","γ","Δ","δ","ε","ζ","η","Θ","θ","ι","κ","λ","μ","ν","Ξ","ξ","Π","π","ρ","Σ","σ","ς","τ","υ","Φ","ϕ","φ","χ","Ψ","ψ","Ω","ω"
+    )
+
+progress_bar_enabled = True
 
 ####################################################
 ##                Random Utilities                ##
@@ -57,112 +63,101 @@ def get_char(string):
 
 def show_progress(step_inp,total_inp,process_name = "", ratio=True, color="blue", time=0):
 
-    bar_length = 37
-    step = int(np.floor(bar_length*step_inp/total_inp))
-    total = bar_length
+    if progress_bar_enabled:
 
-    color = color.lower()
-    if   color=="black":
-        color="0"
-    elif color=="red":
-        color="1"
-    elif color=="green":
-        color="2"
-    elif color=="yellow":
-        color="3"
-    elif color=="blue":
-        color="4"
-    elif color=="purple":
-        color="5"
-    elif color=="cyan":
-        color="6"
+        bar_length = 37
+        step = int(np.floor(bar_length*step_inp/total_inp))
+        total = bar_length
 
-    if step > total:
-        #gtn.error("Error[show_progress]: <step> cannot be larger than <total>!")
-        step = total
-    print("\r",end="")
+        color = color.lower()
+        if   color=="black":
+            color="0"
+        elif color=="red":
+            color="1"
+        elif color=="green":
+            color="2"
+        elif color=="yellow":
+            color="3"
+        elif color=="blue":
+            color="4"
+        elif color=="purple":
+            color="5"
+        elif color=="cyan":
+            color="6"
 
-    if ratio :
-        progress = str(step_inp)+"/"+str(total_inp)
-    else :
-        progress = '{:.4g} %'.format(step_inp/total_inp*100)
+        if step > total:
+            #gtn.error("Error[show_progress]: <step> cannot be larger than <total>!")
+            step = total
+        print("\r",end="")
 
-    time_text = ""
-    if time>1.0e-10 :
-        time_text = "("+time_display(time)+")"
+        if ratio :
+            progress = str(step_inp)+"/"+str(total_inp)
+        else :
+            progress = '{:.4g} %'.format(step_inp/total_inp*100)
 
-    if step_inp/total_inp > 0.75 :
-        left_text = progress+" "+time_text+" "+process_name+" "
-        rght_text = ""
-    elif step_inp/total_inp > 0.5:
-        left_text = time_text+" "+process_name+" "
-        rght_text = " "+progress
-    elif step_inp/total_inp > 0.25:
-        left_text = process_name+" "
-        rght_text = " "+progress+" "+time_text
-    else:
-        left_text = ""
-        rght_text = " "+process_name+" "+progress+" "+time_text
+        time_text = ""
+        if time>1.0e-10 :
+            time_text = "("+time_display(time)+")"
 
-    if len(left_text) > 2*step :
-        left_text = left_text[(len(left_text)-2*step):]
-
-    '''
-    process_name = process_name + " "
-    if(len(process_name)>2*total):
-        process_name = " "
-    if ratio :
-        progress_number = " "+str(step_inp)+"/"+str(total_inp)
-    else :
-        progress_number = " "+'{:.4g} %'.format(step_inp/total_inp*100)
-
-    if time>1.0e-10 :
-        if step_inp*2 < total_inp:
-            progress_number += " ("+time_display(time)+")"
+        if step_inp/total_inp > 0.75 :
+            left_text = progress+" "+time_text+" "+process_name+" "
+            rght_text = ""
+        elif step_inp/total_inp > 0.5:
+            left_text = time_text+" "+process_name+" "
+            rght_text = " "+progress
+        elif step_inp/total_inp > 0.25:
+            left_text = process_name+" "
+            rght_text = " "+progress+" "+time_text
         else:
-            process_name = "("+time_display(time)+") "+process_name
+            left_text = ""
+            rght_text = " "+process_name+" "+progress+" "+time_text
 
-    if step_inp*4 > total_inp*3:
-        process_name = progress_number+" "+process_name
-        progress_number = ""
+        if len(left_text) > 2*step :
+            left_text = left_text[(len(left_text)-2*step):]
 
-    if len(process_name) > 2*step :
-        process_name = process_name[(len(process_name)-2*step):]
-    '''
+        styled_left_text = "\u001b[1;37;4"+color+"m"+left_text+"\u001b[0;0m"
 
-    styled_left_text = "\u001b[1;37;4"+color+"m"+left_text+"\u001b[0;0m"
+        if 2*step-len(left_text)+len(left_text)+len(rght_text) > 2*total :
+            rght_text = rght_text[:(2*total-2*step)]
+        styled_rght_text = "\u001b[1;3"+color+";47m"+rght_text+"\u001b[0;0m"
 
-    if 2*step-len(left_text)+len(left_text)+len(rght_text) > 2*total :
-        rght_text = rght_text[:(2*total-2*step)]
-    styled_rght_text = "\u001b[1;3"+color+";47m"+rght_text+"\u001b[0;0m"
-
-    filled_bar = "\u001b[0;;4"+color+"m \u001b[0;0m"
-    blank_bar = "\u001b[0;;47m \u001b[0;0m"
+        filled_bar = "\u001b[0;;4"+color+"m \u001b[0;0m"
+        blank_bar = "\u001b[0;;47m \u001b[0;0m"
 
 
-    n_filled = 2*step-len(left_text)
-    n_blank  = 2*total-n_filled-len(left_text)-len(rght_text)
+        n_filled = 2*step-len(left_text)
+        n_blank  = 2*total-n_filled-len(left_text)-len(rght_text)
 
-    total = n_filled+len(left_text)+len(rght_text)+n_blank
+        total = n_filled+len(left_text)+len(rght_text)+n_blank
 
-    #print("   progress: ",end="")
-    print("   ",end="")
-    for i in range(n_filled):
-        print(filled_bar,end="")
-    
-    print(styled_left_text,end="")
-    print(styled_rght_text,end="")
+        #print("   progress: ",end="")
+        print("   ",end="")
+        for i in range(n_filled):
+            print(filled_bar,end="")
+        
+        print(styled_left_text,end="")
+        print(styled_rght_text,end="")
 
-    for i in range(n_blank):
-        print(blank_bar,end="")
-    return step_inp+1
+        for i in range(n_blank):
+            print(blank_bar,end="")
+        return step_inp+1
 
 def clear_progress():
-    print("\r",end="")
-    for i in range(90):
-        print(" ",end="")
-    print("\r",end="")
-    return 1
+
+    if progress_bar_enabled:
+        print("\r",end="")
+        for i in range(90):
+            print(" ",end="")
+        print("\r",end="")
+        return 1
+
+def progress_space():
+    if progress_bar_enabled:
+        print()
+
+def tab_up():
+    if progress_bar_enabled:
+        sys.stdout.write("\033[F")
 
 def time_display(time_seconds):
 
@@ -426,7 +421,7 @@ class dense:
         kmax = ret.ndim
         s0 = time.time()
         s00 = s0
-        print()
+        progress_space()
 
         dat = ret.data
         for i in range(ret.ndim):
@@ -445,7 +440,7 @@ class dense:
                 s0 = time.time()
 
         clear_progress()
-        sys.stdout.write("\033[F")
+        tab_up()
 
         ret.data = dat
 
@@ -471,7 +466,7 @@ class dense:
         kmax = ret.ndim
         s0 = time.time()
         s00 = s0
-        print()
+        progress_space()
 
         dat = ret.data
         for i in range(ret.ndim):
@@ -484,7 +479,7 @@ class dense:
                 s0 = time.time()
             
         clear_progress()
-        sys.stdout.write("\033[F")
+        tab_up()
 
         ret.data = dat
 
@@ -1301,7 +1296,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
         s0 = time.time()
         s00 = s0
-        print() # << Don't remove this. This is for the show_progress!
+        progress_space() # << Don't remove this. This is for the show_progress!
 
         for element in iterator:
             coords = iterator.multi_index
@@ -1326,7 +1321,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
             k+=1
 
         clear_progress()
-        sys.stdout.write("\033[F")
+        tab_up()
         
     #  ::: Summary :::
     #
@@ -1424,7 +1419,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
             s0 = time.time()
             s00 = s0
-            print() # << Don't remove this. This is for the show_progress!
+            progress_space() # << Don't remove this. This is for the show_progress!
 
             S3 = np.zeros(S3_shape,dtype=int)
             iterator = np.nditer(S3, flags=['multi_index'])
@@ -1451,7 +1446,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
                 k+=1
             clear_progress()
-            sys.stdout.write("\033[F")
+            tab_up()
 
             skip_S3 = len(S3_shape)==0
 
@@ -1530,7 +1525,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
             vertex_list_final[i][0] = ''.join(x)
         
         if debug_mode :   
-            print()    
+            print()
             print(" :::::::::::::::::::::::::::::: vertices ::::::::::::::::::::::::::::: ")
             print(instruction_all_indices,"<-- the instruction strings with all char combined into one string")
             print("vertex list:")
@@ -1549,7 +1544,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     if not skip_S3 :
         einsum_string += ","+S3_index_string
     if debug_mode :   
-        print()    
+        print()  
         print(einsum_string,"<-- einsum_string = einsum string without vertices")
     
     if this_type == sparse :
@@ -1562,7 +1557,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
             einsum_string_replaced+=","+vert
             
         if debug_mode :   
-            print()    
+            print()
             print(einsum_string_replaced,"<-- einsum_string with replacement")
         
         # construct the vertex tensors
@@ -1641,7 +1636,7 @@ def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=(-1,1),
     process_color="green"
     step = 1
     s00 = time.time()
-    print() # << Don't remove this. This is for the show_progress!
+    progress_space() # << Don't remove this. This is for the show_progress!
 
     string_inp = denumerate(string_inp)
 
@@ -1740,7 +1735,7 @@ def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=(-1,1),
     Obj.statistic = final_stats
     
     clear_progress()
-    sys.stdout.write("\033[F")
+    tab_up()
 
     return Obj
     
@@ -1751,7 +1746,7 @@ def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1)
     process_color="green"
     step = 1
     s00 = time.time()
-    print() # << Don't remove this. This is for the show_progress!
+    progress_space() # << Don't remove this. This is for the show_progress!
 
     string_inp = denumerate(string_inp)
 
@@ -1832,7 +1827,7 @@ def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1)
     Obj.statistic = final_stat
     
     clear_progress()
-    sys.stdout.write("\033[F")
+    tab_up()
 
     if this_format=='matrix':
         return Obj.switch_format(save_memory=True)
@@ -1999,9 +1994,10 @@ def trim_grassmann_odd(Obj):
     if(objtype==dense):
         Obj = sparse(Obj)
     C = Obj.coords
-    print() # << Don't remove this. This is for the show_progress!
     s0 = time.time()
     s00 = s0
+    progress_space() # << Don't remove this. This is for the show_progress!
+
     for i in range(Obj.nnz):
         fcoords = [ ind for j,ind in enumerate(C[i]) if (Obj.statistic[j] in fermi_type)]
         if(sum(fcoords)%2 == 1):
@@ -2011,7 +2007,7 @@ def trim_grassmann_odd(Obj):
             show_progress(i,Obj.nnz,"trim_grassmann_odd",time=time.time()-s00)
 
     clear_progress()
-    sys.stdout.write("\033[F")
+    tab_up()
 
 
     if(objtype==dense):
@@ -2148,7 +2144,7 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
     process_length = 6
     step = 1
     s00 = time.time()
-    print()
+    progress_space()
 
     global skip_power_of_two_check
 
@@ -2369,7 +2365,7 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
         V = sparse(V)
 
     clear_progress()
-    sys.stdout.write("\033[F")
+    tab_up()
 
     return U, Λ, V
 
@@ -2469,16 +2465,6 @@ def BlockEig(Obj,cutoff=None,debug_mode=False):
     UE, ΛE, cUE = padding(UE, ΛE, cUE, d-len(ΛE))
     UO, ΛO, cUO = padding(UO, ΛO, cUO, d-len(ΛO))
 
-    #print()
-    #print("--------------------")
-    #for i,s in enumerate(np.diag(ΛE)):
-    #    print(" even:",clean_format(s))
-    #print()
-    #for i,s in enumerate(np.diag(ΛO)):
-    #    print("  odd:",clean_format(s))
-    #print("--------------------")
-    #print()
-
     def get_full_matrix(AE, AO):
         mhalf,nhalf = AE.shape
         A = np.zeros([2*mhalf,2*nhalf],dtype=type(AE[0][0]))
@@ -2502,7 +2488,7 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
     process_length = 6
     step = 1
     s00 = time.time()
-    print()
+    progress_space()
 
     global skip_power_of_two_check
 
@@ -2722,7 +2708,7 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
         V = sparse(V)
 
     clear_progress()
-    sys.stdout.write("\033[F")
+    tab_up()
     
     return U, Λ, V
 
@@ -2737,7 +2723,7 @@ def hconjugate(InpObj,string,save_memory=False):
     process_color="yellow"
     step = 1
     s00 = time.time()
-    print() # << Don't remove this. This is for the show_progress!
+    progress_space() # << Don't remove this. This is for the show_progress!
 
     string = denumerate(string)
     
@@ -2918,7 +2904,7 @@ def hconjugate(InpObj,string,save_memory=False):
         Obj = Obj.switch_encoder(save_memory=True)
 
     clear_progress()
-    sys.stdout.write("\033[F")
+    tab_up()
 
     return Obj
 

@@ -23,6 +23,7 @@
 #  --Dcutxy=32 (space-time coarse-graining Dcut)                              #
 #  --boundary_conditions=anti-periodic (b.c. in the imaginary-time direction) #
 #  --cls or --clear_screen (add this if you want to clear the screen)         #
+#  --show_progress (show the progress bars)                                   #
 #                                                                             #
 #:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
 
@@ -69,6 +70,7 @@ parse.add_argument('--Dcutxy',  default=32,  type=int)
 parse.add_argument('--boundary_conditions', default="anti-periodic")
 parse.add_argument('--clear_screen', default=False, action='store_true')
 parse.add_argument('--cls', default=False, action='store_true')
+parse.add_argument('--show_progress', default=False, action='store_true')
 
 args = parse.parse_args()
 
@@ -79,6 +81,11 @@ args = parse.parse_args()
 
 if args.clear_screen or args.cls:
     os.system('clear')
+
+if args.show_progress:
+    gtn.progress_bar_enabled = True
+else:
+    gtn.progress_bar_enabled = False
     
 β = args.beta             # inverse coupling
 m = args.mass             # mass

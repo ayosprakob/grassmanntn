@@ -67,12 +67,6 @@ def myQuadrature(beta, Nf, npoints):
     xi = np.array( [ i*2*np.pi/npoints           for i in range(npoints) ] )
     wi = np.array( [ (2*np.pi/npoints)**(1.0/Nf) for i in range(npoints) ] )
 
-    #xi = np.zeros([npoints],dtype=float)
-    #wi = np.zeros([npoints],dtype=float)
-    #for i in range(npoints):
-    #    xi[i] = i*2*np.pi/npoints #-np.pi + 2*np.pi*(i+0.5)/npoints
-    #    wi[i] = (2*np.pi/npoints)**(1.0/Nf)
-    
     return xi, wi
 
 def get_ABtensors(Nphi=2, beta=1, Nf=1, spacing=1, mass=1, charge=1, mu=1):
@@ -1019,7 +1013,7 @@ def fcompress_B(B,cutoff=64,mute=True):
     process_name = "B compression (1)"
     process_length = 16
     s00 = time.time()
-    print()
+    gtn.progress_space()
 
     if not mute:
         B.info("B (uncompressed)")
@@ -1102,7 +1096,7 @@ def fcompress_B(B,cutoff=64,mute=True):
     B = gtn.einsum('JB,AJCLijkl->ABCLijkl',U2,B)
     B = gtn.einsum('DL,ABCLijkl->ABCDijkl',cU2,B)
     gtn.clear_progress()
-    sys.stdout.write("\033[F")
+    gtn.tab_up()
     
     if not mute:
         U2.info("U2")
@@ -1114,7 +1108,7 @@ def compress_B(B,cutoff=64,mute=True):
     process_name = "B compression (2)"
     process_length = 4*8
     s00 = time.time()
-    print()
+    gtn.progress_space()
 
     Npsi = B.shape[0]
     Nphi = B.shape[4]
@@ -1277,7 +1271,7 @@ def compress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Bfin = gtn.einsum('ABCLl,DLl->ABCD',Bfin,U4.hconjugate('ij k'))
     gtn.clear_progress()
-    sys.stdout.write("\033[F")
+    gtn.tab_up()
     
     if not mute:
         U1.info("U4")
@@ -1292,7 +1286,7 @@ def compress_A(A,Upack,mute=True):
     process_name = "A compression"
     process_length = 3
     s00 = time.time()
-    print()
+    gtn.progress_space()
 
     Nphi = A.shape[0]
     δ = np.zeros([Nphi,Nphi],dtype=int)
@@ -1312,7 +1306,7 @@ def compress_A(A,Upack,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Afin = gtn.einsum('ijkl,KIl,LJk,km,ln->IJKLijklmn',A,Ix,Iy,δ,δ)
     gtn.clear_progress()
-    sys.stdout.write("\033[F")
+    gtn.tab_up()
 
     if not mute:
         Afin.info("A (compressed)")
@@ -1324,7 +1318,7 @@ def compress_T(T,cutoff=64,mute=True):
     process_name = "T compression"
     process_length = 16
     s00 = time.time()
-    print()
+    gtn.progress_space()
 
     # x direction =====================================================================
 
@@ -1396,7 +1390,7 @@ def compress_T(T,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Tfin = gtn.einsum('ACJLjlmn,JjB,DLl->ABCDmn',Tfin,U,U.hconjugate('ij k'))
     gtn.clear_progress()
-    sys.stdout.write("\033[F")
+    gtn.tab_up()
 
     if not mute:
         Tfin.info("T (y-compression)")
@@ -1564,7 +1558,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
     process_color = "purple"
     step = 1
     s00 = time.time()
-    print() # << Don't remove this. This is for the gtn.show_progress!
+    gtn.progress_space() # << Don't remove this. This is for the gtn.show_progress!
 
     if intermediate_dcut==None:
         intermediate_dcut=dcut
@@ -1652,7 +1646,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
         error = np.abs(1-Z2/Z1)
     
     gtn.clear_progress()
-    sys.stdout.write("\033[F")
+    gtn.tab_up()
     
     Tnorm = T.norm
     T.data = T.data/Tnorm
@@ -1705,7 +1699,7 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,
     process_length = 38
     step = 1
     s00 = time.time()
-    print() # << Don't remove this. This is for the gtn.show_progress!
+    gtn.progress_space() # << Don't remove this. This is for the gtn.show_progress!
 
     if intermediate_dcut==None:
         intermediate_dcut=dcut
@@ -1887,7 +1881,7 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,
         gc.collect()
     
     gtn.clear_progress()
-    sys.stdout.write("\033[F")
+    gtn.tab_up()
 
     if print_svd :
         Sx = np.sort(np.diag(Sx.force_format("matrix").data))[::-1]
