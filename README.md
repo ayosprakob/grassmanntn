@@ -19,7 +19,11 @@ pip install grassmanntn --upgrade
 ```
 Don't forget to upgrade to the latest version.
 
-For manual installation: Download `__init__.py`, `grassmanntn.py`, `gauge2d.py`, and `param.py` and put them in a folder called `grassmanntn`. Put this folder in the same directory as your Python project.
+Once the package is installed, download [example.py](https://github.com/ayosprakob/grassmanntn/blob/main/example.py) and try running it with
+```
+python3 example.py --show_progress
+```
+An example code of a one-flavor two-dimensional $`\mathbb{Z}_2`$ gauge theory should be able to run.
 
 ### Example: initialization
 To initialize the tensor, you can import it from either a `numpy.array()` or `sparse.COO()` object. You can also choose your Grassmann tensor to be stored in a `dense` or `sparse` format:
