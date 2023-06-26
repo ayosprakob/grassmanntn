@@ -1,4 +1,4 @@
-# grassmanntn
+# GrassmannTN
 This is a package that aims to simplify the coding involving Grassmann tensor network.
 I try to make the coding as convenient as when you use other standard packages like numpy or scipy.
 All the sign factors are computed automatically without explicit user inputs.
