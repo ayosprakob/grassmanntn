@@ -469,13 +469,13 @@ class dense:
         progress_space()
 
         dat = ret.data
-        for i in range(ret.ndim):
-            d = ret.shape[i]
-            if ret.statistic[i] in fermi_type :
-                dat = dat.take(indices=np.array([param.encoder(i) for i in range(d)]),axis=i)
+        for axis in range(ret.ndim):
+            d = ret.shape[axis]
+            if ret.statistic[axis] in fermi_type :
+                dat = dat.take(indices=np.array([param.encoder(i) for i in range(d)]),axis=axis)
 
             if time.time()-s0 > 2 :
-                show_progress(i,kmax,process_name = "switch_encoder",ratio = False,color="cyan",time=time.time()-s00)
+                show_progress(axis,kmax,process_name = "switch_encoder",ratio = False,color="cyan",time=time.time()-s00)
                 s0 = time.time()
             
         clear_progress()
