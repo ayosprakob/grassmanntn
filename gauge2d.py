@@ -1,7 +1,7 @@
 import numpy as np
 import math
 import grassmanntn as gtn
-import gtn.param as param
+from grassmanntn import param
 import sparse as sp
 import opt_einsum as oe
 import time

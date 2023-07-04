@@ -46,11 +46,11 @@ tracemalloc.start()
 
 cI = complex(0,1)
 
-from grassmanntn import grassmanntn as gtn
+import grassmanntn as gtn
 from grassmanntn import param
 from grassmanntn import gauge2d as gauge
-from grassmanntn.grassmanntn import sparse as sparse
-from grassmanntn.grassmanntn import dense as dense
+from grassmanntn import sparse as sparse
+from grassmanntn import dense as dense
 
 #:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
 #                               Argument Parser                               #
@@ -85,7 +85,7 @@ if args.clear_screen or args.cls:
 if args.show_progress:
     gtn.progress_bar_enabled = True
 else:
-    gtn.progress_bar_enabled = False
+    gtn.progress_bar_enabled = True #False
     
 β = args.beta             # inverse coupling
 m = args.mass             # mass
