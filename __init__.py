@@ -2916,14 +2916,14 @@ def hconjugate(InpObj,string,save_memory=False):
 ##                    Utilities                   ##
 ####################################################
 
-def random(shape,statistics,tensor_format=dense,dtype=float,skip_trimming=False):
+def random(shape,statistics,tensor_type=dense,dtype=float,skip_trimming=False):
     X = np.random.rand(*shape)
     if dtype == complex :
         X = complex(1,0)*X + complex(0,1)*np.random.rand(*shape)
     A = dense(X, statistics = statistics)
     if not skip_trimming:
         A = trim_grassmann_odd(A)
-    if tensor_format==sparse:
+    if tensor_type==sparse:
         A = sparse(A)
         A = A.remove_zeros()
     return A
