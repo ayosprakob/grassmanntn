@@ -51,7 +51,7 @@ def tensor_preparation(Nphi, beta, Nf, spacing, mass, charge, mu, mute=True):
     T = compress_T(T)
     if not mute:
         print("                           T compression: "+gtn.time_display(time.time()-t0))
-    z4 = gtn.einsum("IJIJij,ij",T,gtn.sparse(np.full((Nphi,Nphi),1),statistic=(0,0)))
+    z4 = gtn.einsum("IJIJij,ij",T,gtn.sparse(np.full((Nphi,Nphi),1),statistics=(0,0)))
 
     trace_error = np.abs(1-z4/z1)
     if not mute:
@@ -1002,9 +1002,9 @@ def get_ABtensors(Nphi=2, beta=1, Nf=1, spacing=1, mass=1, charge=1, mu=1):
                     B+=[(-1/4 + cI/4)*np.exp((-cI)*p1*charge - cI*q1*charge - spacing*mu)]  #448
                     psi1+=[8]; psi2+=[11]; psi3+=[0]; psi4+=[0]; phi1+=[i]; phi2+=[j]; phi3+=[k]; phi4+=[l]
                     B+=[(-1/4 + cI/4)*np.exp((-cI)*p1*charge - cI*q1*charge - spacing*mu)]  #449
-    A = gtn.sparse(A, statistic=(0,0,0,0))
+    A = gtn.sparse(A, statistics=(0,0,0,0))
     B = sp.COO([psi1,psi2,psi3,psi4,phi1,phi2,phi3,phi4], B, shape=(Npsi,Npsi,Npsi,Npsi,Nphi,Nphi,Nphi,Nphi))
-    B = gtn.sparse(B, statistic=(1,1,-1,-1,0,0,0,0))
+    B = gtn.sparse(B, statistics=(1,1,-1,-1,0,0,0,0))
 
     return A, B
 
@@ -1115,7 +1115,7 @@ def compress_B(B,cutoff=64,mute=True):
     δ = np.zeros([Nphi,Nphi],dtype=int)
     for i in range(Nphi):
         δ[i,i] = 1
-    δ = gtn.sparse(δ,statistic=(0,0))
+    δ = gtn.sparse(δ,statistics=(0,0))
 
     if not mute:
         B.info("B (uncompressed)")
@@ -1292,7 +1292,7 @@ def compress_A(A,Upack,mute=True):
     δ = np.zeros([Nphi,Nphi],dtype=int)
     for i in range(Nphi):
         δ[i,i] = 1
-    δ = gtn.sparse(δ,statistic=(0,0))
+    δ = gtn.sparse(δ,statistics=(0,0))
 
     if not mute:
         A.info("A (uncompressed)")
@@ -1404,9 +1404,9 @@ def compress_T(T,cutoff=64,mute=True):
 def zcap(T):
     Nphi = T.shape[4]
     if type(T)==gtn.dense :
-        capper = gtn.dense(np.full((Nphi,Nphi),1),statistic=(0,0))
+        capper = gtn.dense(np.full((Nphi,Nphi),1),statistics=(0,0))
     else :
-        capper = gtn.sparse(np.full((Nphi,Nphi),1),statistic=(0,0))
+        capper = gtn.sparse(np.full((Nphi,Nphi),1),statistics=(0,0))
     return gtn.einsum("IJKLij,ij->IJKL",T,capper)
 
 def logZ(T,boundary_conditions='periodic'):
@@ -1461,13 +1461,13 @@ def trg(T,dcut=16):
 
     # mandatory properties of T:
     #    - shape = (nx,ny,nx,ny)
-    #    - statistic = (1,1,-1,-1)
+    #    - statistics = (1,1,-1,-1)
 
     if [T.shape[0],T.shape[1]] != [T.shape[2],T.shape[3]] :
         error("Error[trg]: The shape must be of the form (m,n,m,n)!")
 
-    if make_list(T.statistic) != [1,1,-1,-1] :
-        error("Error[trg]: The statistic must be (1,1,-1,-1)!")
+    if make_list(T.statistics) != [1,1,-1,-1] :
+        error("Error[trg]: The statistics must be (1,1,-1,-1)!")
 
     #===============================================================================#
     #   Step 1: Rearrange the tensor legs in two ways                               #

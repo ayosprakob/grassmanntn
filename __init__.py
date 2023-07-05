@@ -221,11 +221,11 @@ def getsize(shape):
 ####################################################
 
 class dense:
-    def __init__(self, data=None, encoder = "canonical", format = "standard", statistic=None):
+    def __init__(self, data=None, encoder = "canonical", format = "standard", statistics=None):
     
         #copy dense properties
         self.data = None
-        self.statistic = None
+        self.statistics = None
         self.format = format
         self.encoder = encoder
     
@@ -246,14 +246,14 @@ class dense:
         elif(type(data)==sparse):
             #copy dense properties
             self.data = data.data.todense()
-            self.statistic = data.statistic
+            self.statistics = data.statistics
             self.format = data.format
             self.encoder = data.encoder
             default = False
         elif(type(data)==dense):
             #copy dense properties
             self.data = data.data.copy()
-            self.statistic = data.statistic
+            self.statistics = data.statistics
             self.format = data.format
             self.encoder = data.encoder
             default = False
@@ -266,13 +266,13 @@ class dense:
             error("Error[dense]: Invalid initialized data.")
             
         
-        if statistic != None:
-            self.statistic = make_tuple(statistic)
+        if statistics != None:
+            self.statistics = make_tuple(statistics)
             
         if not default and not skip_power_of_two_check:
             for i,dim in enumerate(self.data.shape):
-                if self.statistic[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
-                    error("Error[dense]: Some of the fermionic tensor shapes are not a power of two.\n              Have you added the <statistic> argument when calling this function?")
+                if self.statistics[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
+                    error("Error[dense]: Some of the fermionic tensor shapes are not a power of two.\n              Have you added the <statistics> argument when calling this function?")
                 
     def __getitem__(self, index):
         return self.data[index]
@@ -319,7 +319,7 @@ class dense:
         print(indent+"  array type: dense")
         print(indent+"       shape:",self.shape)
         print(indent+"     density:",self.nnz,"/",self.size,"~",self.nnz/self.size*100,"%")
-        print(indent+"   statistic:",self.statistic)
+        print(indent+"   statistics:",self.statistics)
         print(indent+"      format:",self.format)
         print(indent+"     encoder:",self.encoder)
         print(indent+"      memory:",memory_display(sys.getsizeof(self.data)+sys.getsizeof(self)))
@@ -344,7 +344,7 @@ class dense:
         print(indent+"  array type: dense")
         print(indent+"       shape:",self.shape)
         print(indent+"     density:",self.nnz,"/",self.size,"~",self.nnz/self.size*100,"%")
-        print(indent+"   statistic:",self.statistic)
+        print(indent+"   statistics:",self.statistics)
         print(indent+"      format:",self.format)
         print(indent+"     encoder:",self.encoder)
         print(indent+"      memory:",memory_display(sys.getsizeof(self.data)+sys.getsizeof(self)))
@@ -355,14 +355,14 @@ class dense:
         #copy dense properties
         ret = dense()
         ret.data = self.data.copy()
-        ret.statistic = self.statistic
+        ret.statistics = self.statistics
         ret.format = self.format
         ret.encoder = self.encoder
         return ret
     
     def __add__(self, other):
         if(self.shape!=other.shape
-            or self.statistic!=other.statistic
+            or self.statistics!=other.statistics
              or self.format!=other.format
               or self.encoder!=other.encoder):
             error("Error[dense.+]: Inconsistent object properties")
@@ -373,7 +373,7 @@ class dense:
         
     def __sub__(self, other):
         if(self.shape!=other.shape
-            or self.statistic!=other.statistic
+            or self.statistics!=other.statistics
              or self.format!=other.format
               or self.encoder!=other.encoder):
             error("Error[dense.-]: Inconsistent object properties")
@@ -416,8 +416,8 @@ class dense:
             ret = ret.switch_encoder(save_memory=True)
         to_calc = []
         for i in range(self.ndim):
-            to_calc += (ret.statistic[i]==-1),
-            if(ret.statistic[i]==hybrid_symbol):
+            to_calc += (ret.statistics[i]==-1),
+            if(ret.statistics[i]==hybrid_symbol):
                 error("Error[switch_format]: Cannot switch format with a hybrid index.\n                      Split them into bosonic and fermionic ones first!")
         
         k=0
@@ -474,7 +474,7 @@ class dense:
         dat = ret.data
         for axis in range(ret.ndim):
             d = ret.shape[axis]
-            if ret.statistic[axis] in fermi_type :
+            if ret.statistics[axis] in fermi_type :
                 dat = dat.take(indices=np.array([param.encoder(i) for i in range(d)]),axis=axis)
 
             if time.time()-s0 > 2 :
@@ -528,11 +528,11 @@ class dense:
 ####################################################
 
 class sparse:
-    def __init__(self, data=None, encoder = "canonical", format = "standard", statistic = None):
+    def __init__(self, data=None, encoder = "canonical", format = "standard", statistics = None):
     
         #copy sparse properties
         self.data = None
-        self.statistic = None
+        self.statistics = None
         self.format = format
         self.encoder = encoder
 
@@ -553,14 +553,14 @@ class sparse:
         elif(type(data)==dense):
             #copy sparse properties
             self.data  = sp.COO.from_numpy(data.data)
-            self.statistic = data.statistic
+            self.statistics = data.statistics
             self.format = data.format
             self.encoder = data.encoder
             default = False
         elif(type(data)==sparse):
             #copy sparse properties
             self.data = data.data.copy()
-            self.statistic = data.statistic
+            self.statistics = data.statistics
             self.format = data.format
             self.encoder = data.encoder
             default = False
@@ -570,13 +570,13 @@ class sparse:
             error("Error[sparse]: Invalid initialized data")
             
         
-        if statistic != None:
-            self.statistic = make_tuple(statistic)
+        if statistics != None:
+            self.statistics = make_tuple(statistics)
         
         if not default and not skip_power_of_two_check:
             for i,dim in enumerate(self.data.shape):
-                if self.statistic[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
-                    error("Error[sparse]: Some of the fermionic tensor shapes are not a power of two.\n               Have you added the <statistic> argument when calling this function?")
+                if self.statistics[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
+                    error("Error[sparse]: Some of the fermionic tensor shapes are not a power of two.\n               Have you added the <statistics> argument when calling this function?")
                
     @property
     def nnz(self):
@@ -628,7 +628,7 @@ class sparse:
         print(indent+"  array type: sparse")
         print(indent+"       shape:",self.shape)
         print(indent+"     density:",self.nnz,"/",self.size,"~",self.nnz/self.size*100,"%")
-        print(indent+"   statistic:",self.statistic)
+        print(indent+"   statistics:",self.statistics)
         print(indent+"      format:",self.format)
         print(indent+"     encoder:",self.encoder)
         print(indent+"      memory:",memory_display(sys.getsizeof(self.data)+sys.getsizeof(self)))
@@ -654,7 +654,7 @@ class sparse:
         print(indent+"  array type: sparse")
         print(indent+"       shape:",self.shape)
         print(indent+"     density:",self.nnz,"/",self.size,"~",self.nnz/self.size*100,"%")
-        print(indent+"   statistic:",self.statistic)
+        print(indent+"   statistics:",self.statistics)
         print(indent+"      format:",self.format)
         print(indent+"     encoder:",self.encoder)
         print(indent+"      memory:",memory_display(sys.getsizeof(self.data)+sys.getsizeof(self)))
@@ -699,14 +699,14 @@ class sparse:
         #copy sparse properties
         ret = sparse()
         ret.data = self.data.copy()
-        ret.statistic = self.statistic
+        ret.statistics = self.statistics
         ret.format = self.format
         ret.encoder = self.encoder
         return ret
     
     def __add__(self, other):
         if(self.shape!=other.shape
-            or self.statistic!=other.statistic
+            or self.statistics!=other.statistics
              or self.format!=other.format
               or self.encoder!=other.encoder):
             error("Error[sparse.+]: Inconsistent object properties")
@@ -717,7 +717,7 @@ class sparse:
         
     def __sub__(self, other):
         if(self.shape!=other.shape
-            or self.statistic!=other.statistic
+            or self.statistics!=other.statistics
              or self.format!=other.format
               or self.encoder!=other.encoder):
             error("Error[sparse.-]: Inconsistent object properties")
@@ -1002,7 +1002,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     nobj = len(obj_index_list)
 
     obj_list = make_list(args[1:1+nobj])
-    stats_list = sum([ make_list(obj.statistic) for obj in obj_list ],[])
+    stats_list = sum([ make_list(obj.statistics) for obj in obj_list ],[])
     shape_list = sum([ make_list(obj.shape) for obj in obj_list ],[])
 
     # force everything to be canonical and standard -------------------------------------------------
@@ -1066,7 +1066,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
     for [char,location,stats] in summed_index_info:
         if len(stats)==2 and is_statwise_inconsistent(stats[0],stats[1]):
-            error("Error[einsum]: The contracted indices have inconsistent statistic!")
+            error("Error[einsum]: The contracted indices have inconsistent statistics!")
     
     if debug_mode :
         print()
@@ -1618,7 +1618,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     ret = oe.contract(*tuple([einsum_string]+einsum_obj_list))
 
     if has_output :
-        return this_type(ret,statistic=final_stats).force_encoder(this_encoder).force_format(this_format)
+        return this_type(ret,statistics=final_stats).force_encoder(this_encoder).force_format(this_format)
     else:
         if this_type == sparse :
             if type(ret.data)==memoryview:
@@ -1655,7 +1655,7 @@ def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=(-1,1),
     this_type = type(Obj)
     this_format = Obj.format
     this_encoder = Obj.encoder
-    XObj_stats = Obj.statistic
+    XObj_stats = Obj.statistics
     XObj_shape = Obj.shape
 
     if save_memory :
@@ -1678,7 +1678,7 @@ def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=(-1,1),
     #===============================================================================#
     
     # get the grouping info first
-    group_info, sorted_group_info = get_group_info(string_inp, Obj.statistic, Obj.shape)
+    group_info, sorted_group_info = get_group_info(string_inp, Obj.statistics, Obj.shape)
     #group_info contains the index_string, statistics, and shape of each group
     #sorted_group_info is the same, but with bosonic indices sorted to the left
     
@@ -1700,7 +1700,7 @@ def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=(-1,1),
     
     #sorted tensor
     Obj.data = oe.contract(*make_tuple( [npeinsum_string] + npeinsum_obj ))
-    Obj.statistic = sorted_stat
+    Obj.statistics = sorted_stat
     
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     
@@ -1712,7 +1712,7 @@ def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=(-1,1),
     #intermediate_tensor
     
     Obj.data = np.reshape(Obj.data,new_shape)
-    Obj.statistic = new_stats
+    Obj.statistics = new_stats
     
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
@@ -1735,7 +1735,7 @@ def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=(-1,1),
     #===============================================================================#
     
     Obj.data = np.reshape(Obj.data,final_shape)
-    Obj.statistic = final_stats
+    Obj.statistics = final_stats
     
     clear_progress()
     tab_up()
@@ -1766,7 +1766,7 @@ def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1)
     this_type = type(Obj)
     this_format = Obj.format
     this_encoder = Obj.encoder
-    XObj_stats = Obj.statistic
+    XObj_stats = Obj.statistics
     XObj_shape = Obj.shape
 
     if save_memory :
@@ -1784,7 +1784,7 @@ def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1)
     sign_factors_list = get_grouping_sign_factors(sorted_group_info, intermediate_stat)
     
     Obj.data = np.reshape(Obj.data,new_shape)
-    Obj.statistic = new_stats
+    Obj.statistics = new_stats
     
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
@@ -1815,7 +1815,7 @@ def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1)
     new_shape = make_tuple(new_shape)
     
     Obj.data = np.reshape(Obj.data,new_shape)
-    Obj.statistic = new_stats
+    Obj.statistics = new_stats
     
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
@@ -1827,7 +1827,7 @@ def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1)
     npeinsum_string = sorted_string+sign_factors_list[0]+"->"+unsorted_string
     npeinsum_obj = [Obj.data] + sign_factors_list[1]
     Obj.data = oe.contract(*make_tuple( [npeinsum_string] + npeinsum_obj ))
-    Obj.statistic = final_stat
+    Obj.statistics = final_stat
     
     clear_progress()
     tab_up()
@@ -1856,7 +1856,7 @@ def get_group_info(grouping_string, ungroup_stat, ungroup_shape):
     #print("formatted string:",formatted_string)
     
     # parse the string ---------------------------------------------------------------
-    group_info = [] # [string text, statistic, shape]
+    group_info = [] # [string text, statistics, shape]
     is_outside = True
     location = 0
     for char in formatted_string:
@@ -2002,7 +2002,7 @@ def trim_grassmann_odd(Obj):
     progress_space() # << Don't remove this. This is for the show_progress!
 
     for i in range(Obj.nnz):
-        fcoords = [ ind for j,ind in enumerate(C[i]) if (Obj.statistic[j] in fermi_type)]
+        fcoords = [ ind for j,ind in enumerate(C[i]) if (Obj.statistics[j] in fermi_type)]
         if(sum(fcoords)%2 == 1):
             Obj.data.data[i] = 0
 
@@ -2029,7 +2029,7 @@ def is_grassmann_even(Obj):
 
     C = Obj.coords
     for x in C:
-        parity = sum([ ind for i,ind in enumerate(x) if Obj.statistic[i] in fermi_type ])
+        parity = sum([ ind for i,ind in enumerate(x) if Obj.statistics[i] in fermi_type ])
         if parity%2!=0 :
             return False
     return True
@@ -2160,7 +2160,7 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
     this_type = type(Obj)
     this_format = Obj.format
     this_encoder = Obj.encoder
-    XObj_stats = Obj.statistic
+    XObj_stats = Obj.statistics
     XObj_shape = Obj.shape
 
     if save_memory :
@@ -2174,10 +2174,10 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
     if(this_type not in [dense,sparse]):
         error("Error[svd]: Object type must only be dense or sparse!")
         
-    # check if Obj.statistic or final_statistic is weird or not
-    for stat in Obj.statistic:
+    # check if Obj.statistics or final_statistics is weird or not
+    for stat in Obj.statistics:
         if(stat not in allowed_stat):
-            error("Error[svd]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
+            error("Error[svd]: The input object contains illegal statistics. (0, 1, -1, or "+hybrid_symbol+" only)")
 
     if string.count("(")==string.count(")") and string.count("(")>0:
         string = string.replace(" ","")
@@ -2231,9 +2231,9 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
     join_legs_string_input = "("+join_legs_string_input+")"
 
     shape_left  = Obj.shape[:n_left]
-    stats_left  = Obj.statistic[:n_left]
+    stats_left  = Obj.statistics[:n_left]
     shape_right = Obj.shape[n_left:]
-    stats_right = Obj.statistic[n_left:]
+    stats_right = Obj.statistics[n_left:]
 
     def zero_or_else(vector,value):
         for elem in vector:
@@ -2272,7 +2272,7 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #3
-    if Obj.statistic[0]==0 or Obj.statistic[1]==0:
+    if Obj.statistics[0]==0 or Obj.statistics[1]==0:
         U, Λ, V = SortedSVD(Obj.data,cutoff)
         Λ = np.diag(Λ)
     else:
@@ -2289,22 +2289,22 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
     Λstatleft = -1
     Λstatright = +1
     
-    if Obj.statistic[0]==0:
-        U = dense(U,encoder="parity-preserving",format="matrix",statistic=(0,0))
-        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistic=(0,0))
-        V = dense(V,encoder="parity-preserving",format="matrix",statistic=(0,Obj.statistic[1]))
+    if Obj.statistics[0]==0:
+        U = dense(U,encoder="parity-preserving",format="matrix",statistics=(0,0))
+        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistics=(0,0))
+        V = dense(V,encoder="parity-preserving",format="matrix",statistics=(0,Obj.statistics[1]))
         Λstatleft = 0
         Λstatright = 0
-    elif Obj.statistic[1]==0:
-        U = dense(U,encoder="parity-preserving",format="matrix",statistic=(Obj.statistic[0],0))
-        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistic=(0,0))
-        V = dense(V,encoder="parity-preserving",format="matrix",statistic=(0,0))
+    elif Obj.statistics[1]==0:
+        U = dense(U,encoder="parity-preserving",format="matrix",statistics=(Obj.statistics[0],0))
+        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistics=(0,0))
+        V = dense(V,encoder="parity-preserving",format="matrix",statistics=(0,0))
         Λstatleft = 0
         Λstatright = 0
     else:
-        U = dense(U,encoder="parity-preserving",format="matrix",statistic=(Obj.statistic[0],1))
-        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistic=(-1,1))
-        V = dense(V,encoder="parity-preserving",format="matrix",statistic=(-1,Obj.statistic[1]))
+        U = dense(U,encoder="parity-preserving",format="matrix",statistics=(Obj.statistics[0],1))
+        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistics=(-1,1))
+        V = dense(V,encoder="parity-preserving",format="matrix",statistics=(-1,Obj.statistics[1]))
     dΛ = Λ.shape[0]
 
     skip_power_of_two_check = False
@@ -2504,7 +2504,7 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
     this_type = type(Obj)
     this_format = Obj.format
     this_encoder = Obj.encoder
-    XObj_stats = Obj.statistic
+    XObj_stats = Obj.statistics
     XObj_shape = Obj.shape
 
     if save_memory :
@@ -2518,10 +2518,10 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
     if(this_type not in [dense,sparse]):
         error("Error[eig]: Object type must only be dense or sparse!")
         
-    # check if Obj.statistic or final_statistic is weird or not
-    for stat in Obj.statistic:
+    # check if Obj.statistics or final_statistics is weird or not
+    for stat in Obj.statistics:
         if(stat not in allowed_stat):
-            error("Error[eig]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
+            error("Error[eig]: The input object contains illegal statistics. (0, 1, -1, or "+hybrid_symbol+" only)")
 
     if string.count("(")==string.count(")") and string.count("(")>0:
         string = string.replace(" ","")
@@ -2575,9 +2575,9 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
     join_legs_string_input = "("+join_legs_string_input+")"
 
     shape_left  = Obj.shape[:n_left]
-    stats_left  = Obj.statistic[:n_left]
+    stats_left  = Obj.statistics[:n_left]
     shape_right = Obj.shape[n_left:]
-    stats_right = Obj.statistic[n_left:]
+    stats_right = Obj.statistics[n_left:]
 
     def zero_or_else(vector,value):
         for elem in vector:
@@ -2615,7 +2615,7 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #3
-    if Obj.statistic[0]==0 or Obj.statistic[1]==0:
+    if Obj.statistics[0]==0 or Obj.statistics[1]==0:
         U, Λ, V = SortedEig(Obj.data,cutoff,debug_mode)
         Λ = np.diag(Λ)
     else:
@@ -2632,22 +2632,22 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
     Λstatleft = -1
     Λstatright = +1
     
-    if Obj.statistic[0]==0:
-        U = dense(U,encoder="parity-preserving",format="matrix",statistic=(0,0))
-        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistic=(0,0))
-        V = dense(V,encoder="parity-preserving",format="matrix",statistic=(0,Obj.statistic[1]))
+    if Obj.statistics[0]==0:
+        U = dense(U,encoder="parity-preserving",format="matrix",statistics=(0,0))
+        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistics=(0,0))
+        V = dense(V,encoder="parity-preserving",format="matrix",statistics=(0,Obj.statistics[1]))
         Λstatleft = 0
         Λstatright = 0
-    elif Obj.statistic[1]==0:
-        U = dense(U,encoder="parity-preserving",format="matrix",statistic=(Obj.statistic[0],0))
-        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistic=(0,0))
-        V = dense(V,encoder="parity-preserving",format="matrix",statistic=(0,0))
+    elif Obj.statistics[1]==0:
+        U = dense(U,encoder="parity-preserving",format="matrix",statistics=(Obj.statistics[0],0))
+        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistics=(0,0))
+        V = dense(V,encoder="parity-preserving",format="matrix",statistics=(0,0))
         Λstatleft = 0
         Λstatright = 0
     else:
-        U = dense(U,encoder="parity-preserving",format="matrix",statistic=(Obj.statistic[0],1))
-        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistic=(-1,1))
-        V = dense(V,encoder="parity-preserving",format="matrix",statistic=(-1,Obj.statistic[1]))
+        U = dense(U,encoder="parity-preserving",format="matrix",statistics=(Obj.statistics[0],1))
+        Λ = dense(Λ,encoder="parity-preserving",format="matrix",statistics=(-1,1))
+        V = dense(V,encoder="parity-preserving",format="matrix",statistics=(-1,Obj.statistics[1]))
     dΛ = Λ.shape[0]
 
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #5
@@ -2745,7 +2745,7 @@ def hconjugate(InpObj,string,save_memory=False):
     this_type = type(Obj)
     this_format = Obj.format
     this_encoder = Obj.encoder
-    XObj_stats = Obj.statistic
+    XObj_stats = Obj.statistics
     XObj_shape = Obj.shape
 
     if save_memory :
@@ -2758,10 +2758,10 @@ def hconjugate(InpObj,string,save_memory=False):
     if this_type not in [dense,sparse] :
         error("Error[hconjugate]: Object type must only be dense or sparse!")
         
-    # check if Obj.statistic or final_statistic is weird or not
-    for stat in Obj.statistic:
+    # check if Obj.statistics or final_statistics is weird or not
+    for stat in Obj.statistics:
         if(stat not in allowed_stat):
-            error("Error[hconjugate]: The input object contains illegal statistic. (0, 1, -1, or "+hybrid_symbol+" only)")
+            error("Error[hconjugate]: The input object contains illegal statistics. (0, 1, -1, or "+hybrid_symbol+" only)")
             
     partition_count = 0
     for partition in separator_list:
@@ -2807,9 +2807,9 @@ def hconjugate(InpObj,string,save_memory=False):
     join_legs_string_input = "("+join_legs_string_input+")"
 
     shape_left  = Obj.shape[:n_left]
-    stats_left  = Obj.statistic[:n_left]
+    stats_left  = Obj.statistics[:n_left]
     shape_right = Obj.shape[n_left:]
-    stats_right = Obj.statistic[n_left:]
+    stats_right = Obj.statistics[n_left:]
     def prod(vector):
         ret = 1
         for elem in vector:
@@ -2848,19 +2848,19 @@ def hconjugate(InpObj,string,save_memory=False):
     
     new_stat = [1,1]
     
-    if Obj.statistic[0] in fermi_type :
-        new_stat[1] = -Obj.statistic[0]
+    if Obj.statistics[0] in fermi_type :
+        new_stat[1] = -Obj.statistics[0]
     else:
-        new_stat[1] = Obj.statistic[0]
+        new_stat[1] = Obj.statistics[0]
         
-    if Obj.statistic[1] in fermi_type :
-        new_stat[0] = -Obj.statistic[1]
+    if Obj.statistics[1] in fermi_type :
+        new_stat[0] = -Obj.statistics[1]
     else:
-        new_stat[0] = Obj.statistic[1]
+        new_stat[0] = Obj.statistics[1]
     
     new_stat = make_tuple(new_stat)
     
-    Obj.statistic = new_stat
+    Obj.statistics = new_stat
     
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2915,11 +2915,11 @@ def hconjugate(InpObj,string,save_memory=False):
 ##                    Utilities                   ##
 ####################################################
 
-def random(shape,statistic,tensor_format=dense,dtype=float,skip_trimming=False):
+def random(shape,statistics,tensor_format=dense,dtype=float,skip_trimming=False):
     X = np.random.rand(*shape)
     if dtype == complex :
         X = complex(1,0)*X + complex(0,1)*np.random.rand(*shape)
-    A = dense(X, statistic = statistic)
+    A = dense(X, statistics = statistics)
     if not skip_trimming:
         A = trim_grassmann_odd(A)
     if tensor_format==sparse:
