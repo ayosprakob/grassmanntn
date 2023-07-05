@@ -1990,6 +1990,7 @@ def get_intermediate_info(sorted_group_info,intermediate_stat):
 
 def trim_grassmann_odd(Obj):
     objtype=type(Obj)
+    objencoder=Obj.encoder
 
     if(Obj.encoder == 'canonical'):
         Obj = Obj.switch_encoder(save_memory=True)
@@ -2016,7 +2017,7 @@ def trim_grassmann_odd(Obj):
     if(objtype==dense):
         Obj = dense(Obj)
 
-    if(Obj_input.encoder == 'canonical'):
+    if(objencoder == 'canonical'):
         Obj = Obj.switch_encoder(save_memory=True)
 
     return Obj
