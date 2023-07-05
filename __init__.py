@@ -2920,7 +2920,7 @@ def random(shape,statistics,tensor_type=dense,encoder="canonical",format="standa
     X = np.random.rand(*shape)
     if dtype == complex :
         X = complex(1,0)*X + complex(0,1)*np.random.rand(*shape)
-    A = dense(X, statistics = statistics,encoder=encoder,format=format)
+    A = dense(X,statistics=statistics,encoder=encoder,format=format)
     if not skip_trimming:
         A = trim_grassmann_odd(A)
     if tensor_type==sparse:
