@@ -508,10 +508,10 @@ class dense:
         else :
             return self.copy()
 
-    def join_legs(self,string_inp,make_format='standard',intermediate_stat=(-1,1),save_memory=False):
+    def join_legs(self,string_inp,make_format='standard',intermediate_stat=None,save_memory=False):
         return join_legs(self,string_inp,make_format,intermediate_stat,save_memory)
 
-    def split_legs(self,string_inp,final_stat,final_shape,intermediate_stat=(-1,1),save_memory=False):
+    def split_legs(self,string_inp,final_stat,final_shape,intermediate_stat=None,save_memory=False):
         return split_legs(self,string_inp,final_stat,final_shape,intermediate_stat,save_memory)
 
     def hconjugate(self,input_string,save_memory=False):
@@ -765,10 +765,10 @@ class sparse:
         else :
             return self.copy()
 
-    def join_legs(self,string_inp,make_format='standard',intermediate_stat=(-1,1),save_memory=False):
+    def join_legs(self,string_inp,make_format='standard',intermediate_stat=None,save_memory=False):
         return join_legs(self,string_inp,make_format,intermediate_stat,save_memory)
 
-    def split_legs(self,string_inp,final_stat,final_shape,intermediate_stat=(-1,1),save_memory=False):
+    def split_legs(self,string_inp,final_stat,final_shape,intermediate_stat=None,save_memory=False):
         return split_legs(self,string_inp,final_stat,final_shape,intermediate_stat,save_memory)
 
     def hconjugate(self,input_string,save_memory=False):
@@ -1632,7 +1632,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 ##                     Reshape                    ##
 ####################################################
 
-def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=(-1,1),save_memory=False):
+def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=None,save_memory=False):
 
     process_name = "join_legs"
     process_length = 6
@@ -1742,7 +1742,7 @@ def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=(-1,1),
 
     return Obj
     
-def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=(-1,1),save_memory=False):
+def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=None,save_memory=False):
 
     process_name = "split_legs"
     process_length = 6
@@ -2349,9 +2349,9 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
     Vshape = tuple([dΛ] + Vshape)
     
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #6
-    U = U.split_legs(Uind,Ustats,Ushape,save_memory=True)
+    U = U.split_legs(Uind,Ustats,Ushape,intermediate_stat=(-1,1),save_memory=True)
     Λ = Λ.switch_encoder(save_memory=True)
-    V = V.split_legs(Vind,Vstats,Vshape,save_memory=True)
+    V = V.split_legs(Vind,Vstats,Vshape,intermediate_stat=(-1,1),save_memory=True)
     
     if(this_format == 'standard'):
         U = U.switch_format(save_memory=True)
@@ -2692,9 +2692,9 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
     Vshape = tuple([dΛ] + Vshape)
     
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #6
-    U = U.split_legs(Uind,Ustats,Ushape,save_memory=True)
+    U = U.split_legs(Uind,Ustats,Ushape,intermediate_stat=(-1,1),save_memory=True)
     Λ = Λ.switch_encoder(save_memory=True)
-    V = V.split_legs(Vind,Vstats,Vshape,save_memory=True)
+    V = V.split_legs(Vind,Vstats,Vshape,intermediate_stat=(-1,1),save_memory=True)
     
     if(this_format == 'standard'):
         U = U.switch_format(save_memory=True)
@@ -2838,7 +2838,7 @@ def hconjugate(InpObj,string,save_memory=False):
         elif(boson_count>0 and fermi_count>0):
             return hybrid_symbol
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
-    Obj = Obj.join_legs(join_legs_string_input,"matrix",save_memory=True)
+    Obj = Obj.join_legs(join_legs_string_input,"matrix",intermediate_stat=(-1,1),save_memory=True)
     
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2898,7 +2898,7 @@ def hconjugate(InpObj,string,save_memory=False):
             new_stats[i]*=-1
     new_stats = make_tuple(new_stats)
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
-    Obj = Obj.split_legs(new_ind,new_stats,new_shape,save_memory=True)
+    Obj = Obj.split_legs(new_ind,new_stats,new_shape,intermediate_stat=(-1,1),save_memory=True)
     
     #if this_type==sparse :
     #    Obj = sparse(Obj)
