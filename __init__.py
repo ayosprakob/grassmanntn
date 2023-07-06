@@ -1791,7 +1791,9 @@ def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=None,s
     #   Step 4: Switch encoder                                                      #
     #===============================================================================#
     
-    Obj = Obj.switch_encoder(save_memory=True)
+    if this_encoder == 'parity-preserving':
+        #force convert to standard
+        Obj = Obj.switch_encoder(save_memory=True)
     
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #===============================================================================#
@@ -1835,6 +1837,10 @@ def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=None,s
     if this_format=='matrix':
         return Obj.switch_format(save_memory=True)
     
+    if this_encoder == 'parity-preserving':
+        #force convert to standard
+        Obj = Obj.switch_encoder(save_memory=True)
+        
     return Obj
     
 def get_group_info(grouping_string, ungroup_stat, ungroup_shape):
