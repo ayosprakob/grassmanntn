@@ -14,7 +14,7 @@ import os
 from datetime import datetime
 
 hybrid_symbol = "*"
-separator_list = ("|",":",";",",","."," ")
+separator_list = ("|",":",";",",",".")
 number_character = ("0","1","2","3","4","5","6","7","8","9")
 
 skip_parity_blocking_check = False
@@ -1840,7 +1840,7 @@ def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=None,s
     if this_encoder == 'parity-preserving':
         #force convert to standard
         Obj = Obj.switch_encoder(save_memory=True)
-        
+
     return Obj
     
 def get_group_info(grouping_string, ungroup_stat, ungroup_shape):

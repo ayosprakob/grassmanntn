@@ -1024,7 +1024,7 @@ def fcompress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qp = gtn.einsum('IJKLijkl -> JKLijkl I',B)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQp = Qp.hconjugate("abcdefg x")
+    cQp = Qp.hconjugate("abcdefg|x")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mp = gtn.einsum('I abcdefg,abcdefg J -> IJ',cQp,Qp)
     
@@ -1034,7 +1034,7 @@ def fcompress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qm = gtn.einsum('IJKLijkl -> K IJLijkl',B)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQm = Qm.hconjugate("x abcdefg")
+    cQm = Qm.hconjugate("x|abcdefg")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mm = gtn.einsum('I abcdefg,abcdefg J -> IJ',Qm,cQm)
 
@@ -1042,8 +1042,8 @@ def fcompress_B(B,cutoff=64,mute=True):
     gc.collect()
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Up, Λp, cUp = Mp.eig("I J",cutoff)
-    Um, Λm, cUm = Mm.eig("I J",cutoff)
+    Up, Λp, cUp = Mp.eig("I|J",cutoff)
+    Um, Λm, cUm = Mm.eig("I|J",cutoff)
 
     if Λp.shape[0] < Λm.shape[0] :
         U1 = Up.copy()
@@ -1054,7 +1054,7 @@ def fcompress_B(B,cutoff=64,mute=True):
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     B = gtn.einsum('IA,IJKLijkl->AJKLijkl',U1,B)
-    B = gtn.einsum('CK,AJKLijkl->AJCLijkl',U1.hconjugate('I J'),B)
+    B = gtn.einsum('CK,AJKLijkl->AJCLijkl',U1.hconjugate('I|J'),B)
 
     if not mute:
         gtn.clear_progress()
@@ -1065,7 +1065,7 @@ def fcompress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qp = gtn.einsum('IJKLijkl -> IKLijkl J',B)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQp = Qp.hconjugate("abcdefg x")
+    cQp = Qp.hconjugate("abcdefg|x")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mp = gtn.einsum('I abcdefg,abcdefg J -> IJ',cQp,Qp)
     
@@ -1075,15 +1075,15 @@ def fcompress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qm = gtn.einsum('IJKLijkl -> L IJKijkl',B)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQm = Qm.hconjugate("x abcdefg")
+    cQm = Qm.hconjugate("x|abcdefg")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mm = gtn.einsum('I abcdefg,abcdefg J -> IJ',Qm,cQm)
     del Qm, cQm
     gc.collect()
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Up, Λp, cUp = Mp.eig("I J",cutoff)
-    Um, Λm, cUm = Mm.eig("I J",cutoff)
+    Up, Λp, cUp = Mp.eig("I|J",cutoff)
+    Um, Λm, cUm = Mm.eig("I|J",cutoff)
 
     if Λp.shape[0] < Λm.shape[0] :
         U2 = Up.copy()
@@ -1126,7 +1126,7 @@ def compress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qp = gtn.einsum('IJKLijkl,km -> JKLjklm Ii',B,δ)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQp = Qp.hconjugate("JKLjklm Ii")
+    cQp = Qp.hconjugate("JKLjklm|Ii")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mp = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',cQp,Qp)
     
@@ -1136,7 +1136,7 @@ def compress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qm = gtn.einsum('IJKLijkl,km -> Kk IJLijlm',B,δ)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQm = Qm.hconjugate("Kk IJLijlm")
+    cQm = Qm.hconjugate("Kk|IJLijlm")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mm = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',Qm,cQm)
 
@@ -1144,8 +1144,8 @@ def compress_B(B,cutoff=64,mute=True):
     gc.collect()
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
-    Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
+    Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+    Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
 
     if Λp.shape[0] < Λm.shape[0] :
         U1 = Up.copy()
@@ -1165,7 +1165,7 @@ def compress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qp = gtn.einsum('IJKLijkl,lm -> IKLiklm Jj',B,δ)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQp = Qp.hconjugate("JKLjklm Ii")
+    cQp = Qp.hconjugate("JKLjklm|Ii")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mp = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',cQp,Qp)
     
@@ -1175,7 +1175,7 @@ def compress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qm = gtn.einsum('IJKLijkl,lm -> Ll IJKijkm',B,δ)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQm = Qm.hconjugate("Kk IJLijlm")
+    cQm = Qm.hconjugate("Kk|IJLijlm")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mm = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',Qm,cQm)
 
@@ -1183,8 +1183,8 @@ def compress_B(B,cutoff=64,mute=True):
     gc.collect()
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
-    Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
+    Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+    Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
 
     if Λp.shape[0] < Λm.shape[0] :
         U2 = Up.copy()
@@ -1203,7 +1203,7 @@ def compress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qp = gtn.einsum('IJKLijkl,im -> JKLjklm Ii',B,δ)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQp = Qp.hconjugate("JKLjklm Ii")
+    cQp = Qp.hconjugate("JKLjklm|Ii")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mp = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',cQp,Qp)
     
@@ -1213,7 +1213,7 @@ def compress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qm = gtn.einsum('IJKLijkl,im -> Kk IJLijlm',B,δ)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQm = Qm.hconjugate("Kk IJLijlm")
+    cQm = Qm.hconjugate("Kk|IJLijlm")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mm = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',Qm,cQm)
 
@@ -1221,8 +1221,8 @@ def compress_B(B,cutoff=64,mute=True):
     gc.collect()
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
-    Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
+    Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+    Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
 
     if Λp.shape[0] < Λm.shape[0] :
         U3 = Up.copy()
@@ -1230,7 +1230,7 @@ def compress_B(B,cutoff=64,mute=True):
         U3 = Um.copy()
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Bfin = gtn.einsum('ABKLkl,CKk->ABCLl',Bfin,U3.hconjugate('ij k'))
+    Bfin = gtn.einsum('ABKLkl,CKk->ABCLl',Bfin,U3.hconjugate('ij|k'))
     
     if not mute:
         gtn.clear_progress()
@@ -1242,7 +1242,7 @@ def compress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qp = gtn.einsum('IJKLijkl,jm -> IKLiklm Jj',B,δ)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQp = Qp.hconjugate("JKLjklm Ii")
+    cQp = Qp.hconjugate("JKLjklm|Ii")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mp = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',cQp,Qp)
     
@@ -1252,7 +1252,7 @@ def compress_B(B,cutoff=64,mute=True):
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Qm = gtn.einsum('IJKLijkl,jm -> Ll IJKijkm',B,δ)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cQm = Qm.hconjugate("Kk IJLijlm")
+    cQm = Qm.hconjugate("Kk|IJLijlm")
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mm = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',Qm,cQm)
 
@@ -1260,8 +1260,8 @@ def compress_B(B,cutoff=64,mute=True):
     gc.collect()
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
-    Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
+    Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+    Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
 
     if Λp.shape[0] < Λm.shape[0] :
         U4 = Up.copy()
@@ -1269,7 +1269,7 @@ def compress_B(B,cutoff=64,mute=True):
         U4 = Um.copy()
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Bfin = gtn.einsum('ABCLl,DLl->ABCD',Bfin,U4.hconjugate('ij k'))
+    Bfin = gtn.einsum('ABCLl,DLl->ABCD',Bfin,U4.hconjugate('ij|k'))
     gtn.clear_progress()
     gtn.tab_up()
     
@@ -1299,9 +1299,9 @@ def compress_A(A,Upack,mute=True):
 
     step = 1
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Ix = gtn.einsum('KXj,XjI->KIj',U1.hconjugate('ij k'),U3)
+    Ix = gtn.einsum('KXj,XjI->KIj',U1.hconjugate('ij|k'),U3)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Iy = gtn.einsum('LYj,YjJ->LJj',U2.hconjugate('ij k'),U4)
+    Iy = gtn.einsum('LYj,YjJ->LJj',U2.hconjugate('ij|k'),U4)
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Afin = gtn.einsum('ijkl,KIl,LJk,km,ln->IJKLijklmn',A,Ix,Iy,δ,δ)
@@ -1329,9 +1329,9 @@ def compress_T(T,cutoff=64,mute=True):
     Txm = gtn.einsum('IJKLijklmn -> Kk IJLijlmn',T)
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cTxp = Txp.hconjugate('abcdefgh xy')
+    cTxp = Txp.hconjugate('abcdefgh|xy')
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cTxm = Txm.hconjugate('xy abcdefgh')
+    cTxm = Txm.hconjugate('xy|abcdefgh')
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mp = gtn.einsum('Ii abcdefgh, abcdefgh Jj -> IiJj',cTxp,Txp)
@@ -1343,8 +1343,8 @@ def compress_T(T,cutoff=64,mute=True):
 
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
-    Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
+    Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+    Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
 
     if Λp.shape[0] < Λm.shape[0] :
         U = Up.copy()
@@ -1353,7 +1353,7 @@ def compress_T(T,cutoff=64,mute=True):
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
 
-    Tfin = gtn.einsum('IJKLijklmn,IiA,CKk->ACJLjlmn',T,U,U.hconjugate('ij k'))
+    Tfin = gtn.einsum('IJKLijklmn,IiA,CKk->ACJLjlmn',T,U,U.hconjugate('ij|k'))
 
     if not mute:
         Tfin.info("T (x-compression)")
@@ -1366,9 +1366,9 @@ def compress_T(T,cutoff=64,mute=True):
     Tym = gtn.einsum('IKJLjlmn -> Ll IKJjmn',Tfin)
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cTyp = Typ.hconjugate('abcdef xy')
+    cTyp = Typ.hconjugate('abcdef|xy')
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    cTym = Tym.hconjugate('xy abcdef')
+    cTym = Tym.hconjugate('xy|abcdef')
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
     Mp = gtn.einsum('Ii abcdef, abcdef Jj -> IiJj',cTyp,Typ)
@@ -1379,8 +1379,8 @@ def compress_T(T,cutoff=64,mute=True):
     gc.collect()
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Up, Λp, cUp = Mp.eig("Ii Jj",cutoff)
-    Um, Λm, cUm = Mm.eig("Ii Jj",cutoff)
+    Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+    Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
 
     if Λp.shape[0] < Λm.shape[0] :
         U = Up.copy()
@@ -1388,7 +1388,7 @@ def compress_T(T,cutoff=64,mute=True):
         U = Um.copy()
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",time=time.time()-s00)
-    Tfin = gtn.einsum('ACJLjlmn,JjB,DLl->ABCDmn',Tfin,U,U.hconjugate('ij k'))
+    Tfin = gtn.einsum('ACJLjlmn,JjB,DLl->ABCDmn',Tfin,U,U.hconjugate('ij|k'))
     gtn.clear_progress()
     gtn.tab_up()
 
@@ -1476,8 +1476,8 @@ def trg(T,dcut=16):
     T1 = gtn.einsum('ijkl->jkli',T)
     T2 = gtn.einsum('ijkl->klij',T)
 
-    U1,S1,V1 = T1.svd('ab cd',dcut)
-    U2,S2,V2 = T2.svd('ab cd',dcut)
+    U1,S1,V1 = T1.svd('ab|cd',dcut)
+    U2,S2,V2 = T2.svd('ab|cd',dcut)
 
     #
     #                             j                                     j
@@ -1566,8 +1566,8 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
     T1 = gtn.einsum("ijkl->li jk",T1)
     T2 = gtn.einsum("ijkl->li jk",T2)
 
-    U1, S1, V1 = T1.svd("li jk",intermediate_dcut)
-    U2, S2, V2 = T2.svd("li jk",intermediate_dcut)
+    U1, S1, V1 = T1.svd("li|jk",intermediate_dcut)
+    U2, S2, V2 = T2.svd("li|jk",intermediate_dcut)
 
     #
     #        j                    j
@@ -1605,7 +1605,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
     #
 
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
-    U, S, V = M.svd("ai bk",intermediate_dcut)
+    U, S, V = M.svd("ai|bk",intermediate_dcut)
 
     sqrtS = gtn.sqrt(S)
     Y = gtn.einsum('abx,xc->abc',U,sqrtS)
@@ -1623,7 +1623,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
     Q = gtn.einsum('ijab,abkl->ijkl',Q1,Q2)
     step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
     
-    U,S,V = Q.svd("ij kl",dcut)
+    U,S,V = Q.svd("ij|kl",dcut)
 
     sqrtS = gtn.sqrt(S)
     H = gtn.einsum('abx,xc->abc',U,sqrtS)
@@ -1787,7 +1787,7 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,
 
     if not svd_only :
         step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00) #20
-        cUx = Ux.hconjugate('ij a')
+        cUx = Ux.hconjugate('ij|a')
         #switch the i and j
         step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
         XX = gtn.einsum('i3 j3 ab i1 j1 -> j3 i3 ab i1 j1',XX)
@@ -1851,7 +1851,7 @@ def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,
 
     if not svd_only :
         step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00) #32
-        cUy = Uy.hconjugate('ij a')
+        cUy = Uy.hconjugate('ij|a')
 
         #switch the i and j
         step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00) #33
