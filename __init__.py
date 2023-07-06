@@ -2188,7 +2188,7 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
 
     if string.count("(")==string.count(")") and string.count("(")>0:
         string = string.replace(" ","")
-        string = string.replace(")("," ")
+        string = string.replace(")(","|")
         if string.count("(")>1 or string.count(")")<1:
             error("Error[svd]: Parentheses don't match")
         string = string.replace(")","")
@@ -2532,7 +2532,7 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
 
     if string.count("(")==string.count(")") and string.count("(")>0:
         string = string.replace(" ","")
-        string = string.replace(")("," ")
+        string = string.replace(")(","|")
         if string.count("(")>1 or string.count(")")<1:
             error("Error[eig]: Parentheses don't match")
         string = string.replace(")","")
@@ -2739,7 +2739,7 @@ def hconjugate(InpObj,string,save_memory=False):
     
     if string.count("(")==string.count(")") and string.count("(")>0:
         string = string.replace(" ","")
-        string = string.replace(")("," ")
+        string = string.replace(")(","|")
         if string.count("(")>1 or string.count(")")<1:
             error("Error[hconjugate]: Parentheses don't match")
         string = string.replace(")","")
