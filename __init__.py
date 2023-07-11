@@ -784,34 +784,19 @@ class sparse:
 ##       Parity Calculation (internal tools)      ##
 ####################################################
 
-def absolute_parity(permutation, individual_parity):
+def absolute_sign(object_set, parity):
     """
-    Compute the absolute_parity of a permutation, assuming that some elements always commute
-    with every other element.
+    Compute the absolute sign of an object_set, assuming that some elements always commute with every other element.
     
     Parameters:
-    permutation (list[int]): A list object.
-    individual_parity (list[int]): A list of object's grassmann parity.
-    
+    object_set (list[int]): A list object.
+    parity (list[int]): A list of object's grassmann parity.
+
     Returns:
     int: 1 if the permutation is even, -1 if the permutation is odd.
     """
-    
-    def get_commutative_elements(permutation, individual_parity):
-        """
-        Return a set of commutine elements (individual_parity = even)
-        """
-        if(len(permutation)!=len(individual_parity)):
-            error("Error[absolute_parity.get_commutative_elements]: Inconsistent array sizes!")
-            
-        else:
-            commutative_elements = [x for i,x in enumerate(permutation) if (-1)**individual_parity[i]==1]
-            return set(commutative_elements)
-            
-    
-    commutative_elements = get_commutative_elements(permutation, individual_parity)
-    n = len(permutation)
-    noncommutative_elements = [x for x in permutation if x not in commutative_elements]
+    noncommutative_elements = [x for i,x in enumerate(object_set)
+                                if parity[i]%2==1]
     inversions = 0
     for i in range(len(noncommutative_elements)):
         for j in range(i+1, len(noncommutative_elements)):
@@ -819,14 +804,14 @@ def absolute_parity(permutation, individual_parity):
                 inversions += 1
     return (-1)**inversions
 
-def relative_parity_int(permutation1, permutation2, individual_parity1):
+def relative_sign_int(object_set1, object_set2, parity1):
     """
-    Compute the relative_parity from permuting permutation1 to permutation2 with the individual parity given by individual_parity1 of the list permutation1
+    Compute the relative sign from permuting object_set1 to object_set2 with the parity given by parity1 of the list object_set1
     
     Parameters:
-    permutation1 (list): first list
-    permutation2 (list): target list
-    individual_parity1 (list): grassmann parity of the first list
+    object_set1 (list): first list
+    object_set2 (list): target list
+    parity1 (list): Grassmann parity of the first list
     
     Returns:
     int: relative parity of the permutation
@@ -834,40 +819,40 @@ def relative_parity_int(permutation1, permutation2, individual_parity1):
     
     def permute_c(a, b, c):
         """
-        Permute the elements of c according to the permutation that maps a to b.
+        Permute elements of c according to the permutation that maps a to b.
         """
         x = list(np.argsort(a))
         xc = [ c[i] for i in x ]
         bxc = [ xc[i] for i in b ]
         return bxc
-
-    def get_noncommutative_elements(permutation, individual_parity):
+    def get_noncommutative(object_set, parity):
         """
-        Return a LIST of commutine elements (individual_parity = even)
+        Return a list of noncommutative elements
         """
-        if(len(permutation)!=len(individual_parity)):
-            error("Error[relative_parity_int.get_noncommutative_elements]: Inconsistent array sizes!")
-            
-        else:
-            noncommutative_elements = [x for i,x in enumerate(permutation) if (-1)**individual_parity[i]==-1]
-            return noncommutative_elements
+        noncommutative_elements = [x for i,x in enumerate(object_set)
+                                    if parity[i]%2==1]
+        return noncommutative_elements
+    # get parity of object_set2
+    parity2 = permute_c(object_set1, object_set2, parity1)
+    
+    noncommutative_elements1 = get_noncommutative(object_set1,parity1)
+    noncommutative_elements2 = get_noncommutative(object_set2,parity2)
+    
+    absolute_sign1 = absolute_sign(object_set1, parity1)
+    absolute_sign2 = absolute_sign(object_set2, parity2)
+    return absolute_sign1*absolute_sign2
 
-    individual_parity2 = permute_c(permutation1, permutation2, individual_parity1)
-    
-    noncommutative_elements1 = get_noncommutative_elements(permutation1,individual_parity1)
-    noncommutative_elements2 = get_noncommutative_elements(permutation2,individual_parity2)
-    
-    if(sorted(noncommutative_elements1) != sorted(noncommutative_elements2)):
-        error("Error[relative_parity_int]: Inconsistent grassmann-odd indices!")
-        
-    
-    absolute_parity1 = absolute_parity(permutation1, individual_parity1)
-    absolute_parity2 = absolute_parity(permutation2, individual_parity2)
-    return absolute_parity1*absolute_parity2
-    
-def relative_parity_single_input(string, individual_parity1):
+def relative_sign_string(string, parity1):
+    [string1,string2] = list(string.split("->"))
+    unique_chars = list(set(string1+string2))
+    char_to_int = {char: i for i, char in enumerate(unique_chars)}
+    object_set1 = [char_to_int[char] for char in string1]
+    object_set2 = [char_to_int[char] for char in string2]
+    return relative_sign_int(object_set1, object_set2, parity1)
+
+def relative_sign_single_input(string, parity1):
     """
-    the string version of relative_parity_int
+    the string version of relative_sign_int
     the sign factor version of single input einsum
     """
     [string1,string2] = list(string.split("->"))
@@ -875,20 +860,20 @@ def relative_parity_single_input(string, individual_parity1):
     char_to_int = {char: i for i, char in enumerate(unique_chars)}
     permutation1 = [char_to_int[char] for char in string1]
     permutation2 = [char_to_int[char] for char in string2]
-    return relative_parity_int(permutation1, permutation2, individual_parity1)
+    return relative_sign_int(permutation1, permutation2, parity1)
 
-def relative_parity(string, individual_parity):
+def relative_sign(string, parity):
     """
     Imagine doing Grassmann version of Einsum.
     This function returns the sign factor of that sum.
-    You have to enter the parity of the input indices in [individual_parity]
+    You have to enter the parity of the input indices in [parity]
     The grassmann indices must not be added or removed!
     Use a different function to integrate them out!
     Examples:
-    >> relative_parity( "abCdE,aXdYb->XCEY", [0,0,1,0,1,0,1,0,1,0] )
+    >> relative_sign( "abCdE,aXdYb->XCEY", [0,0,1,0,1,0,1,0,1,0] )
     >> 1
     
-    >> relative_parity( "abCdE,aXYb->CXEY", [0,0,1,0,1,0,1,1,0] )
+    >> relative_sign( "abCdE,aXYb->CXEY", [0,0,1,0,1,0,1,1,0] )
     >> -1
     
     """
@@ -899,8 +884,8 @@ def relative_parity(string, individual_parity):
     for i in range(len(string_list)):
         join_string = join_string + string_list[i]
         
-    if(len(join_string)!=len(individual_parity)):
-        error("Error[relative_parity]: The number of input list and parity list are not consistent!")
+    if(len(join_string)!=len(parity)):
+        error("Error[relative_sign]: The number of input list and parity list are not consistent!")
         
         
     #remove the summed indices
@@ -913,9 +898,9 @@ def relative_parity(string, individual_parity):
                 new_list2.append(list2[i])
         return new_list1, new_list2
         
-    join_string_list,individual_parity = remove_duplicates(list(join_string), individual_parity)
+    join_string_list,parity = remove_duplicates(list(join_string), parity)
     join_string = ''.join(join_string_list)+"->"+string_output
-    return relative_parity_single_input(join_string, individual_parity)
+    return relative_sign_single_input(join_string, parity)
 
 def reordering(stringa,stringb,mylist):
 
@@ -1291,7 +1276,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
         S1 = np.zeros(S1_shape,dtype=int)
         iterator = np.nditer(S1, flags=['multi_index'])
-        individual_parity_list = []
+        parity_list = []
         sgn_list = []
 
         k=1
@@ -1305,14 +1290,14 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
             coords = iterator.multi_index
             dupped_coords = use_copy_map(copy_map,coords)
             
-            individual_parity = [ param.gparity(i)%2 for i in dupped_coords ]
+            parity = [ param.gparity(i)%2 for i in dupped_coords ]
 
-            if individual_parity not in individual_parity_list:
-                individual_parity_list += individual_parity,
-                sgn = relative_parity(S1_sgn_computation_string,individual_parity)
+            if parity not in parity_list:
+                parity_list += parity,
+                sgn = relative_sign(S1_sgn_computation_string,parity)
                 sgn_list += sgn,
             else:
-                index = individual_parity_list.index(individual_parity)
+                index = parity_list.index(parity)
                 sgn = sgn_list[index]
 
             S1[coords] = sgn
@@ -1426,19 +1411,19 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
             S3 = np.zeros(S3_shape,dtype=int)
             iterator = np.nditer(S3, flags=['multi_index'])
-            individual_parity_list = []
+            parity_list = []
             sgn_list = []
             for element in iterator:
                 coords = iterator.multi_index
 
-                individual_parity = [ param.gparity(i)%2 for i in coords ]
+                parity = [ param.gparity(i)%2 for i in coords ]
 
-                if individual_parity not in individual_parity_list:
-                    individual_parity_list += individual_parity,
-                    sgn = relative_parity(S3_sgn_computation_string,individual_parity)
+                if parity not in parity_list:
+                    parity_list += parity,
+                    sgn = relative_sign(S3_sgn_computation_string,parity)
                     sgn_list += sgn,
                 else:
-                    index = individual_parity_list.index(individual_parity)
+                    index = parity_list.index(parity)
                     sgn = sgn_list[index]
 
                 S3[coords] = sgn
