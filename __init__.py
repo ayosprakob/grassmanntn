@@ -967,7 +967,6 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
 
     # remove spaces ---------------------------------------------------------------------------------
     instruction_string = args[0].replace(" ","")
-
     instruction_string = denumerate(instruction_string)
 
     has_output = instruction_string.count("->") > 0
@@ -1626,6 +1625,7 @@ def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=None,sa
     s00 = time.time()
     progress_space() # << Don't remove this. This is for the show_progress!
 
+    string_inp = string_inp.replace(" ","")
     string_inp = denumerate(string_inp)
 
     intermediate_stat = make_tuple(intermediate_stat)
@@ -1736,6 +1736,7 @@ def split_legs(InpObj,string_inp,final_stat,final_shape,intermediate_stat=None,s
     s00 = time.time()
     progress_space() # << Don't remove this. This is for the show_progress!
 
+    string_inp = string_inp.replace(" ","")
     string_inp = denumerate(string_inp)
 
     intermediate_stat = make_tuple(intermediate_stat)
@@ -2145,6 +2146,7 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
 
     # the string is of the form aaaa|bbb
 
+    string = string.replace(" ","")
     string = denumerate(string)
 
     
@@ -2489,6 +2491,7 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
 
     # the string is of the form aaaa|bbb
 
+    string = string.replace(" ","")
     string = denumerate(string)
 
     
@@ -2720,6 +2723,7 @@ def hconjugate(InpObj,string,save_memory=False):
     s00 = time.time()
     progress_space() # << Don't remove this. This is for the show_progress!
 
+    string = string.replace(" ","")
     string = denumerate(string)
     
     if string.count("(")==string.count(")") and string.count("(")>0:
