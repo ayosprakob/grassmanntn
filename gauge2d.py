@@ -1457,7 +1457,16 @@ def logZhotrg3dz(T1,T2,boundary_conditions='periodic'):
 ##                       TRG                      ##
 ####################################################
 
-def trg(T,dcut=16):
+def trg(T,dcut=64,iternum=None,error_test=False):
+
+    process_name = "trg"
+    if iternum != None:
+        process_name = process_name+"["+str(iternum)+"]"
+    process_length = 10
+    process_color = "purple"
+    step = 1
+    s00 = time.time()
+    gtn.progress_space() # << Don't remove this. This is for the gtn.show_progress!
 
     # mandatory properties of T:
     #    - shape = (nx,ny,nx,ny)
@@ -1466,19 +1475,22 @@ def trg(T,dcut=16):
     if [T.shape[0],T.shape[1]] != [T.shape[2],T.shape[3]] :
         error("Error[trg]: The shape must be of the form (m,n,m,n)!")
 
-    if make_list(T.statistics) != [1,1,-1,-1] :
+    if gtn.make_list(T.statistics) != [1,1,-1,-1] :
         error("Error[trg]: The statistics must be (1,1,-1,-1)!")
 
     #===============================================================================#
     #   Step 1: Rearrange the tensor legs in two ways                               #
     #===============================================================================#
     
+    step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
     T1 = gtn.einsum('ijkl->jkli',T)
     T2 = gtn.einsum('ijkl->klij',T)
 
+    step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
     U1,S1,V1 = T1.svd('ab|cd',dcut)
     U2,S2,V2 = T2.svd('ab|cd',dcut)
 
+    step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
     #
     #                             j                                     j
     #                             ↑                                     ↑
@@ -1497,10 +1509,12 @@ def trg(T,dcut=16):
     #   Step 2: Multiply sqrt(S) into U and V                                       #
     #===============================================================================#
     
+    step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
     sqrtS = gtn.sqrt(S1)
     U1 = gtn.einsum('abx,xc->abc',U1,sqrtS)
     V1 = gtn.einsum('ax,xbc->abc',sqrtS,V1)
 
+    step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
     sqrtS = gtn.sqrt(S2)
     U2 = gtn.einsum('abx,xc->abc',U2,sqrtS)
     V2 = gtn.einsum('ax,xbc->abc',sqrtS,V2)
@@ -1525,14 +1539,22 @@ def trg(T,dcut=16):
     #      l                       i
     #
     
+    step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
     VV = gtn.einsum('kwz,lxw->lxzk',V1,V2);
+    step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
     UU = gtn.einsum('yxi,zyj->jzxi',U1,U2);
-    T2 = gtn.einsum('lxzk,jzxi->ijkl',VV,UU,debug_mode=True);
+    step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
+    T2 = gtn.einsum('lxzk,jzxi->ijkl',VV,UU);
+    step = gtn.show_progress(step,process_length,process_name+" "+"<"+gtn.current_memory_display()+">",color=process_color,time=time.time()-s00)
 
-    tr1 = gtn.einsum('ijkl,klij',T,T);
-    tr2 = gtn.einsum('ijij',T2);
-    err = np.abs(tr1-tr2)
-    print("Error:",err)
+    if error_test :
+        Z1 = gtn.einsum('ijkl,klij',T,T);
+        Z2 = gtn.einsum('ijij',T2);
+        err = np.abs(1-Z2/Z1)
+    #print("Error:",err)
+    
+    gtn.clear_progress()
+    gtn.tab_up()
     
     Tnorm = T2.norm
     T2 = gtn.dense(T2)
@@ -1540,13 +1562,16 @@ def trg(T,dcut=16):
     if type(T) == gtn.sparse :
         T2 = gtn.sparse(T2)
     
-    return T2, Tnorm
+    if error_test :
+        return T2, Tnorm, err
+    else:
+        return T2, Tnorm
 
 ####################################################
 ##                     2D ATRG                    ##
 ####################################################
 
-def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,alignment="y"):
+def atrg2dy(T1,T2,dcut=64,intermediate_dcut=None,iternum=None,error_test=False,alignment="y"):
     
     T1ori = T1.copy()
     T2ori = T2.copy()
@@ -1656,7 +1681,7 @@ def atrg2dy(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,a
     else :
         return T, Tnorm
 
-def atrg2dx(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False):
+def atrg2dx(T1,T2,dcut=64,intermediate_dcut=None,iternum=None,error_test=False):
     T1 = gtn.einsum('ijkl->jikl',T1)
     T1 = gtn.einsum('jikl->jilk',T1)
     T2 = gtn.einsum('ijkl->jikl',T2)
@@ -1676,7 +1701,7 @@ def atrg2dx(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False):
 ##                     3D ATRG                    ##
 ####################################################
 
-def hotrg3dz(T1,T2,dcut=16,intermediate_dcut=None,iternum=None,error_test=False,svd_only=False,print_svd=False):
+def hotrg3dz(T1,T2,dcut=64,intermediate_dcut=None,iternum=None,error_test=False,svd_only=False,print_svd=False):
     dt_string = datetime.now().strftime("%y%m%d.%H%M%S.%f")
 
     if print_svd :

@@ -325,6 +325,7 @@ class dense:
         print(indent+"      memory:",memory_display(sys.getsizeof(self.data)+sys.getsizeof(self)))
         print(indent+"        norm:",self.norm)
         print(indent+"     entries:")
+        print(indent+" [coords]  [values]")
         iterator = np.nditer(self, flags=['multi_index'])
         for element in iterator:
             coords = iterator.multi_index
@@ -634,6 +635,7 @@ class sparse:
         print(indent+"      memory:",memory_display(sys.getsizeof(self.data)+sys.getsizeof(self)))
         print(indent+"        norm:",self.norm)
         print(indent+"     entries:")
+        print(indent+" [coords]  [values]")
 
         C = self.coords
         V = self.value
