@@ -83,7 +83,7 @@ After the conjugation, the indices are now arranged as `aij`.
 I also wrote some built-in functions for tensor coarse-graining such as the Grassmann TRG or Grassmann ATRG methods.
 ```
 from grassmanntn import gauge2d as gauge
-T_trg = gauge.trg(T,dcut=64)                  # TRG method
-T_atrgx = gauge.atrg2dx(T1,T2,dcut=64)        # anisotropic TRG along the x-axis
-T_atrgy = gauge.atrg2dy(T1,T2,dcut=64)        # anisotropic TRG along the y-axis
+T_trg, Norm   = gauge.trg(T,dcut=64)                # TRG method
+T_atrgx, Norm = gauge.atrg2dx(T1,T2,dcut=64)        # anisotropic TRG along the x-axis
+T_atrgy, Norm = gauge.atrg2dy(T1,T2,dcut=64)        # anisotropic TRG along the y-axis
 ```
