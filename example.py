@@ -74,6 +74,8 @@ parse.add_argument('--show_progress', default=False, action='store_true')
 parse.add_argument('--sp', default=False, action='store_true')
 parse.add_argument('--trg', default=False, action='store_true')
 parse.add_argument('--TRG', default=False, action='store_true')
+parse.add_argument('--Gauss', default=False, action='store_true')
+parse.add_argument('--gauss', default=False, action='store_true')
 
 args = parse.parse_args()
 
@@ -88,6 +90,7 @@ if args.clear_screen or args.cls:
 gtn.progress_bar_enabled = args.show_progress or args.sp
 
 doTRG = args.trg or args.TRG
+useGauss = args.gauss or args.Gauss
 
     
 β = args.beta             # inverse coupling
@@ -114,10 +117,19 @@ print(
     +", Dcutz="+str(Zcut)
     +", Dcutxy="+str(XYcut)
     +", "+bc
+    ,end=""
     )
+if doTRG :
+    print(", trg",end="")
+else:
+    print(", atrg",end="")
+if useGauss :
+    print(", Gauss",end="")
+print()
+
 
 t0 = time.time()
-T, err = gauge.tensor_preparation(Nphi=Nphi, beta=β, Nf=Nf, spacing=a, mass=m, charge=q, mu=μ, mute=True)
+T, err = gauge.tensor_preparation(Nphi=Nphi, beta=β, Nf=Nf, spacing=a, mass=m, charge=q, mu=μ, mute=True, Gauss=useGauss)
 logNorm = 0
 vol = 1
 
