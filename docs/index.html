@@ -1,5 +1,319 @@
-<html>
-<body>
-<h1>Grassmanntn</h1>
-</body>
+<!DOCTYPE html>
+<html  lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+      <title>GrassmannTN</title>
+    
+          <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+          <link rel="stylesheet" href="_static/theme.css " type="text/css" />
+      
+      <!-- sphinx script_files -->
+        <script src="_static/documentation_options.js?v=2709fde1"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+      
+      <!-- bundled in js (rollup iife) -->
+      <!-- <script src="_static/theme-vendors.js"></script> -->
+      <script src="_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="genindex.html" />
+  <link rel="search" title="Search" href="search.html" />
+  <link rel="next" title="dense and sparse" href="densesparse.html" /> 
+  </head>
+
+  <body>
+    <div id="app">
+    <div class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="#" class="home-link">
+    
+      <span class="site-name">grassmanntn</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="#example-tensor-renormalization-group">Contents:</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="densesparse.html" class="reference internal ">dense and sparse</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="einsum.html" class="reference internal ">einsum()</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="joinsplit.html" class="reference internal ">join_legs() and split_legs()</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="hconjugate.html" class="reference internal ">hconjugate()</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="decomposition.html" class="reference internal ">svd() and eig()</a>
+            
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="#">Docs</a> &raquo;</li>
+    
+    <li>GrassmannTN</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="next">
+    <a href="densesparse.html"
+       title="next chapter">dense and sparse →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main" v-pre>
+            
+  <section id="grassmanntn">
+<h1>GrassmannTN<a class="headerlink" href="#grassmanntn" title="Link to this heading">¶</a></h1>
+<p>GrassmannTN is a python package that aims to simplify the coding involving Grassmann tensor network.
+The goal is to make the coding as convenient as when you use other standard packages like numpy or scipy.
+All the sign factors are computed automatically without explicit user inputs. If you have further questions about the package and how to use it, please contact me via ayosp-at-phys.sc.niigata-u.ac.jp</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documentation is still not fully complete. I plan to add the page describing minor functions, as well as a short tutorial for some simple examples. This should be done by the end of October. Sorry for the inconvenience.</p>
+</div>
+<section id="useful-links">
+<h2>Useful links<a class="headerlink" href="#useful-links" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/ayosprakob/grassmanntn/tree/main">GitHub</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/grassmanntn/">PyPI</a></p></li>
+<li><p>arXiv preprint (to be announced)</p></li>
+</ul>
+</section>
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://numpy.org/doc/stable/index.html">numpy</a></p></li>
+<li><p><a class="reference external" href="https://sparse.pydata.org/en/stable/">sparse</a></p></li>
+<li><p><a class="reference external" href="https://optimized-einsum.readthedocs.io/en/stable/">opt_einsum</a></p></li>
+</ul>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
+<p>Installation via PyPI</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">grassmanntn</span>
+</pre></div>
+</div>
+<p>Once the package is installed, download <a class="reference external" href="https://github.com/ayosprakob/grassmanntn/blob/main/example.py">example.py</a> and try running it with</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="n">example</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">show_progress</span>
+</pre></div>
+</div>
+<p>An example code of a one-flavor two-dimensional <span class="math notranslate nohighlight">\(\mathbb{Z}_2\)</span> gauge theory should be able to run.</p>
+<section id="example-initialization">
+<h3>Example: initialization<a class="headerlink" href="#example-initialization" title="Link to this heading">¶</a></h3>
+<p>To initialize the tensor, you can import it from either a <code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> or <code class="docutils literal notranslate"><span class="pre">sparse.COO</span></code> object. You can also choose your Grassmann tensor to be stored in a <code class="docutils literal notranslate"><span class="pre">dense</span></code> or <code class="docutils literal notranslate"><span class="pre">sparse</span></code> format</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">grassmanntn</span> <span class="k">as</span> <span class="nn">gtn</span>
+
+<span class="n">A_coeff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>             <span class="c1"># defining an 8x8x8x8 coefficient tensor</span>
+<span class="n">A_stats</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>                                  <span class="c1"># -1 is a conjugated index,</span>
+<span class="c1">#                                                      # +1 is a non-conjugated index.</span>
+<span class="c1">#                                                      # 0 is a bosonic index</span>
+<span class="n">A_dense</span>  <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">dense</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">A_coeff</span><span class="p">,</span> <span class="n">statistic</span><span class="o">=</span><span class="n">A_stats</span><span class="p">)</span>  <span class="c1"># defining a dense grassmann tensor</span>
+<span class="n">A_sparse</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sparse</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">A_coeff</span><span class="p">,</span> <span class="n">statistic</span><span class="o">=</span><span class="n">A_stats</span><span class="p">)</span> <span class="c1"># defining a sparse grassmann tensor</span>
+</pre></div>
+</div>
+<p>The two formats can be switched at any time</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">A_dense</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">dense</span><span class="p">(</span><span class="n">A_sparse</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Every function in this package is agnostic to the tensor format.</p>
+</section>
+<section id="example-contraction">
+<h3>Example: contraction<a class="headerlink" href="#example-contraction" title="Link to this heading">¶</a></h3>
+<p>Typically, when two tensors are contracted, appropriate sign factor must be multiplied due to the Grassmann anti-commutativity; e.g.,
+for <span class="math notranslate nohighlight">\(\mathcal{A}_{\bar\psi\phi}=\sum_{I,J}A_{IJ}\bar\psi^I\phi^J\)</span> and <span class="math notranslate nohighlight">\(\mathcal{B}_{\eta\bar\phi}=\sum_{I,J}B_{IJ}\eta^I\bar\phi^J\)</span>, we have</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{C}_{\bar\psi\eta}=\int d\bar\phi d\phi e^{-\bar\phi\cdot\phi}\mathcal{A}_{\bar\psi\phi}\mathcal{B}_{\eta\bar\phi}=\sum_{I,J,K}(A_{IJ}B_{KJ}s_{JK})\bar\psi^I\eta^K\]</div>
+<p>where, for <span class="math notranslate nohighlight">\(I=(i_1,i_2,\cdots i_m)\in\{0,1\}^m\)</span>, <span class="math notranslate nohighlight">\(J=(j_1,j_2,\cdots j_n)\in\{0,1\}^n\)</span>, and <span class="math notranslate nohighlight">\(K=(k_1,k_2,\cdots k_l)\in\{0,1\}^l\)</span>, we have to introduce the sign factor</p>
+<div class="math notranslate nohighlight">
+\[s_{JK}=\left(\prod_{a &lt; b}(-)^{j_aj_b}\right)\times\left(\prod_{a,b}(-)^{j_ak_b}\right).\]</div>
+<p>In the coding, we have to write the sign factor down explicitly—hardcoded. This is not a good idea if your algorithm involves a lot of contractions with many indices.</p>
+<p>In this package, the contraction can be as simple as writing</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">C</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJ,KJ-&gt;IK&#39;</span><span class="p">,</span><span class="n">A</span><span class="p">,</span><span class="n">B</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">A</span></code>, <code class="docutils literal notranslate"><span class="pre">B</span></code>, and <code class="docutils literal notranslate"><span class="pre">C</span></code> belong to a class of Grassmann tensor. A Grassmann tensor object contains every necessary information for the computation; e.g., the coefficient tensor and the statistic of the indices.</p>
+</section>
+<section id="example-tensor-decompositions">
+<h3>Example: tensor decompositions<a class="headerlink" href="#example-tensor-decompositions" title="Link to this heading">¶</a></h3>
+<p>Tensor decomposition can also be done in an equally simple way. For example, if we want to decompose <span class="math notranslate nohighlight">\(\mathcal{A}_{\psi_1\psi_2\bar\psi_3\bar\psi_4}\)</span> into <span class="math notranslate nohighlight">\(\mathcal{X}_{\psi_1\psi_2\eta}\)</span> and <span class="math notranslate nohighlight">\(\mathcal{Y}_{\bar\eta\bar\psi_3\bar\psi_4}\)</span>, this can be done with a few lines of code</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">U</span><span class="p">,</span> <span class="n">Λ</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">A_dense</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="s1">&#39;ij,kl&#39;</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span> <span class="s1">&#39;ija,ab -&gt; ijb&#39;</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">Λ</span><span class="p">))</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span> <span class="s1">&#39;ab,bkl -&gt; akl&#39;</span><span class="p">,</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">Λ</span><span class="p">),</span> <span class="n">V</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can also use the method <code class="docutils literal notranslate"><span class="pre">.eig()</span></code> instead of <code class="docutils literal notranslate"><span class="pre">.svd()</span></code> if your tensor is a Hermitian Grassmann matrix.</p>
+</section>
+<section id="example-hermitian-conjugation">
+<h3>Example: Hermitian conjugation<a class="headerlink" href="#example-hermitian-conjugation" title="Link to this heading">¶</a></h3>
+<p>Hermitian conjugate of a Grassmann tensor can be computed using the <code class="docutils literal notranslate"><span class="pre">.hconjugate()</span></code> method</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cU</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;ij,a&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Of course, you need to identify the index separation first (in this case, it is <code class="docutils literal notranslate"><span class="pre">ij</span></code> and <code class="docutils literal notranslate"><span class="pre">a</span></code>). Hermitian conjugate is only well-defined when the indices are separated into two groups, corresponding to the two matrix indices.
+After the conjugation, the indices are now arranged as <code class="docutils literal notranslate"><span class="pre">aij</span></code>.</p>
+</section>
+<section id="example-tensor-renormalization-group">
+<h3>Example: tensor renormalization group<a class="headerlink" href="#example-tensor-renormalization-group" title="Link to this heading">¶</a></h3>
+<p>I also wrote some built-in functions for tensor coarse-graining such as the Grassmann TRG or Grassmann ATRG methods</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">grassmanntn</span> <span class="kn">import</span> <span class="n">gauge2d</span> <span class="k">as</span> <span class="n">gauge</span>
+<span class="n">T_trg</span><span class="p">,</span> <span class="n">Norm</span>   <span class="o">=</span> <span class="n">gauge</span><span class="o">.</span><span class="n">trg</span><span class="p">(</span><span class="n">T</span><span class="p">,</span><span class="n">dcut</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>                <span class="c1"># TRG method</span>
+<span class="n">T_atrgx</span><span class="p">,</span> <span class="n">Norm</span> <span class="o">=</span> <span class="n">gauge</span><span class="o">.</span><span class="n">atrg2dx</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span><span class="n">T2</span><span class="p">,</span><span class="n">dcut</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>        <span class="c1"># anisotropic TRG along the x-axis</span>
+<span class="n">T_atrgy</span><span class="p">,</span> <span class="n">Norm</span> <span class="o">=</span> <span class="n">gauge</span><span class="o">.</span><span class="n">atrg2dy</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span><span class="n">T2</span><span class="p">,</span><span class="n">dcut</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>        <span class="c1"># anisotropic TRG along the y-axis</span>
+</pre></div>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="densesparse.html">dense and sparse</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="densesparse.html#grassmanntn.dense"><code class="docutils literal notranslate"><span class="pre">grassmanntn.dense</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="densesparse.html#grassmanntn.sparse"><code class="docutils literal notranslate"><span class="pre">grassmanntn.sparse</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="densesparse.html#description">Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="densesparse.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="densesparse.html#attributes">Attributes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="densesparse.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="einsum.html">einsum()</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="einsum.html#grassmanntn.einsum"><code class="docutils literal notranslate"><span class="pre">grassmanntn.einsum()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="einsum.html#description">Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="einsum.html#algorithm">Algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="einsum.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="joinsplit.html">join_legs() and split_legs()</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="joinsplit.html#grassmanntn.join_legs"><code class="docutils literal notranslate"><span class="pre">grassmanntn.join_legs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="joinsplit.html#grassmanntn.split_legs"><code class="docutils literal notranslate"><span class="pre">grassmanntn.split_legs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="joinsplit.html#description">Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="joinsplit.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hconjugate.html">hconjugate()</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hconjugate.html#grassmanntn.hconjugate"><code class="docutils literal notranslate"><span class="pre">grassmanntn.hconjugate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="hconjugate.html#description">Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hconjugate.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="decomposition.html">svd() and eig()</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="decomposition.html#grassmanntn.svd"><code class="docutils literal notranslate"><span class="pre">grassmanntn.svd()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="decomposition.html#grassmanntn.eig"><code class="docutils literal notranslate"><span class="pre">grassmanntn.eig()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="decomposition.html#description">Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="decomposition.html#examples">Examples</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="next">
+    <a href="densesparse.html"
+       title="next chapter">dense and sparse →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2023, Atis Yosprakob.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 7.2.3 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a> 0.8.0.
+</div>
+            </div>
+          </div>
+      </page>
+    </div></div>
+    
+    
+  </body>
 </html>

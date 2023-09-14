@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html  lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+      <title>svd() and eig()</title>
+    
+          <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+          <link rel="stylesheet" href="_static/theme.css " type="text/css" />
+      
+      <!-- sphinx script_files -->
+        <script src="_static/documentation_options.js?v=2709fde1"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+      
+      <!-- bundled in js (rollup iife) -->
+      <!-- <script src="_static/theme-vendors.js"></script> -->
+      <script src="_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="genindex.html" />
+  <link rel="search" title="Search" href="search.html" />
+  <link rel="prev" title="hconjugate()" href="hconjugate.html" /> 
+  </head>
+
+  <body>
+    <div id="app">
+    <div class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="index.html" class="home-link">
+    
+      <span class="site-name">grassmanntn</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="index.html#example-tensor-renormalization-group">Contents:</a></span>
+      </p>
+      <ul class="current">
+        
+          <li class="toctree-l1 ">
+            
+              <a href="densesparse.html" class="reference internal ">dense and sparse</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="einsum.html" class="reference internal ">einsum()</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="joinsplit.html" class="reference internal ">join_legs() and split_legs()</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 ">
+            
+              <a href="hconjugate.html" class="reference internal ">hconjugate()</a>
+            
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 current">
+            
+              <a href="#" class="reference internal current">svd() and eig()</a>
+            
+
+            
+              <ul>
+                
+                  <li class="toctree-l2"><a href="#description" class="reference internal">Description</a></li>
+                
+                  <li class="toctree-l2"><a href="#examples" class="reference internal">Examples</a></li>
+                
+              </ul>
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+    
+    <li>svd() and eig()</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="hconjugate.html"
+       title="previous chapter">← hconjugate()</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main" v-pre>
+            
+  <section id="svd-and-eig">
+<h1>svd() and eig()<a class="headerlink" href="#svd-and-eig" title="Link to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="grassmanntn.svd">
+<span class="sig-prename descclassname"><span class="pre">grassmanntn.</span></span><span class="sig-name descname"><span class="pre">svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subscripts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#grassmanntn.svd" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="grassmanntn.eig">
+<span class="sig-prename descclassname"><span class="pre">grassmanntn.</span></span><span class="sig-name descname"><span class="pre">eig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subscripts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#grassmanntn.eig" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>Performing singular value decomposition and eigenvalue decomposition.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><p><strong>object:</strong> <em>grassmann_tensor</em></p>
+<p>The object to be operated on. For <code class="docutils literal notranslate"><span class="pre">eig()</span></code>, the object must be Hermitian for the function to work as intended.</p>
+</li>
+<li><p><strong>subscripts:</strong> <code class="docutils literal notranslate"><span class="pre">str</span></code></p>
+<p>Specify how the indices are grouped as a matrix. See <a class="reference external" href="joinsplit.html#description">here</a> for the grouping rules.</p>
+</li>
+<li><p><strong>cutoff:</strong> <code class="docutils literal notranslate"><span class="pre">`int`</span></code> (optional)</p>
+<p>Specify the truncation size (number of singular/eigenvalues kept) of the tensor decomposition.</p>
+</li>
+</ul>
+<p><strong>Returns:</strong></p>
+<ul>
+<li><p><strong>out:</strong> <span class="math notranslate nohighlight">\(\mathcal{U}\)</span>, <span class="math notranslate nohighlight">\(\Sigma\)</span>, <span class="math notranslate nohighlight">\(\mathcal{V}\)</span></p>
+<p>For <code class="docutils literal notranslate"><span class="pre">eig()</span></code>, the tensor <span class="math notranslate nohighlight">\(\mathcal{V}\)</span> is equal to <span class="math notranslate nohighlight">\(\mathcal{U}^\dagger\)</span>. The positively-definite spectrum vector <span class="math notranslate nohighlight">\(\lambda_I\)</span> can be obtained from the matrix diagonal of <span class="math notranslate nohighlight">\(\Sigma\)</span>; <code class="docutils literal notranslate"><span class="pre">λ=grassmanntn.diag(Σ.force_format(&quot;matrix&quot;))</span></code>.</p>
+</li>
+</ul>
+<section id="description">
+<h2>Description<a class="headerlink" href="#description" title="Link to this heading">¶</a></h2>
+<p>The Grassmann tensor is first reshaped into a matrix in the matrix format and parity-preserving encoder using <code class="docutils literal notranslate"><span class="pre">join_legs()</span></code>. If the tensor is Grassmann even, the coefficient matrix (in the matrix format) <span class="math notranslate nohighlight">\(M^\text{(m)}\)</span> can be diagonalized into two blocks associated with the even-even and odd-odd indices</p>
+<div class="math notranslate nohighlight">
+\[M^\text{E}_{I,J}=M^\text{(m)}_{2I,2J},\quad M^\text{O}_{I,J}=M^\text{(m)}_{2I+1,2J+1}.\]</div>
+<p>These two blocks are decomposed separately:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}M^\text{E}_{I,J} &amp;= \sum_KU^\text{E}_{I,K}\lambda^\text{E}_K V^\text{E}_{K,J},\\
+M^\text{O}_{I,J} &amp;= \sum_KU^\text{O}_{I,K}\lambda^\text{O}_K V^\text{O}_{K,J}.\end{split}\]</div>
+<p>These matrices are then reconstructed into a full matrix:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}U^\text{(m)}_{2I,2J} &amp;= U^\text{E}_{I,J},\qquad U^\text{(m)}_{2I+1,2J+1} = U^\text{O}_{I,J},\\
+\Sigma^\text{(m)}_{2I,2J} &amp;= \lambda^\text{E}_{I}\delta_{I,J},\quad\Sigma^\text{(m)}_{2I+1,2J+1} = \lambda^\text{O}_{I}\delta_{I,J},\\
+V^\text{(m)}_{2I,2J} &amp;= V^\text{E}_{I,J},\qquad V^\text{(m)}_{2I+1,2J+1} = V^\text{O}_{I,J}.\end{split}\]</div>
+<p>The legs on the unitary matrices are then split again with <code class="docutils literal notranslate"><span class="pre">split_legs()</span></code>.</p>
+<p>It is important to note that, similarly to the original tensor, both the unitary matrices and the singular value matrices are also diagonalizable into the even and odd blocks. This means that they are all Grassmann even. As a result, the decomposed tensors can be moved around in the expression without introducing a new sign factor.</p>
+<p>If the input tensor is Hermitian, eigenvalue decomposition can be obtained from the singular value decomposition via</p>
+<div class="math notranslate nohighlight">
+\[M^\text{(m)} = U^\text{(m)}\Sigma^\text{(m)} V^\text{(m)} = U^\text{(m)}\underset{\displaystyle {\Sigma'}^\text{(m)}}{\underbrace{(\Sigma^\text{(m)} V^\text{(m)}U^\text{(m)})}}(U^\text{(m)})^\dagger\]</div>
+<p>If the input tensor is not Hermitian, <span class="math notranslate nohighlight">\({\Sigma'}^\text{(m)}\)</span> will not be diagonal, and the relation will not reproduce a correct eigenvalue decomposition.</p>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading">¶</a></h2>
+<p>Singular value decomposition of a three-legged tensor:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">grassmanntn</span> <span class="k">as</span> <span class="nn">gtn</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">A</span>  <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">U</span><span class="p">,</span> <span class="n">Σ</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="s1">&#39;i|jk&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">UΣV</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ia,ab,bjk-&gt;ijk&#39;</span><span class="p">,</span><span class="n">U</span><span class="p">,</span><span class="n">Σ</span><span class="p">,</span><span class="n">V</span><span class="p">)</span> <span class="c1">#Reconstruct the original tensor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span> <span class="p">(</span><span class="n">A</span><span class="o">-</span><span class="n">UΣV</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span> <span class="p">)</span> <span class="c1"># vanishes if A=UΣV</span>
+<span class="go">7.557702638948695e-16</span>
+</pre></div>
+</div>
+<p>Forming a Hermitian tensor:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">H</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;jki,iJK-&gt;jkJK&#39;</span><span class="p">,</span><span class="n">A</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;i|jk&#39;</span><span class="p">),</span><span class="n">A</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Eigenvalue decomposition:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">U</span><span class="p">,</span> <span class="n">Σ</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s1">&#39;jk|JK&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">((</span><span class="n">U</span><span class="o">-</span><span class="n">V</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;a|JK&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">norm</span><span class="p">)</span> <span class="c1"># is zero if U is V-conjugate</span>
+<span class="go">0.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">UΣV</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;jka,ab,bJK-&gt;jkJK&#39;</span><span class="p">,</span><span class="n">U</span><span class="p">,</span><span class="n">Σ</span><span class="p">,</span><span class="n">V</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span> <span class="p">(</span><span class="n">H</span><span class="o">-</span><span class="n">UΣV</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span> <span class="p">)</span> <span class="c1"># vanishes if H=UΣV</span>
+<span class="go">9.177321373036202e-15</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="hconjugate.html"
+       title="previous chapter">← hconjugate()</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2023, Atis Yosprakob.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 7.2.3 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a> 0.8.0.
+</div>
+            </div>
+          </div>
+      </page>
+    </div></div>
+    
+    
+  </body>
+</html>
