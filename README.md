@@ -3,8 +3,10 @@ This is a package that aims to simplify the coding involving Grassmann tensor ne
 I try to make the coding as convenient as when you use other standard packages like numpy or scipy.
 All the sign factors are computed automatically without explicit user inputs.
 
-> **Note**
-> The documentation page is under construction.
+## Useful links
+- [documentation](https://ayosprakob.github.io/grassmanntn/)
+- [PyPI](https://pypi.org/project/grassmanntn/)
+- [arXiv preprint](https://doi.org/10.48550/arXiv.2309.07557)
 
 ## Prerequisites
 
