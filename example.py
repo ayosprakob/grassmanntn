@@ -32,6 +32,7 @@ import os
 # Clearing the Screen
 #os.system('clear')
 
+import sympy as sympy
 import sparse as sp
 import numpy as np
 import argparse
@@ -48,10 +49,10 @@ cI = complex(0,1)
 
 import grassmanntn as gtn
 from grassmanntn import param
+from grassmanntn import arith as arith
 from grassmanntn import gauge2d as gauge
 from grassmanntn import sparse as sparse
 from grassmanntn import dense as dense
-from grassmanntn import arith as arith
 
 #:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
 #                               Argument Parser                               #
