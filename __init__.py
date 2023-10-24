@@ -1,5 +1,6 @@
 from grassmanntn.param import *
 from grassmanntn.gauge2d import *
+from grassmanntn.arith import *
 
 import numpy as np
 import math
@@ -843,14 +844,6 @@ def relative_sign_int(object_set1, object_set2, parity1):
     absolute_sign1 = absolute_sign(object_set1, parity1)
     absolute_sign2 = absolute_sign(object_set2, parity2)
     return absolute_sign1*absolute_sign2
-
-def relative_sign_string(string, parity1):
-    [string1,string2] = list(string.split("->"))
-    unique_chars = list(set(string1+string2))
-    char_to_int = {char: i for i, char in enumerate(unique_chars)}
-    object_set1 = [char_to_int[char] for char in string1]
-    object_set2 = [char_to_int[char] for char in string2]
-    return relative_sign_int(object_set1, object_set2, parity1)
 
 def relative_sign_single_input(string, parity1):
     """
@@ -1726,6 +1719,17 @@ def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=None,sa
     
     clear_progress()
     tab_up()
+    
+    # check if there is a hybrid index or not
+    can_convert = True
+    for stat in Obj.statistics:
+        if stat == hybrid_symbol:
+            can_convert = False
+            break
+
+    if can_convert :
+        Obj = Obj.force_format(this_format)
+        Obj = Obj.force_encoder(this_encoder)
 
     return Obj
     

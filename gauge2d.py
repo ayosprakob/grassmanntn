@@ -1,7 +1,9 @@
 import numpy as np
 import math
+import sympy
 import grassmanntn as gtn
 from grassmanntn import param
+from grassmanntn import arith
 import sparse as sp
 import opt_einsum as oe
 import time
@@ -24,7 +26,8 @@ def tensor_preparation(Nphi, beta, Nf, spacing, mass, charge, mu, mute=True, Gau
         print(" :·:·:·:·:·:·:·:·:·:·:·:·:·:·: Tensor preparation :·:·:·:·:·:·:·:·:·:·:·:·:·:·: ")
         print()
 
-    A, B = get_ABtensors(Nphi=Nphi, beta=beta, Nf=Nf, spacing=spacing, mass=mass, charge=charge, mu=mu, Gauss=Gauss)
+    #A, B = get_ABtensors(Nphi=Nphi, beta=beta, Nf=Nf, spacing=spacing, mass=mass, charge=charge, mu=mu, Gauss=Gauss)
+    A, B = get_AB2(Nphi=Nphi, beta=beta, Nf=Nf, spacing=spacing, mass=mass, charge=charge, mu=mu, Gauss=Gauss)
     z1 = gtn.einsum("IJIJijij,jiji",B,A)
 
     t0 = time.time()
@@ -1069,6 +1072,120 @@ def get_ABtensors(Nphi=2, beta=1, Nf=1, spacing=1, mass=1, charge=1, mu=1, Gauss
     A = gtn.sparse(A, statistics=(0,0,0,0))
     B = sp.COO([psi1,psi2,psi3,psi4,phi1,phi2,phi3,phi4], B, shape=(Npsi,Npsi,Npsi,Npsi,Nphi,Nphi,Nphi,Nphi))
     B = gtn.sparse(B, statistics=(1,1,-1,-1,0,0,0,0))
+
+    return A, B
+
+def get_AB2(Nphi=2, beta=1, Nf=1, spacing=1, mass=1, charge=1, mu=1, Gauss=False):
+
+    a=spacing
+    m=mass/a
+    q=charge
+    μ=mu/a
+
+    #m = sympy.Symbol('m')
+    #q = sympy.Symbol('q')
+    #μ = sympy.Symbol('μ')
+
+    σ0 = np.array([[1,0],[0,1]])
+    σ1 = np.array([[0,1],[1,0]])
+    σ2 = np.array([[0,-cI],[cI,0]])
+    W = (m+2)*σ0
+
+    # prepare the loops for gauge field
+    xi, wi = myQuadrature(beta=beta,Nf=Nf,npoints=Nphi, Gauss=Gauss)
+    # there are 4 gauge fields
+    A = np.zeros([Nphi,Nphi,Nphi,Nphi],dtype=float)
+    for i in range(Nphi):
+        for j in range(Nphi):
+            for k in range(Nphi):
+                for l in range(Nphi):
+                    A[i,j,k,l]=sympy.exp(beta/Nf*(np.cos(xi[l]+xi[i]-xi[j]-xi[k])-1))*wi[k]*wi[l]
+
+    # site fermions
+    ψ = arith.set_ac("ψ_up","ψ_down")
+    ψbar = arith.set_ac("ψbar_up","ψbar_down")
+
+    # link fermions
+    ηp1 = arith.set_ac("ηp1_up","ηp1_down")
+    ηp2 = arith.set_ac("ηp2_up","ηp2_down")
+    ηm1 = arith.set_ac("ηm1_up","ηm1_down")
+    ηm2 = arith.set_ac("ηm2_up","ηm2_down")
+
+    hp1 = arith.set_ac("hp1_up","hp1_down")
+    hp2 = arith.set_ac("hp2_up","hp2_down")
+    hm1 = arith.set_ac("hm1_up","hm1_down")
+    hm2 = arith.set_ac("hm2_up","hm2_down")
+
+    dψ = arith.berezin_measure(ψ)
+    dψbar = arith.berezin_measure(ψbar)
+
+
+    # hp1 = ηp1m1_bar, etc
+
+    φp1 = sympy.Symbol("φp1")
+    φp2 = sympy.Symbol("φp2")
+    φm1 = sympy.Symbol("φm1")
+    φm2 = sympy.Symbol("φm2")
+
+    Hp1 = -0.5*(σ0-σ1)*sympy.exp(cI*q*φp1)
+    Hm1 = -0.5*(σ0+σ1)*sympy.exp(-cI*q*φm1)
+    Hp2 = -0.5*(σ0-σ2)*sympy.exp(μ+cI*q*φp2)
+    Hm2 = -0.5*(σ0+σ2)*sympy.exp(-μ-cI*q*φm2)
+
+    t0 = time.time()
+
+    f = arith.exp(-ψbar@W@ψ);   #print(".")
+    f *= arith.exp(-ψbar@ηp1);  #print("..")
+    f *= arith.exp(-ψbar@ηp2);  #print("...")
+    f *= arith.exp(-ψbar@ηm1);  #print("....")
+    f *= arith.exp(-ψbar@ηm2);  #print(".....")
+    f = dψbar*f;                #print(".")
+    f *= arith.exp(hm1@Hp1@ψ);  #print("..")
+    f *= arith.exp(hm2@Hp2@ψ);  #print("...")
+    f *= arith.exp(hp1@Hm1@ψ);  #print("....")
+    f *= arith.exp(hp2@Hm2@ψ);  #print(".....")
+    f = dψ*f
+    #print(time.time()-t0)
+
+    B_coeff, B_fcoord = f.get_coeff(basis=[
+        "ηp1_up","ηp1_down","hp1_up","hp1_down",
+        "ηp2_up","ηp2_down","hp2_up","hp2_down",
+        "hm1_up","hm1_down","ηm1_up","ηm1_down",
+        "hm2_up","hm2_down","ηm2_up","ηm2_down"
+        ])
+
+    all_coords = [ [] for i in range(16) ] # only the fermionic first
+    phi1 = []
+    phi2 = []
+    phi3 = []
+    phi4 = []
+    B = []  # deliberately use the same symbol. don't judge me.
+    for i in range(Nphi):
+        for j in range(Nphi):
+            for k in range(Nphi):
+                for l in range(Nphi):
+
+                    B_replaced = [ complex(coeff.subs(
+                        [(φp1,xi[i]),(φp2,xi[j]),(φm1,xi[k]),(φm2,xi[l])]
+                        )) for coeff in B_coeff ]
+                    B += B_replaced
+
+                    for val in B_replaced:
+                        # bosons
+                        phi1+=[i]; phi2+=[j]; phi3+=[k]; phi4+=[l]
+
+                    for loc, coord_loc in enumerate(B_fcoord):
+                        # fermions
+                        all_coords[loc] += coord_loc
+
+    all_coords += [phi1,phi2,phi3,phi4]
+
+    A = gtn.sparse(A, statistics=(0,0,0,0))
+    B = sp.COO(all_coords, B, shape=(2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,Nphi,Nphi,Nphi,Nphi))
+    B = gtn.sparse(B, statistics=(1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,0,0,0,0))
+
+    B = B.join_legs('(i1 i2 i3 i4)(j1 j2 j3 j4)(k1 k2 k3 k4)(l1 l2 l3 l4)(i)(j)(k)(l)',intermediate_stat=(1,1,-1,-1,0,0,0,0))
+    B = B.force_encoder('canonical')
 
     return A, B
 

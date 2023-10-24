@@ -51,6 +51,7 @@ from grassmanntn import param
 from grassmanntn import gauge2d as gauge
 from grassmanntn import sparse as sparse
 from grassmanntn import dense as dense
+from grassmanntn import arith as arith
 
 #:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
 #                               Argument Parser                               #
