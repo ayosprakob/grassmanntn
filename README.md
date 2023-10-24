@@ -13,6 +13,7 @@ All the sign factors are computed automatically without explicit user inputs.
 - [numpy](https://numpy.org/doc/stable/index.html)
 - [sparse](https://sparse.pydata.org/en/stable/)
 - [opt_einsum](https://optimized-einsum.readthedocs.io/en/stable/)
+- [sympy](https://www.sympy.org/)
 
 ## Installation
 ```
