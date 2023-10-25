@@ -227,21 +227,6 @@ def is_generator(gnum):
 
 class grassmann_number:
 
-    # TO DO:
-    # __neg__
-    # __add__
-    # __radd__
-    # __sub__
-    # __rsub__
-    # __mul__
-    # __rmul__
-    # __pow__
-    # __rpow__
-    # __truediv__
-    # __str__
-    # __repr__
-
-
     def __init__(self, data=None, generator=None):
         
         #properties

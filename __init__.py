@@ -373,17 +373,6 @@ class dense:
         ret.data = ret.data+other.data
         return ret
         
-    def __sub__(self, other):
-        if(self.shape!=other.shape
-            or self.statistics!=other.statistics
-             or self.format!=other.format
-              or self.encoder!=other.encoder):
-            error("Error[dense.-]: Inconsistent object properties")
-            
-        ret = self.copy()
-        ret.data = ret.data-other.data
-        return ret
-        
     def __mul__(self, other):
         if not np.isscalar(other):
             error("Error[dense.*]: Only scalar multiplication is allowed.")
@@ -391,6 +380,17 @@ class dense:
         ret.data = ret.data*other
         return ret
         
+    def __truediv__(self, other):
+        
+        if np.isscalar(other):
+            # dividing the scalar
+            ret = self.copy()
+            ret.data = self.data/other
+            return ret
+        else:
+            error("Error[dense./]: Only scalar division is allowed.")
+            exit()
+
     def __pos__(self):                 # do not modify this
         return self
     def __neg__(self):                 # do not modify this
@@ -731,17 +731,6 @@ class sparse:
         ret.data = ret.data+other.data
         return ret
         
-    def __sub__(self, other):
-        if(self.shape!=other.shape
-            or self.statistics!=other.statistics
-             or self.format!=other.format
-              or self.encoder!=other.encoder):
-            error("Error[sparse.-]: Inconsistent object properties")
-            
-        ret = self.copy()
-        ret.data = ret.data-other.data
-        return ret
-        
     def __mul__(self, other):
         if not np.isscalar(other):
             error("Error[sparse.*]: Only scalar multiplication is allowed.")
@@ -749,6 +738,17 @@ class sparse:
         ret.data = ret.data*other
         return ret
         
+    def __truediv__(self, other):
+        
+        if np.isscalar(other):
+            # dividing the scalar
+            ret = self.copy()
+            ret.data = self.data/other
+            return ret
+        else:
+            error("Error[sparse./]: Only scalar division is allowed.")
+            exit()
+
     def __pos__(self):                 # do not modify this
         return self
     def __neg__(self):                 # do not modify this
