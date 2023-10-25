@@ -310,6 +310,8 @@ class grassmann_number:
         return ret
 
     
+    def __pos__(self):                 # do not modify this
+        return self
     def __neg__(self):                 # do not modify this
         return self*(-1)
     def __radd__(self, other):         # do not modify this
