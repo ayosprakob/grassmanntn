@@ -385,9 +385,20 @@ class dense:
         return ret
         
     def __mul__(self, other):
+        if not np.isscalar(other):
+            error("Error[dense.*]: Only scalar multiplication is allowed.")
         ret = self.copy()
         ret.data = ret.data*other
         return ret
+        
+    def __neg__(self):                 # do not modify this
+        return self*(-1)
+    def __radd__(self, other):         # do not modify this
+        return self+other
+    def __sub__(self, other):          # do not modify this
+        return self+(-1)*other
+    def __rsub__(self, other):         # do not modify this
+        return other+(-1)*self
         
     def __rmul__(self, other):
         return self*other
@@ -730,16 +741,24 @@ class sparse:
         return ret
         
     def __mul__(self, other):
+        if not np.isscalar(other):
+            error("Error[sparse.*]: Only scalar multiplication is allowed.")
         ret = self.copy()
         ret.data = ret.data*other
         return ret
         
+    def __neg__(self):                 # do not modify this
+        return self*(-1)
+    def __radd__(self, other):         # do not modify this
+        return self+other
+    def __sub__(self, other):          # do not modify this
+        return self+(-1)*other
+    def __rsub__(self, other):         # do not modify this
+        return other+(-1)*self
+        
     def __rmul__(self, other):
         return self*other
         
-    #def __len__(self):
-    #    return len(self.data)
-    
     def __str__(self):
         return str(self.data)
     
