@@ -1,0 +1,38 @@
+power()
+========================================
+
+.. py:function:: grassmanntn.power(T,p)
+
+Returns the :math:`p`-th power of the tensor T (intended to be used on a matrix only).
+
+**Parameters:**
+
+- **T:** `dense <densesparse.html>`__ or `sparse <densesparse.html>`__
+
+  The input tensor.
+  
+- **p:** ``int``, ``float``
+
+  The power.
+
+**Returns:**
+
+- **out:** `dense <densesparse.html>`__ or `sparse <densesparse.html>`__
+
+  The :math:`p`-th power of the tensor T. 
+
+
+Description
++++++++++++
+
+For any given Grassmann matrix, its :math:`p`-th power is defined as the same matrix with its coefficients in the matrix format raised to the :math:`p`-th power. Namely, let
+
+.. math::
+
+    \mathcal{T}_{\bar\psi\phi} = \sum_{I,J}T^\text{(m)}_{IJ}\sigma_I\bar\psi^I\phi^J.
+
+It's :math:`p`-th power is given by
+
+.. math::
+
+    \mathcal{T}^p_{\bar\psi\phi} = \sum_{I,J}(T^\text{(m)})^p_{IJ}\sigma_I\bar\psi^I\phi^J.

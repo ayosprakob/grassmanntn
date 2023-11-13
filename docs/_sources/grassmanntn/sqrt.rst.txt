@@ -1,0 +1,18 @@
+sqrt()
+========================================
+
+.. py:function:: grassmanntn.sqrt(T)
+
+Returns the square root of the tensor T (intended to be used on a matrix only).
+
+**Parameters:**
+
+- **T:** `dense <densesparse.html>`__ or `sparse <densesparse.html>`__
+
+  The input tensor.
+  
+**Returns:**
+
+- **out:** `dense <densesparse.html>`__ or `sparse <densesparse.html>`__
+
+  The square root of the tensor T. This is the same as executing ``grassmanntn.power(T,0.5)``

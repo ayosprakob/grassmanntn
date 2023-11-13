@@ -1,0 +1,19 @@
+.. grassmanntn documentation master file, created by
+   sphinx-quickstart on Thu Aug 24 15:42:41 2023.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+grassmanntn.arith
+=======================================
+
+This module is used for generating the initial tensor from the fermionic action/Hamiltonian. Symbolic expression is supported.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+   
+   grassmann_number
+   berezin_measure
+   set_ac
+   get_coeff
+   exp

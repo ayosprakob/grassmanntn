@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>join_legs() and split_legs() &mdash; grassmanntn 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="hconjugate()" href="hconjugate.html" />
+    <link rel="prev" title="einsum()" href="einsum.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            grassmanntn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../releases.html">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-4">v 1.3.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-3">v 1.3.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-2">v 1.3.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-1">v 1.3.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-0">v 1.3.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-2-3">v 1.2.3</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../settings.html">Package settings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Basic examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#initialization">Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#contraction">Contraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#tensor-decompositions">Tensor decompositions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#hermitian-conjugation">Hermitian conjugation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">grassmanntn (main module)</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="densesparse.html">dense and sparse</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#grassmanntn.dense"><code class="docutils literal notranslate"><span class="pre">grassmanntn.dense</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#grassmanntn.sparse"><code class="docutils literal notranslate"><span class="pre">grassmanntn.sparse</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#examples">Examples</a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="einsum.html">einsum()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="einsum.html#grassmanntn.einsum"><code class="docutils literal notranslate"><span class="pre">grassmanntn.einsum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="einsum.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="einsum.html#algorithm">Algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="einsum.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">join_legs() and split_legs()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#grassmanntn.join_legs"><code class="docutils literal notranslate"><span class="pre">grassmanntn.join_legs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#grassmanntn.split_legs"><code class="docutils literal notranslate"><span class="pre">grassmanntn.split_legs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="hconjugate.html">hconjugate()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hconjugate.html#grassmanntn.hconjugate"><code class="docutils literal notranslate"><span class="pre">grassmanntn.hconjugate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="hconjugate.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hconjugate.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="decomposition.html">svd() and eig()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="decomposition.html#grassmanntn.svd"><code class="docutils literal notranslate"><span class="pre">grassmanntn.svd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="decomposition.html#grassmanntn.eig"><code class="docutils literal notranslate"><span class="pre">grassmanntn.eig()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="decomposition.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="decomposition.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="power.html">power()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="power.html#grassmanntn.power"><code class="docutils literal notranslate"><span class="pre">grassmanntn.power()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="power.html#description">Description</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sqrt.html">sqrt()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sqrt.html#grassmanntn.sqrt"><code class="docutils literal notranslate"><span class="pre">grassmanntn.sqrt()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="random.html">random()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="random.html#grassmanntn.random"><code class="docutils literal notranslate"><span class="pre">grassmanntn.random()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../grassmanntn.param/index.html">grassmanntn.param</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.param/gparity.html">gparity()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/gparity.html#grassmanntn.param.gparity"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.gparity()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/gparity.html#description">Description</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.param/sgn.html">sgn()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/sgn.html#grassmanntn.param.sgn"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.sgn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/sgn.html#description">Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../grassmanntn.param/sgn.html#proof-for-the-equivalence">Proof for the equivalence</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.param/encoder.html">encoder()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/encoder.html#grassmanntn.param.encoder"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.encoder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/encoder.html#description">Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../grassmanntn.param/encoder.html#proof-of-the-self-inverse">Proof of the self-inverse</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../grassmanntn.arith/index.html">grassmanntn.arith</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.arith/grassmann_number.html">grassmann_number</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/grassmann_number.html#grassmanntn.arith.grassmann_number"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.grassmann_number</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/grassmann_number.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/grassmann_number.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/grassmann_number.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html">berezin_measure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html#grassmanntn.arith.berezin_measure"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.berezin_measure</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html#grassmanntn.arith.d"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html#binary-operations">Binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.arith/set_ac.html">set_anticommutative</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/set_ac.html#grassmanntn.arith.set_anticommutative"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.set_anticommutative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/set_ac.html#grassmanntn.arith.set_ac"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.set_ac()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/set_ac.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.arith/get_coeff.html">get_coeff()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/get_coeff.html#grassmanntn.arith.get_coeff"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.get_coeff()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/get_coeff.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.arith/exp.html">exp()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/exp.html#grassmanntn.arith.exp"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.exp()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">grassmanntn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">grassmanntn (main module)</a></li>
+      <li class="breadcrumb-item active">join_legs() and split_legs()</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/grassmanntn/joinsplit.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="join-legs-and-split-legs">
+<h1>join_legs() and split_legs()<a class="headerlink" href="#join-legs-and-split-legs" title="Permalink to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="grassmanntn.join_legs">
+<span class="sig-prename descclassname"><span class="pre">grassmanntn.</span></span><span class="sig-name descname"><span class="pre">join_legs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subscripts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">make_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'standard'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intermediate_stat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#grassmanntn.join_legs" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="grassmanntn.split_legs">
+<span class="sig-prename descclassname"><span class="pre">grassmanntn.</span></span><span class="sig-name descname"><span class="pre">split_legs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subscripts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">final_stat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">final_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intermediate_stat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#grassmanntn.split_legs" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Join and split the tensor legs. The algebraic properties of the legs are preserved.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There are many subtleties about <a class="reference external" href="joinsplit.html">join_legs()</a> and <a class="reference external" href="joinsplit.html">split_legs()</a>, especially if one wants to join fermionic and bosonic legs into a hybrid leg (see the description below). Consider using the <cite>hybrid isometries</cite> instead as the hybrid leg in that case is a proper representation of Grassmann algebra, which is preferable.</p>
+</div>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><p><strong>object:</strong> <a class="reference external" href="densesparse.html">Grassmann tensor</a></p>
+<p>The object to be operated on.</p>
+</li>
+<li><p><strong>subscripts:</strong> <code class="docutils literal notranslate"><span class="pre">str</span></code></p>
+<p>Specify how the indices are joined or split. See below for more explanation.</p>
+</li>
+<li><p><strong>make_format:</strong> {‘standard’ (default), ‘matrix’} (for <a class="reference external" href="joinsplit.html">join_legs()</a> only)</p>
+<p>Specify the coefficient format of the final tensor.</p>
+</li>
+<li><p><strong>final_stat:</strong> list or tuple of {0, 1, -1, ‘*’} (for <a class="reference external" href="joinsplit.html">split_legs()</a> only)</p>
+<p>Specify the statistics of the final tensor.</p>
+</li>
+<li><p><strong>final_shape:</strong> list or tuple of <code class="docutils literal notranslate"><span class="pre">int</span></code> (for <a class="reference external" href="joinsplit.html">split_legs()</a> only)</p>
+<p>Specify the shape of the final tensor.</p>
+</li>
+<li><p><strong>intermediate_stat:</strong> list or tuple of {1, -1}</p>
+<p>Specify the statistics of fermionic indices before joining/after splitting the fermions with the boson (if any). If there are no bosonic indices involved, this should be used as the final statistics for <a class="reference external" href="joinsplit.html">join_legs()</a> and should be the same as the initial statistics for <a class="reference external" href="joinsplit.html">split_legs()</a>. See the algorithm below for more explanation.</p>
+</li>
+</ul>
+<p><strong>Returns:</strong></p>
+<ul>
+<li><p><strong>out:</strong> <a class="reference external" href="densesparse.html">Grassmann tensor</a></p>
+<p>The Grassmann tensor after joining/splitting the legs.</p>
+</li>
+</ul>
+<section id="description">
+<h2>Description<a class="headerlink" href="#description" title="Permalink to this heading"></a></h2>
+<p>These functions are used to join and split the legs of a Grassmann tensor. They are intended to serve the same function as <code class="docutils literal notranslate"><span class="pre">numpy.reshape()</span></code>. However, since joining the legs in cases of Grassmann tensors requires more information than just the final tensor’s shape, these two functions are created.</p>
+<p>The subscripts tell the program how the legs are grouped. There are two notations:</p>
+<ul class="simple">
+<li><p>Parenthesis notation: For <a class="reference external" href="joinsplit.html">join_legs()</a>, the indices in the parenthesis are joined into one leg. For <a class="reference external" href="joinsplit.html">split_legs()</a>, the original leg, represented by the whole parenthesis, is split into smaller legs represented by the indices inside the parenthesis. Indices outside of the parentheses are not affected.</p></li>
+<li><p>Separator notation: The leg grouping is separated by one of the following indicators: vertical bar <code class="docutils literal notranslate"><span class="pre">|</span></code>, colon <code class="docutils literal notranslate"><span class="pre">:</span></code>, semicolon <code class="docutils literal notranslate"><span class="pre">;</span></code>, comma <code class="docutils literal notranslate"><span class="pre">,</span></code>, and dot <code class="docutils literal notranslate"><span class="pre">.</span></code>. This is equivalent to enclosing the whole <cite>subscripts</cite> inside a parenthesis and replacing each of the indicators by <code class="docutils literal notranslate"><span class="pre">)(</span></code>.</p></li>
+</ul>
+<p>The two notations should not be mixed to avoid unintended results. Greek characters and numbered indices are also supported.</p>
+<p>The complication of the joining and splitting processes comes when there are bosonic indices involved. Namely, if we combine an <span class="math notranslate nohighlight">\(n\)</span>-bit fermionic index <span class="math notranslate nohighlight">\(I\)</span> with a bosonic index <span class="math notranslate nohighlight">\(i\)</span> as a hybrid index <span class="math notranslate nohighlight">\(X = I + 2^n i\)</span>, the fermionic structure is now completely lost. It is impossible to switch the coefficient format and encoder with <em>X</em> as a sole input. Yet, joining a fermion with a boson is still unavoidable if one wants to perform the singular value decomposition where the tensor involves both the fermion and the boson. The aim of <a class="reference external" href="joinsplit.html">join_legs()</a> and <a class="reference external" href="joinsplit.html">split_legs()</a> is to perform such a task and still let the user keep control of the fermionic structure.</p>
+<p>In case there are both bosons and fermions in a grouping</p>
+<div class="math notranslate nohighlight">
+\[(I_1\cdots I_m J_1\cdots J_n i_1\cdots i_p),\]</div>
+<p>where <span class="math notranslate nohighlight">\(I_a\)</span> and <span class="math notranslate nohighlight">\(J_b\)</span> are associated with <span class="math notranslate nohighlight">\(\psi_a^{I_a}\)</span> and <span class="math notranslate nohighlight">\(\bar\phi_b^{J_b}\)</span>, respectively, the fermions are joined into a single fermion first according to the prescription:</p>
+<div class="math notranslate nohighlight">
+\[(I_1 \cdots I_m J_1 \cdots J_n i_1 \cdots i_p) \rightarrow (K i_1 \cdots i_p).\]</div>
+<p>The option <code class="docutils literal notranslate"><span class="pre">intermediate_stat</span></code> allows the user to specify the statistics of these intermediate fermions. Since the user cannot switch the coefficient format with a hybrid index, <a class="reference external" href="joinsplit.html">join_legs()</a> gives the option to switch the format at this point via the argument <code class="docutils literal notranslate"><span class="pre">make_format</span> <span class="pre">=</span> <span class="pre">'matrix'</span></code>. Note that switching the format before and after joining the fermions gives different results. After this, all the indices are joined into a single index with the hybrid statistics <code class="docutils literal notranslate"><span class="pre">*</span></code>:</p>
+<div class="math notranslate nohighlight">
+\[(K i_1 \cdots i_p) \rightarrow X.\]</div>
+<p>To keep the information about the Grassmann parity of the fermions in the hybrid index, the joined fermionic index <span class="math notranslate nohighlight">\(K\)</span> must be switched into the parity-preserving encoder first so that the hybrid index <span class="math notranslate nohighlight">\(X = K + 2^n k\)</span> (<span class="math notranslate nohighlight">\(k\)</span> is the joined bosonic index) has the same parity as <span class="math notranslate nohighlight">\(K\)</span>. Since the function <a class="reference external" href="densesparse.html#methods">switch_encoder()</a> and <a class="reference external" href="densesparse.html#methods">switch_format()</a> do not work with tensors with hybrid indices, they are always in the parity-preserving format.</p>
+<p>The <a class="reference external" href="joinsplit.html">split_legs()</a> function works in the opposite order of <a class="reference external" href="joinsplit.html">join_legs()</a>. The user still needs to specify the <cite>intermediate_stat</cite> of the fermionic index <span class="math notranslate nohighlight">\(K\)</span> after the first split <span class="math notranslate nohighlight">\(X \mapsto (K i_1 \cdots i_p)\)</span>. After that, the arguments <cite>final_stat</cite> and <cite>final_shape</cite> are needed to perform the final fermion splitting.</p>
+<p>To summarize, these are the options for <a class="reference external" href="joinsplit.html">join_legs()</a> that the user needs to specify in commonly occurring cases:</p>
+<ul>
+<li><p>All the indices are fermionic:</p>
+<p>Specify the final statistics with <cite>intermediate_stat</cite>. The format and the encoder can be switched later since there is no hybrid index in the final tensor.</p>
+</li>
+<li><p>Turning the tensor into a Grassmann matrix in the matrix format where one or both of the indices are hybrid:</p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">intermediate_stat</span> <span class="pre">=</span> <span class="pre">(-1,</span> <span class="pre">1)</span></code> and <code class="docutils literal notranslate"><span class="pre">make_format</span> <span class="pre">=</span> <span class="pre">'matrix'</span></code>. This option is used in the conjugation and tensor decomposition.</p>
+</li>
+</ul>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">grassmanntn</span> <span class="k">as</span> <span class="nn">gtn</span>
+  <span class="o">&gt;&gt;&gt;</span> <span class="n">A</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+  <span class="o">&gt;&gt;&gt;</span> <span class="n">A</span><span class="o">.</span><span class="n">info</span> <span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+
+      <span class="n">name</span><span class="p">:</span> <span class="n">A</span>
+<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dense</span>
+     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+   <span class="n">density</span><span class="p">:</span> <span class="mi">128</span> <span class="o">/</span> <span class="mi">256</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
+<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+   <span class="n">encoder</span><span class="p">:</span> <span class="n">canonical</span>
+    <span class="n">memory</span><span class="p">:</span> <span class="mf">2.195</span> <span class="n">KiB</span>
+      <span class="n">norm</span><span class="p">:</span> <span class="mf">6.8893569485959105</span>
+</pre></div>
+</div>
+<p>Join the legs into two groups with the final statistics of <code class="docutils literal notranslate"><span class="pre">(1,-1)</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="o">&gt;&gt;&gt;</span> <span class="n">M</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">join_legs</span><span class="p">(</span><span class="s1">&#39;(ij)(kl)&#39;</span><span class="p">,</span><span class="n">intermediate_stat</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+  <span class="o">&gt;&gt;&gt;</span> <span class="n">M</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;M&quot;</span><span class="p">)</span>
+
+      <span class="n">name</span><span class="p">:</span> <span class="n">M</span>
+<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dense</span>
+     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+   <span class="n">density</span><span class="p">:</span> <span class="mi">128</span> <span class="o">/</span> <span class="mi">256</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
+<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+   <span class="n">encoder</span><span class="p">:</span> <span class="n">parity</span><span class="o">-</span><span class="n">preserving</span>
+    <span class="n">memory</span><span class="p">:</span> <span class="mi">168</span> <span class="n">B</span>
+      <span class="n">norm</span><span class="p">:</span> <span class="mf">6.8893569485959105</span>
+</pre></div>
+</div>
+<p>Splitting the legs of this tensor gives the original tensor:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="o">&gt;&gt;&gt;</span> <span class="n">B</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="s1">&#39;(ij)(kl)&#39;</span><span class="p">,</span><span class="n">intermediate_stat</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+  <span class="o">...</span>                 <span class="n">final_stat</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">final_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+  <span class="o">&gt;&gt;&gt;</span> <span class="n">B</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">)</span>
+
+      <span class="n">name</span><span class="p">:</span> <span class="n">B</span>
+<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dense</span>
+     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+   <span class="n">density</span><span class="p">:</span> <span class="mi">128</span> <span class="o">/</span> <span class="mi">256</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
+<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+   <span class="n">encoder</span><span class="p">:</span> <span class="n">canonical</span>
+    <span class="n">memory</span><span class="p">:</span> <span class="mf">2.195</span> <span class="n">KiB</span>
+      <span class="n">norm</span><span class="p">:</span> <span class="mf">6.8893569485959105</span>
+
+  <span class="o">&gt;&gt;&gt;</span> <span class="nb">print</span><span class="p">((</span><span class="n">A</span><span class="o">-</span><span class="n">B</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">)</span> <span class="c1"># is equal to zero if A=B</span>
+  <span class="mf">0.0</span>
+</pre></div>
+</div>
+<p>An example of a tensor with hybrid indices:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="o">&gt;&gt;&gt;</span> <span class="n">C</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+  <span class="o">&gt;&gt;&gt;</span> <span class="n">M</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">join_legs</span><span class="p">(</span><span class="s1">&#39;i,jk&#39;</span><span class="p">,</span><span class="n">intermediate_stat</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+  <span class="o">&gt;&gt;&gt;</span> <span class="n">M</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;M&quot;</span><span class="p">)</span>
+
+      <span class="n">name</span><span class="p">:</span> <span class="n">M</span>
+<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dense</span>
+     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+   <span class="n">density</span><span class="p">:</span> <span class="mi">12</span> <span class="o">/</span> <span class="mi">24</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
+<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">)</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+   <span class="n">encoder</span><span class="p">:</span> <span class="n">parity</span><span class="o">-</span><span class="n">preserving</span>
+    <span class="n">memory</span><span class="p">:</span> <span class="mi">168</span> <span class="n">B</span>
+      <span class="n">norm</span><span class="p">:</span> <span class="mf">1.824428488802565</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="einsum.html" class="btn btn-neutral float-left" title="einsum()" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hconjugate.html" class="btn btn-neutral float-right" title="hconjugate()" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Atis Yosprakob.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,126 @@
+get_coeff()
+========================================
+
+.. py:function:: grassmanntn.arith.get_coeff(gnum,basis=None)
+
+Export the lists of coefficients and coordinates of the Grassmann number.
+
+**Parameters:**
+
+- **gnum:** `grassmann_number <grassmann_number.html>`__
+
+  The Grassmann number to be exported.
+
+- **basis:** a list of ``str``
+
+  This is an ordered list specifying the ordering of the generators associated with the coordinates. If not specified, the ordering is alphabetical.
+
+**Returns:**
+
+- **out:** a tuple `(coeff,coords)`
+
+  `coeff` and `coords` are used in the construction of a sparse tensor. (See `this example <../grassmanntn/densesparse.html#examples>`__.) Given the basis, `coeff` is a list of coefficients of each term while `coords` is a list ``[c1, c2, ..., cp]`` where ``ci`` (``i`` = 1, .., ``p``) is a list of occupation numbers of the ``i``-th generator.
+
+
+Examples
+++++++++
+
+Consider the following Grassmann number.
+
+.. code-block:: python
+
+  >>> import numpy as np
+  >>> from grassmanntn import arith as arith
+  >>> ψ = arith.set_ac(["ψ1","ψ2"])
+  >>> φ = arith.set_ac(["φ1","φ2"])
+  >>> K = np.array( [[3,7],[2,5]] )
+  >>> W = arith.exp( - φ @ K @ ψ )
+  >>> W
+  1.0 + (-3.0)*φ1^ψ1 + (-2.0)*φ2^ψ1 + (-7.0)*φ1^ψ2 + (-5.0)*φ2^ψ2 + (-1.0)*φ1^φ2^ψ1^ψ2
+
+This number consists of 6 terms and 4 generators. The default ordering of the generators is ``["φ1","φ2","ψ1","ψ2"]``. We now consider exporting this number as a list of coefficients and coordinates suitable for constructing a Grassmann tensor. Let's use a new basis ordering of ``["ψ1","ψ2","φ1","φ2"]``.
+
+.. code-block:: python
+
+  >>> coeff, coords = W.get_coeff(["ψ1","ψ2","φ1","φ2"])
+  >>> coeff
+  array([ 1.,  3.,  2.,  7.,  5., -1.])
+  >>> coords
+  [[0, 1, 1, 0, 0, 1], [0, 0, 0, 1, 1, 1], [0, 1, 0, 1, 0, 1], [0, 0, 1, 0, 1, 1]]
+
+These can be used to construct a Grassmann tensor directly.
+
+.. code-block:: python
+
+  >>> import grassmanntn as gtn
+  >>> import sparse as sp
+  >>> T_data = sp.COO( coords, coeff, shape=(2,2,2,2))
+  >>> T = gtn.sparse( data=T_data, statistics=(1,1,1,1),
+  ...                 encoder="canonical", format="standard")
+  >>> T.display()
+
+    array type: sparse
+         shape: (2, 2, 2, 2)
+       density: 6 / 16 ~ 37.5 %
+    statistics: (1, 1, 1, 1)
+        format: standard
+       encoder: canonical
+        memory: 304 B
+          norm: 9.433981132056603
+       entries:
+   [coords]  [values]
+     (0, 0, 0, 0) 1.0
+     (0, 1, 0, 1) 5.0
+     (0, 1, 1, 0) 7.0
+     (1, 0, 0, 1) 2.0
+     (1, 0, 1, 0) 3.0
+     (1, 1, 1, 1) -1.0
+
+The symbolic computation is also supported.
+
+.. code-block:: python
+
+  >>> import sympy
+  >>> a = sympy.symbols("a")
+  >>> b = sympy.symbols("b")
+  >>> c = sympy.symbols("c")
+  >>> d = sympy.symbols("d")
+  >>> K = np.array( [[a,b],[c,d]] )
+  >>> W = arith.exp( - φ @ K @ ψ )
+  >>> W
+  1 + (-a)*φ1^ψ1 + (-c)*φ2^ψ1 + (-b)*φ1^ψ2 + (-d)*φ2^ψ2 + (-a*d + b*c)*φ1^φ2^ψ1^ψ2
+  >>> coeff, coords = W.get_coeff(["ψ1","ψ2","φ1","φ2"])
+  >>> coeff
+  array([1, a, c, b, d, -a*d + b*c], dtype=object)
+  >>> coords
+  [[0, 1, 1, 0, 0, 1], [0, 0, 0, 1, 1, 1], [0, 1, 0, 1, 0, 1], [0, 0, 1, 0, 1, 1]]
+
+But all the symbols should be converted to ``float`` or ``complex`` before the coefficients are used to construct a Grassmann tensor.
+
+.. code-block:: python
+  
+  >>> converted_coeff = []
+  >>> for term in coeff:
+  ...   converted_term = float(term.subs( [ (a,3), (b,7), (c,2), (d,5) ] ))
+  ...   converted_coeff += [converted_term]
+  >>> T_data = sp.COO( coords, converted_coeff, shape=(2,2,2,2))
+  >>> T = gtn.sparse( data=T_data, statistics=(1,1,1,1),
+  ...                 encoder="canonical", format="standard")
+  >>> T.display()
+
+    array type: sparse
+         shape: (2, 2, 2, 2)
+       density: 6 / 16 ~ 37.5 %
+    statistics: (1, 1, 1, 1)
+        format: standard
+       encoder: canonical
+        memory: 304 B
+          norm: 9.433981132056603
+       entries:
+   [coords]  [values]
+     (0, 0, 0, 0) 1.0
+     (0, 1, 0, 1) 5.0
+     (0, 1, 1, 0) 7.0
+     (1, 0, 0, 1) 2.0
+     (1, 0, 1, 0) 3.0
+     (1, 1, 1, 1) -1.0

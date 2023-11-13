@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>einsum() &mdash; grassmanntn 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="join_legs() and split_legs()" href="joinsplit.html" />
+    <link rel="prev" title="dense and sparse" href="densesparse.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            grassmanntn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../releases.html">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-4">v 1.3.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-3">v 1.3.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-2">v 1.3.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-1">v 1.3.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-0">v 1.3.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-2-3">v 1.2.3</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../settings.html">Package settings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Basic examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#initialization">Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#contraction">Contraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#tensor-decompositions">Tensor decompositions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#hermitian-conjugation">Hermitian conjugation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">grassmanntn (main module)</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="densesparse.html">dense and sparse</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#grassmanntn.dense"><code class="docutils literal notranslate"><span class="pre">grassmanntn.dense</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#grassmanntn.sparse"><code class="docutils literal notranslate"><span class="pre">grassmanntn.sparse</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#examples">Examples</a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="densesparse.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">einsum()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#grassmanntn.einsum"><code class="docutils literal notranslate"><span class="pre">grassmanntn.einsum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#algorithm">Algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="joinsplit.html">join_legs() and split_legs()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="joinsplit.html#grassmanntn.join_legs"><code class="docutils literal notranslate"><span class="pre">grassmanntn.join_legs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="joinsplit.html#grassmanntn.split_legs"><code class="docutils literal notranslate"><span class="pre">grassmanntn.split_legs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="joinsplit.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="joinsplit.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="hconjugate.html">hconjugate()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hconjugate.html#grassmanntn.hconjugate"><code class="docutils literal notranslate"><span class="pre">grassmanntn.hconjugate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="hconjugate.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hconjugate.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="decomposition.html">svd() and eig()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="decomposition.html#grassmanntn.svd"><code class="docutils literal notranslate"><span class="pre">grassmanntn.svd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="decomposition.html#grassmanntn.eig"><code class="docutils literal notranslate"><span class="pre">grassmanntn.eig()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="decomposition.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="decomposition.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="power.html">power()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="power.html#grassmanntn.power"><code class="docutils literal notranslate"><span class="pre">grassmanntn.power()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="power.html#description">Description</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sqrt.html">sqrt()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sqrt.html#grassmanntn.sqrt"><code class="docutils literal notranslate"><span class="pre">grassmanntn.sqrt()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="random.html">random()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="random.html#grassmanntn.random"><code class="docutils literal notranslate"><span class="pre">grassmanntn.random()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../grassmanntn.param/index.html">grassmanntn.param</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.param/gparity.html">gparity()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/gparity.html#grassmanntn.param.gparity"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.gparity()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/gparity.html#description">Description</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.param/sgn.html">sgn()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/sgn.html#grassmanntn.param.sgn"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.sgn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/sgn.html#description">Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../grassmanntn.param/sgn.html#proof-for-the-equivalence">Proof for the equivalence</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.param/encoder.html">encoder()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/encoder.html#grassmanntn.param.encoder"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.encoder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.param/encoder.html#description">Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../grassmanntn.param/encoder.html#proof-of-the-self-inverse">Proof of the self-inverse</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../grassmanntn.arith/index.html">grassmanntn.arith</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.arith/grassmann_number.html">grassmann_number</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/grassmann_number.html#grassmanntn.arith.grassmann_number"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.grassmann_number</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/grassmann_number.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/grassmann_number.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/grassmann_number.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html">berezin_measure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html#grassmanntn.arith.berezin_measure"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.berezin_measure</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html#grassmanntn.arith.d"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html#binary-operations">Binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/berezin_measure.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.arith/set_ac.html">set_anticommutative</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/set_ac.html#grassmanntn.arith.set_anticommutative"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.set_anticommutative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/set_ac.html#grassmanntn.arith.set_ac"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.set_ac()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/set_ac.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.arith/get_coeff.html">get_coeff()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/get_coeff.html#grassmanntn.arith.get_coeff"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.get_coeff()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/get_coeff.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../grassmanntn.arith/exp.html">exp()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../grassmanntn.arith/exp.html#grassmanntn.arith.exp"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.exp()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">grassmanntn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">grassmanntn (main module)</a></li>
+      <li class="breadcrumb-item active">einsum()</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/grassmanntn/einsum.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="einsum">
+<h1>einsum()<a class="headerlink" href="#einsum" title="Permalink to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="grassmanntn.einsum">
+<span class="sig-prename descclassname"><span class="pre">grassmanntn.</span></span><span class="sig-name descname"><span class="pre">einsum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subscripts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">operands</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#grassmanntn.einsum" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<p>Perform the Grassmann tensor contraction of the operands in the Einstein summation notation, where each pair of indices with the same character are contracted.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><p><strong>subscripts:</strong> <code class="docutils literal notranslate"><span class="pre">str</span></code></p>
+<p>Specify the subscripts of the operands, each separated by a comma indicator <code class="docutils literal notranslate"><span class="pre">,</span></code>, in the Einstein summation notation. Unless it is a complete summation, the subscript of the result <em>must be specified</em> after the indicator <code class="docutils literal notranslate"><span class="pre">-&gt;</span></code>. See the note below for the acceptable subscripts.</p>
+</li>
+<li><p><strong>operands:</strong> <a class="reference external" href="densesparse.html">Grassmann tensors</a></p>
+<p>Grassmann tensors (<a class="reference external" href="densesparse.html">dense</a> or <a class="reference external" href="densesparse.html">sparse</a> types) in the same order as specified in <cite>subscripts</cite>. Each operand can be of different types, but they will be converted to the same type as the first operand.</p>
+</li>
+</ul>
+<p><strong>Returns:</strong></p>
+<ul class="simple">
+<li><p><strong>out</strong> (<em>scalar</em> or <em>grassmann_tensor</em>):
+The result of the contraction with the same object type as the first operand. If it is a complete contraction, the function returns a scalar (<code class="docutils literal notranslate"><span class="pre">float</span></code>, or <code class="docutils literal notranslate"><span class="pre">complex</span></code>).</p></li>
+</ul>
+<section id="description">
+<h2>Description<a class="headerlink" href="#description" title="Permalink to this heading"></a></h2>
+<p>The function <a class="reference external" href="einsum.html">einsum</a> aims to simplify the calculation of Grassmann tensor contraction. The argument <cite>subscripts</cite>, which is a list of indices of each operand separated by commas, tells the program which pair of indices are to be contracted, as well as the arrangement of the resulting object’s indices. For example, the contraction</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{C}_{\psi_1\bar\psi_2\bar\psi_3}
+=\int_{\bar\phi\phi}\mathcal{A}_{\psi_1\phi\bar\psi_3}\mathcal{B}_{\bar\psi_2\bar\phi}\]</div>
+<p>is represented by the subscripts <code class="docutils literal notranslate"><span class="pre">'ilk,jl-&gt;ijk'</span></code> where <code class="docutils literal notranslate"><span class="pre">i</span></code>, <code class="docutils literal notranslate"><span class="pre">j</span></code>, <code class="docutils literal notranslate"><span class="pre">k</span></code>, and <code class="docutils literal notranslate"><span class="pre">l</span></code> represent <span class="math notranslate nohighlight">\(\psi_1\)</span>, <span class="math notranslate nohighlight">\(\psi_2\)</span>, <span class="math notranslate nohighlight">\(\psi_3\)</span>, and <span class="math notranslate nohighlight">\(\phi\)</span>, respectively. There is no ambiguity about the conjugacy of the indices since it is already specified by the attribute <cite>statistics</cite> of each operand. The fermion <span class="math notranslate nohighlight">\(\phi\)</span> is contracted, so the symbol <code class="docutils literal notranslate"><span class="pre">l</span></code> comes in a pair in the subscripts. Available characters for the indices include Latin characters <code class="docutils literal notranslate"><span class="pre">a-z</span></code> and <code class="docutils literal notranslate"><span class="pre">A-Z</span></code>, as well as Greek characters <code class="docutils literal notranslate"><span class="pre">α-Ω</span></code>. It is also possible to use numbered indices by adding a number (of any length) after a character. For example, the string <code class="docutils literal notranslate"><span class="pre">'i1ai3,i2a-&gt;i1i2i3'</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">'ilk,jl-&gt;ijk'</span></code>. Spaces can also be placed anywhere to improve readability; e.g. <code class="docutils literal notranslate"><span class="pre">'i1</span> <span class="pre">a</span> <span class="pre">i3,</span> <span class="pre">i2</span> <span class="pre">a</span> <span class="pre">-&gt;</span> <span class="pre">i1</span> <span class="pre">i2</span> <span class="pre">i3'</span></code>. The function <a class="reference external" href="einsum.html">einsum</a> only supports up to 86 unique indices (including the numbered indices) in one operation.</p>
+</section>
+<section id="algorithm">
+<h2>Algorithm<a class="headerlink" href="#algorithm" title="Permalink to this heading"></a></h2>
+<p>The Grassmann tensor contraction differs from the usual contraction in that we have to include the sign factor tensor in the summation. For example, the contraction</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{C}_{\psi_1\bar\psi_2\bar\psi_3}
+=\int_{\bar\phi\phi}\mathcal{A}_{\psi_1\phi\bar\psi_3}\mathcal{B}_{\bar\psi_2\bar\phi}\]</div>
+<p>is equivalent to the sum</p>
+<div class="math notranslate nohighlight">
+\[C_{IJK}=\sum_{J,K,L}A_{ILK}B_{JL}s_{JKL}\]</div>
+<p>of the coefficient tensor, where</p>
+<div class="math notranslate nohighlight">
+\[s_{JKL}=(-)^{p(L)(p(J)+p(K))+p(J)p(K)}\sigma_L\]</div>
+<p>is the sign factor tensor. Thus, the task is to compute the sign tensor from a given <cite>subscripts</cite> string and operands’ <cite>statistics</cite>.</p>
+<p>The sign factor tensor is computed in three steps: pre-contraction <span class="math notranslate nohighlight">\(s_1\)</span>, mid-contraction <span class="math notranslate nohighlight">\(s_2\)</span>, and post-contraction step <span class="math notranslate nohighlight">\(s_3\)</span>. The pre-contraction tensor comes from the permutation of the fermions so that, for each pair of fermions to be contracted, the conjugated fermion is moved to the right of the non-conjugated counterpart. For example,</p>
+<div class="math notranslate nohighlight">
+\[\psi_1^I{\color{Magenta}\phi^L}\bar\psi_3^K\;\bar\psi_2^J{\color{Magenta}\bar\phi^L}
+\;\rightarrow\;
+\psi_1^I{\color{Magenta}\phi^L\bar\phi^L}\bar\psi_3^K\bar\psi_2^J\times (-)^{p(L)(p(J)+p(K))}\]</div>
+<p>gives</p>
+<div class="math notranslate nohighlight">
+\[(s_1)_{JKL} = (-)^{p(L)(p(J)+p(K))}.\]</div>
+<p>For each pair of contracted fermions, we have to include another set of contraction sign factors <span class="math notranslate nohighlight">\(\sigma_I\)</span> (see the <a class="reference external" href="https://arxiv.org/abs/2309.07557">preprint</a>); e.g.,</p>
+<div class="math notranslate nohighlight">
+\[\psi_1^I{\color{Magenta}\phi^L\bar\phi^L}\bar\psi_3^K\bar\psi_2^J
+\;\rightarrow\;
+\psi_1^I\bar\psi_3^K\bar\psi_2^J\times \sigma_L\]</div>
+<p>gives</p>
+<div class="math notranslate nohighlight">
+\[(s_2)_{L} = \sigma_L.\]</div>
+<p>And finally, the post-contraction step, which is the permutation of the fermions into the form specified in <cite>subscripts</cite>, gives another sign factor; e.g.,</p>
+<div class="math notranslate nohighlight">
+\[\psi_1^I{\color{Magenta}\bar\psi_3^K\bar\psi_2^J}
+\;\rightarrow\;
+\psi_1^I{\color{Magenta}\bar\psi_2^J\bar\psi_3^K}\times (-)^{p(J)p(K)}\]</div>
+<p>gives</p>
+<div class="math notranslate nohighlight">
+\[(s_3)_{JK} = (-)^{p(J)p(K)}.\]</div>
+<p>The three sign factors are then combined as</p>
+<div class="math notranslate nohighlight">
+\[s_{JKL} = (s_1)_{JKL}(s_2)_{L}(s_3)_{JK},\]</div>
+<p>which is then used to perform the contraction.</p>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">grassmanntn</span> <span class="k">as</span> <span class="nn">gtn</span>
+  <span class="o">&gt;&gt;&gt;</span> <span class="n">A</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">8</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+  <span class="o">&gt;&gt;&gt;</span> <span class="n">B</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+  <span class="o">&gt;&gt;&gt;</span> <span class="n">C</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ilk,jl-&gt;ijk&#39;</span><span class="p">,</span><span class="n">A</span><span class="p">,</span><span class="n">B</span><span class="p">)</span> <span class="c1"># Contraction between A and B.</span>
+  <span class="o">&gt;&gt;&gt;</span> <span class="n">C</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;C&quot;</span><span class="p">)</span> <span class="c1"># Show basic information.</span>
+
+      <span class="n">name</span><span class="p">:</span> <span class="n">C</span>
+<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dense</span>
+     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+   <span class="n">density</span><span class="p">:</span> <span class="mi">256</span> <span class="o">/</span> <span class="mi">512</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
+<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+   <span class="n">encoder</span><span class="p">:</span> <span class="n">canonical</span>
+    <span class="n">memory</span><span class="p">:</span> <span class="mf">4.18</span> <span class="n">KiB</span>
+      <span class="n">norm</span><span class="p">:</span> <span class="mf">8.477345182714446</span>
+</pre></div>
+</div>
+<p>The <a class="reference external" href="einsum.html">einsum</a> function can be used to take the tensor trace:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">T</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trT</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijij&#39;</span><span class="p">,</span><span class="n">T</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">trT</span><span class="p">)</span>
+<span class="go">-1.506277867139303</span>
+</pre></div>
+</div>
+<p>To take the trace with anti-periodic boundary conditions, the sign factor must be applied to the coefficient manually:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">grassmanntn.param</span> <span class="kn">import</span> <span class="n">gparity</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dimt</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># Size of the anti-periodic leg</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span><span class="o">=</span><span class="p">[(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="n">gparity</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dimt</span><span class="p">)]</span> <span class="c1"># Anti-periodic sign factor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">T</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijkl,j-&gt;ijkl&#39;</span><span class="p">,</span><span class="n">T</span><span class="o">.</span><span class="n">data</span><span class="p">,</span><span class="n">S</span><span class="p">)</span> <span class="c1">#&lt;== This is numpy.einsum!</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trT</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijij&#39;</span><span class="p">,</span><span class="n">T</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">trT</span><span class="p">)</span> <span class="c1">#Should be different from the periodic trace</span>
+<span class="go">1.571951156790323</span>
+</pre></div>
+</div>
+<p>It can also be used to swap the indices:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="o">&gt;&gt;&gt;</span> <span class="n">C2</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijk-&gt;jki&#39;</span><span class="p">,</span><span class="n">C</span><span class="p">)</span>
+  <span class="o">&gt;&gt;&gt;</span> <span class="n">C2</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;C2&quot;</span><span class="p">)</span>
+
+      <span class="n">name</span><span class="p">:</span> <span class="n">C2</span>
+<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dense</span>
+     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+   <span class="n">density</span><span class="p">:</span> <span class="mi">256</span> <span class="o">/</span> <span class="mi">512</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
+<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+   <span class="n">encoder</span><span class="p">:</span> <span class="n">canonical</span>
+    <span class="n">memory</span><span class="p">:</span> <span class="mf">4.18</span> <span class="n">KiB</span>
+      <span class="n">norm</span><span class="p">:</span> <span class="mf">8.477345182714446</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="densesparse.html" class="btn btn-neutral float-left" title="dense and sparse" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="joinsplit.html" class="btn btn-neutral float-right" title="join_legs() and split_legs()" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Atis Yosprakob.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

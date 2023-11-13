@@ -1,0 +1,61 @@
+.. grassmanntn documentation master file, created by
+   sphinx-quickstart on Thu Aug 24 15:42:41 2023.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+GrassmannTN 1.3.4
+=======================================
+GrassmannTN is a python package that aims to simplify the coding involving Grassmann tensor network.
+The goal is to make the coding as convenient as when you use other standard packages like numpy or scipy.
+All the sign factors are computed automatically without explicit user inputs. If you have further questions about the package and how to use it, please contact me via ayosp-at-phys.sc.niigata-u.ac.jp
+
+.. note::
+	This documentation is still not fully complete. I plan to add the page describing minor functions, as well as a short tutorial for some simple examples. This should be done by the end of October. Sorry for the inconvenience. 
+
+Package structure
+-----------------
+- `grassmanntn <grassmanntn/index.html>`_ (main module): contains most of the features.
+- `grassmanntn.param <grassmanntn.param/index.html>`_: contains technical functions such as the sign factor :math:`\sigma_I`, the parity :math:`p(I)` or the encoder-switching function :math:`\varepsilon(I)`.
+- `grassmann.arith <grassmanntn.arith/index.html>`_: a new module added in v 1.3.0 to help the user build the initial tensor directly from the fermionic action/Hamiltonian. Symbolic expression is supported.
+
+Useful links
+------------
+- `GitHub <https://github.com/ayosprakob/grassmanntn/tree/main>`_
+- `PyPI <https://pypi.org/project/grassmanntn/>`_
+- `arXiv <https://arxiv.org/abs/2309.07557>`_
+
+Prerequisites
+-------------
+- `numpy <https://numpy.org/doc/stable/index.html>`_
+- `sparse <https://sparse.pydata.org/en/stable/>`_
+- `opt_einsum <https://optimized-einsum.readthedocs.io/en/stable/>`_
+- `sympy <https://www.sympy.org/>`_
+
+
+Installation
+-------------
+Installation via PyPI
+
+::
+	
+	pip install grassmanntn
+
+
+Once the package is installed, download `example.py <https://github.com/ayosprakob/grassmanntn/blob/main/example.py>`_ and try running it with
+
+::
+	
+	python3 example.py --show_progress
+
+An example code of a one-flavor two-dimensional :math:`\mathbb{Z}_2` gauge theory should be able to run.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+   
+   releases
+   settings
+   examples
+   grassmanntn/index
+   grassmanntn.param/index
+   grassmanntn.arith/index
