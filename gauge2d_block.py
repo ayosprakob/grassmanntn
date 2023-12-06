@@ -27,7 +27,6 @@ def tensor_preparation(Nphi, beta, Nf, spacing, mass, charge, mu, mute=True, Gau
         print()
 
     A, B = get_ABtensors(Nphi=Nphi, beta=beta, Nf=Nf, spacing=spacing, mass=mass, charge=charge, mu=mu, Gauss=Gauss)
-    
     z1 = gtn.einsum("IJIJijij,jiji",B,A)
 
     t0 = time.time()
@@ -1592,8 +1591,11 @@ def zcap(T):
     Nphi = T.shape[4]
     if type(T)==gtn.dense :
         capper = gtn.dense(np.full((Nphi,Nphi),1),statistics=(0,0))
-    else :
+    elif type(T)==gtn.sparse :
         capper = gtn.sparse(np.full((Nphi,Nphi),1),statistics=(0,0))
+    else :
+        capper = gtn.dense(np.full((Nphi,Nphi),1),statistics=(0,0)).toblock()
+
     return gtn.einsum("IJKLij,ij->IJKL",T,capper)
 
 def logZ(T,boundary_conditions='periodic'):
@@ -1603,7 +1605,7 @@ def logZ(T,boundary_conditions='periodic'):
         if T.encoder == 'parity-preserving':
             T = T.switch_encoder()
 
-    if boundary_conditions=='anti-periodic' :
+    if boundary_conditions=='anti-periodic' and type(T)!=gtn.block:
         Tdat = T.data
         d = Tdat.shape[1]
         sgn = [ (-1)**param.gparity(i) for i in range(d) ]

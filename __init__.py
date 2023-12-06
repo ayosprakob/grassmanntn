@@ -1,5 +1,6 @@
 from grassmanntn.param import *
 from grassmanntn.gauge2d import *
+from grassmanntn.gauge2d_block import *
 from grassmanntn.arith import *
 
 import numpy as np
@@ -8,6 +9,7 @@ from grassmanntn import param
 import sparse as sp
 import opt_einsum as oe
 import time
+import copy
 import sys
 import gc
 import tracemalloc
@@ -30,7 +32,8 @@ numer_display_cutoff = 1000*numer_cutoff
 char_list = (
     "a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"
     ,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
-    ,"α","β","Γ","γ","Δ","δ","ε","ζ","η","Θ","θ","ι","κ","λ","μ","ν","Ξ","ξ","Π","π","ρ","Σ","σ","ς","τ","υ","Φ","ϕ","φ","χ","Ψ","ψ","Ω","ω"
+    ,"α","β","Γ","γ","Δ","δ","ε","ζ","η","Θ","θ","ι","κ","λ","μ","ν","Ξ","ξ","Π","π","ρ","Σ","σ","ς","τ","υ"
+    ,"Φ","ϕ","φ","χ","Ψ","ψ","Ω","ω"
     )
 
 progress_bar_enabled = False
@@ -55,9 +58,9 @@ def error(text="Error[]: Unknown error."):
     print()
     print(text)
     print()
-    print("\t__________look_below_for_the_error_information__________")
+    print("\t__________look_below_for_the_error_path__________\n")
     #intentional sabotage!!!
-    __________look_above_for_the_error_information__________
+    __________look_above_for_the_general_error_information__________
 
 def get_char(string):
     for char in char_list:
@@ -217,6 +220,373 @@ def getsize(shape):
         ret *= d
     return ret
 
+def none(shape,initial=None):
+    ret=None
+    for i in range(len(shape)):
+        temp = []
+        for j in range(shape[len(shape)-i-1]):
+            if isinstance(ret,list):
+                temp += [copy.deepcopy(ret)]
+            else:
+                temp += [None]
+        ret = copy.deepcopy(temp)
+    ret = np.array(ret,dtype=object)
+    it = np.nditer(ret, flags=['multi_index','refs_ok'])
+    for val in it:
+        ret[it.multi_index]=copy.deepcopy(initial)
+    return ret
+
+####################################################
+##              Block Grassmann Array             ##
+####################################################
+
+class block:
+
+    def __init__(self, data=None):
+        
+        #import from dense only
+        dat = data.copy()
+        if type(data)==sparse:
+            dat = dense(data)
+        dat = dat.force_encoder('parity-preserving')
+
+        datatype = data.data.dtype
+
+        # create a Z2-blocking structure
+        # cell is a larger matrix containing smaller blocks
+        grading = 2
+
+        # pick up the shape of the fermionic sector
+        fshape = []
+        for i,d in enumerate(dat.shape):
+            if dat.statistics[i] in fermi_type:
+                fshape += [d]
+        fshape = tuple(fshape)
+
+        cell_shape = tuple([grading]*len(fshape))
+
+        # compute the base block shape
+        base_block_shape = []
+        for i,d in enumerate(dat.shape):
+            if dat.statistics[i] in fermi_type:
+                base_block_shape += [max(1,int(d/grading))]
+            else:
+                base_block_shape += [d]
+        base_block_shape = tuple(base_block_shape)
+
+        # initialize the cells and sgn_cells =============================================
+        cells = none(cell_shape,np.zeros(base_block_shape,dtype=datatype))
+
+        # create a blank list
+        sgn = []
+        for p in [0,1]:
+            sgn_p = []
+            for d,stat in zip(dat.shape,dat.statistics):
+                if stat in fermi_type:
+                    dim = int(d/grading)
+                else:
+                    dim = d
+                sgn_p+=[np.zeros([dim],dtype=int)]
+            sgn += [sgn_p]
+
+        for axis,(d,stat) in enumerate(zip(dat.shape,dat.statistics)):
+            for i in range(d):
+                if stat in bose_type:
+                    sgn[0][axis][i]=1
+                    sgn[1][axis][i]=1
+                else:
+                    block = i%2
+                    sub_i = int(math.floor(i/2))
+                    sign = param.sgn(param.encoder(i))
+                    sgn[block][axis][sub_i]=sign
+
+        # Consider using the fact that all odd axis use the same sign factor (also the even axis)
+
+        # now iterate through the dat tensor and separate it into blocks
+        it = np.nditer(dat, flags=['multi_index'])
+        for val in it:
+            
+            #total index
+            index = it.multi_index
+
+            #fermionic index
+            findex = []
+            for i,d in enumerate(index):
+                if dat.statistics[i] in fermi_type:
+                    findex += [d]
+
+            #determine the block number
+            blocknum = [ elem%grading for elem in findex ]
+            blocknum = tuple(blocknum)
+
+            blockelem = [ int((d-d%grading)/grading) for d in findex ]
+
+            #determine the block matrix elements
+            blockelem = []
+            for i,d in enumerate(index):
+                if dat.statistics[i] in fermi_type:
+                    blockelem += [int((d-d%grading)/grading)]
+                else:
+                    blockelem += [d]
+            blockelem = tuple(blockelem)
+            cells[blocknum][blockelem] += val.item()
+
+            # compute the sigma sign factor
+            #for i,dim in enumerate(blockelem):
+            #    σ = 1
+            #    if dat.statistics[i] in fermi_type:
+            #        canonical_index = param.encoder(index[i])
+            #        σ = param.sgn(canonical_index)
+            #    sgn_cells[blocknum][i][dim]=σ
+
+        self.data = cells.copy()
+        self.sgn  = copy.deepcopy(sgn)
+        self.statistics = dat.statistics
+        self.format = dat.format
+        self.shape = dat.shape # not the actual shape, but the 'physical' shape
+        self.marked_as_joined = False
+
+    def display(self,name=None,indent_size=0):
+        indent = ""
+        for i in range(indent_size):
+            indent+=" "
+
+        mem = 0
+
+        it = np.nditer(self.data, flags=['multi_index','refs_ok'])
+        for val in it:
+            block = it.multi_index
+            dat = self.data[block]
+            mem += sys.getsizeof(dat)
+
+        print()
+        if name != None:
+            print(indent+"            name:",name)
+        print(indent+"      array type: block")
+        print(indent+"     total shape:", self.shape)
+        print(indent+" effective shape:", self.effective_shape)
+        print(indent+"      even shape:", self.even_shape)
+        print(indent+"       odd shape:", self.odd_shape)
+        print(indent+"      statistics:", self.statistics)
+        print(indent+"          format:", self.format)
+        print(indent+"         encoder: block")
+        print(indent+"          memory:",memory_display(mem+sys.getsizeof(self)))
+        print(indent+"            norm:",self.norm)
+        print()
+
+        print(" :::::::::::::::::::::: Sign factor :::::::::::::::::::::")
+        print("          Even sector:")
+        for _ in self.sgn[0]:
+            print("            ",_)
+        print("           Odd sector:")
+        for _ in self.sgn[1]:
+            print("            ",_)
+
+        print(" ::::::::::::::::::: Block information ::::::::::::::::::")
+
+        i=0
+        it = np.nditer(self.data, flags=['multi_index','refs_ok'])
+        for val in it:
+            block = it.multi_index
+            dat = self.data[block]
+            
+            if(np.linalg.norm(dat)>numer_display_cutoff):
+                if i>0:
+                    print(" --------------------------------------------------------")
+                print()
+                block_symbol = [ "even" if i==0 else "odd" for i in block ]
+                block_symbol = "("+",".join(block_symbol)+")"
+                print("  Block number:",block_symbol,"\n")
+                print("   Block shape:",dat.shape,"\n")
+                print("  Block tensor:\n",dat,"\n")
+                i+=1
+        print("==========================================================")
+
+    def info(self,name=None,indent_size=0):
+
+        indent = ""
+        for i in range(indent_size):
+            indent+=" "
+
+        mem = 0
+
+        it = np.nditer(self.data, flags=['multi_index','refs_ok'])
+        for val in it:
+            block = it.multi_index
+            dat = self.data[block]
+            mem += sys.getsizeof(dat)
+
+        print()
+        if name != None:
+            print(indent+"            name:",name)
+        print(indent+"      array type: block")
+        print(indent+"     total shape:", self.shape)
+        print(indent+" effective shape:", self.effective_shape)
+        print(indent+"      even shape:", self.even_shape)
+        print(indent+"       odd shape:", self.odd_shape)
+        print(indent+"      statistics:", self.statistics)
+        print(indent+"          format:", self.format)
+        print(indent+"         encoder: block")
+        print(indent+"          memory:",memory_display(mem+sys.getsizeof(self)))
+        print(indent+"            norm:",self.norm)
+        print()
+
+    @property
+    def norm(self):
+        ret = 0
+        it = np.nditer(self.data, flags=['multi_index','refs_ok'])
+        for val in it:
+            ret += np.linalg.norm(val.item())**2
+        return np.sqrt(ret)
+
+    @property
+    def effective_shape(self):
+        ret = np.array(self.even_shape)+np.array(self.odd_shape)
+        for i in range(self.ndim):
+            if self.statistics[i] in bose_type:
+                ret[i] = self.shape[i]
+        return make_tuple(ret)
+
+    @property
+    def even_shape(self):
+        ret = [ len(v) for v in self.sgn[0] ]
+        return make_tuple(ret)
+
+    @property
+    def odd_shape(self):
+        ret = [ len(v) for v in self.sgn[1] ]
+        return make_tuple(ret)
+        return odd_shape
+
+    @property
+    def ndim(self):
+        return len(self.shape)
+    
+    @property
+    def dtype(self):
+        it = np.nditer(self.data, flags=['multi_index','refs_ok'])
+        for val in it:
+            #total index
+            return val.item().dtype
+
+    def copy(self):
+
+        ret = block( gtn.random(shape=(2,2),statistics=(1,1)) )
+
+        ret.data = copy.deepcopy(self.data)
+        ret.sgn  = copy.deepcopy(self.sgn)
+        ret.statistics = self.statistics
+        ret.format = self.format
+        ret.shape = self.shape # not the actual shape, but the 'physical' shape
+        ret.marked_as_joined = self.marked_as_joined
+
+        return ret
+
+    def switch_format(self):
+
+        def mult_along_axis(A, v, axis):
+            # see [https://stackoverflow.com/questions/30031828/multiply-numpy-ndarray-with-1d-array-along-a-given-axis]
+            # for explanation
+            # ensure we're working with Numpy arrays
+            A = np.array(A)
+            v = np.array(v)
+            shape = np.swapaxes(A, A.ndim-1, axis).shape
+            v_brc = np.broadcast_to(v, shape)
+            v_brc = np.swapaxes(v_brc, A.ndim-1, axis)
+            return A * v_brc
+
+        ret = self.copy()
+        it = np.nditer(self.data, flags=['multi_index','refs_ok'])
+        for val in it:
+            #total index
+            block = it.multi_index
+            val_replace = val.item().copy()
+            for d in range(self.ndim):
+                if self.statistics[d] == -1:
+                    val_replace = mult_along_axis(val_replace,self.sgn[block[d]][d],d)
+            ret.data[block] = val_replace.copy()
+
+        if self.format == "standard":
+            ret.format = "matrix"
+        else:
+            ret.format = "standard"
+
+        return ret
+
+    def force_format(self,format):
+        if self.format == format:
+            return self.copy()
+        else:
+            return self.switch_format()
+
+    def todense(self,encoder="canonical",skip_joined_check=False):
+        return todense(self,encoder,skip_joined_check)
+
+    def tosparse(self,encoder="canonical"):
+        return sparse(todense(self,encoder))
+
+    def join_legs(self,string_inp,final_stat):
+        return join_legs_block(self,string_inp,final_stat)
+
+    def split_legs(self,string_inp,final_stat,final_shape,final_even_shape,final_odd_shape):
+        return split_legs_block(self,string_inp,final_stat,final_shape,final_even_shape,final_odd_shape)
+
+    def hconjugate(self,string,save_memory=False):
+        return hconjugate_block(self,string,save_memory)
+
+    def svd(self,string,cutoff=None,save_memory=False):
+        return svd_block(self,string,cutoff,save_memory)
+
+    def eig(self,string,cutoff=None,save_memory=False):
+        return eig_block(self,string,cutoff,save_memory)
+
+def zero_block(shape,statistics,format='standard',dtype=float):
+    return block(dense(np.zeros(shape,dtype=dtype),statistics=statistics,format=format))
+
+def random_block(shape,statistics,format='standard',dtype=float,skip_trimming=False):
+    return block(random(shape=shape,statistics=statistics,dtype=dtype,skip_trimming=skip_trimming,format=format))
+
+def todense(obj,encoder,skip_joined_check=False):
+
+    if type(obj)==sparse or type(obj)==dense :
+        return dense(obj)
+
+    if not skip_joined_check:
+        if obj.marked_as_joined :
+            error("Error[todense]: Split the legs first!")
+
+    ret = dense(np.zeros(obj.shape,dtype=obj.dtype),statistics=obj.statistics,encoder='parity-preserving',format=obj.format)
+
+    it = np.nditer(obj.data, flags=['multi_index','refs_ok'])
+    for _ in it:
+        block = it.multi_index
+        dat = obj.data[block]
+        #print("block:",block)
+        sub_it = np.nditer(dat, flags=['multi_index','refs_ok'])
+        for val in sub_it:
+            coords = sub_it.multi_index
+            fcoords = [ c for i,c in enumerate(coords) if obj.statistics[i] in fermi_type ]
+            new_coords = []
+            fi = 0
+            for i,c in enumerate(coords):
+                if obj.statistics[i] in fermi_type:
+                    if block[fi]==0:
+                        new_coords += [2*c]
+                    else:
+                        new_coords += [2*c+1]
+                    fi += 1
+                else:
+                    new_coords += [c]
+
+            new_coords = tuple(new_coords)
+            #print("  M",coords,"= M'",new_coords,"=",val)
+
+            ret.data[new_coords] = val
+
+    ret = ret.force_encoder(encoder)
+
+    return ret
+
 ####################################################
 ##             Densed Grassmann Array             ##
 ####################################################
@@ -273,7 +643,8 @@ class dense:
         if not default and not skip_power_of_two_check:
             for i,dim in enumerate(self.data.shape):
                 if self.statistics[i] in fermi_type and dim != int(2**math.floor(np.log2(dim))):
-                    error("Error[dense]: Some of the fermionic tensor shapes are not a power of two.\n              Have you added the <statistics> argument when calling this function?")
+                    error("Error[dense]: Some of the fermionic tensor shapes are not a power of two."
+                        +"\n              Have you added the <statistics> argument when calling this function?")
                 
     def __getitem__(self, index):
         return self.data[index]
@@ -537,6 +908,9 @@ class dense:
 
     def eig(self,string_inp,cutoff=None,debug_mode=False,save_memory=False):
         return eig(self,string_inp,cutoff,debug_mode,save_memory)
+
+    def toblock(self):
+        return block(self)
 
 ####################################################
 ##            Sparse Grassmann arrays             ##
@@ -806,6 +1180,9 @@ class sparse:
     def eig(self,string_inp,cutoff=None,debug_mode=False,save_memory=False):
         return eig(self,string_inp,cutoff,debug_mode,save_memory)
 
+    def toblock(self):
+        return block(self)
+
 ####################################################
 ##       Parity Calculation (internal tools)      ##
 ####################################################
@@ -960,13 +1337,13 @@ def denumerate(string):
         string = string.replace(c1,c2)
     return string
 
-def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
+def einsum_ds(*args,format="standard",encoder="canonical",debug_mode=False):
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #                     Important variables and its meanings
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #
-    #       instruction_string = the whole input text with spaces removed
+    #               subscripts = the whole input text with spaces removed
     #               has_output = True if the <input_string> has the output section
     #             input_string = the left side of the arrow
     #            output_string = the right side of the arrow
@@ -984,19 +1361,19 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     # remove spaces ---------------------------------------------------------------------------------
-    instruction_string = args[0].replace(" ","")
-    instruction_string = denumerate(instruction_string)
+    subscripts = args[0].replace(" ","")
+    subscripts = denumerate(subscripts)
 
-    has_output = instruction_string.count("->") > 0
-    if instruction_string.count("->") > 1 :
+    has_output = subscripts.count("->") > 0
+    if subscripts.count("->") > 1 :
         error("Error[einsum]: Only one arrow is allowed in the input string!")
 
     if has_output:
-        input_string, output_string = instruction_string.split("->")
+        input_string, output_string = subscripts.split("->")
         if output_string.count(",") > 0 :
             error("Error[einsum]: Output string must not contain commas (',') !")
     else:
-        input_string = instruction_string
+        input_string = subscripts
 
     summand = input_string.replace(",","")
 
@@ -1072,7 +1449,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     
     if debug_mode :
         print()
-        print("input:",instruction_string)
+        print("input:",subscripts)
         print("obj indices:")
         for elem in obj_index_list:
             print(" ",elem)
@@ -1490,7 +1867,7 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
     if this_type == sparse :
         
 
-        instruction_all_indices = instruction_string.replace(",","")
+        instruction_all_indices = subscripts.replace(",","")
         instruction_all_indices = instruction_all_indices.replace("->","")
         instruction_all_indices = instruction_all_indices.replace(" ","")
         if not skip_S1:
@@ -1630,6 +2007,617 @@ def einsum(*args,format="standard",encoder="canonical",debug_mode=False):
         else:
             return np.array(ret).flatten()[0]
 
+def einsum_block(*args):
+
+    # =============================================================================================#
+    # Step I: Pre-generate the cells of the result                                                 #
+    # =============================================================================================#
+
+    global skip_power_of_two_check
+    skip_power_of_two_check = True
+    subscripts = args[0].replace(" ","")
+    subscripts = denumerate(subscripts)
+
+    before=""
+    after=""
+    return_scalar = True
+    if subscripts.count("->")==1 :
+        before,after = subscripts.split("->")
+        return_scalar = False
+    elif subscripts.count("->")>1 :
+        print(error("Error[einsum_block]: There should be no more than one '->' indicator in the subscript input."))
+    else:
+        before = subscripts
+    has_output = not return_scalar
+
+    summand = before.replace(",","")
+
+    obj_index_list = before.split(",")
+    nobj = len(obj_index_list)
+
+    obj_list = make_list(args[1:1+nobj])
+    stats_list = sum([ make_list(obj.statistics) for obj in obj_list ],[])
+    shape_list = sum([ make_list(obj.effective_shape) for obj in obj_list ],[])
+    
+    has_int = False
+    has_float = False
+    has_complex = False
+    first_format = obj_list[0].format
+    for i,obj in enumerate(obj_list):
+        if type(obj)==dense or type(obj)==sparse:
+            error("Error[einsum_block]: This function only works with block data format.")
+        obj_list[i] = obj_list[i].force_format("standard")
+        has_int = has_int or obj_list[i].dtype==int
+        has_float = has_float or obj_list[i].dtype==float
+        has_complex = has_complex or obj_list[i].dtype==complex
+
+    rettype = int
+    if has_float:
+        rettype = float
+    if has_complex:
+        rettype = complex
+
+    #fstats_list = make_list( stat for i,stat in enumerate(stats_list) if stats_list[i] in fermi_type ) # not used
+    fshape_list = make_list( shape for i,shape in enumerate(shape_list) if stats_list[i] in fermi_type )
+
+    # the block version of before
+    fbefore = ""
+    for i,c in enumerate(summand):
+        if stats_list[i] in fermi_type:
+            fbefore += c
+    obj_findex_list = obj_index_list.copy()
+    for i, findex in enumerate(obj_findex_list):
+        new_findex = ""
+        for c in findex:
+            if c in fbefore:
+                new_findex+=c
+        obj_findex_list[i] = new_findex
+    if has_output:
+        # the block version of after
+        fafter = ""
+        for c in after:
+            if c in fbefore:
+                fafter += c
+        fsubscripts = fbefore+"->"+fafter
+
+        # <fbefore> is <summand> without bose-type indices
+        # <fafter> is <after> without bose-type indices
+
+        
+
+        newstats = reordering(summand,after,stats_list)   # tensor stats
+        newshape = reordering(summand,after,shape_list)   # tensor shape
+        newfshape = reordering(fbefore,fafter,fshape_list) # cell shape
+
+        newshape_final = make_tuple([
+                dim if stat in bose_type else 2**int(np.ceil(np.log2(dim)))
+                    for dim,stat in zip(newshape,newstats) ])
+        # correct ret's shape in the end
+        ret = zero_block(shape=newshape,statistics=newstats,format=first_format,dtype=rettype)
+
+    # =============================================================================================#
+    # Step II: Arrange the indices (presum) and generate the sign-factor computation string        #
+    #          Most of the stuff here are copied from einsum()                                     #
+    # =============================================================================================#
+
+    # get some information about the summed indices -------------------------------------------------
+    # [ f=<char>, [index locations in lf], [statistics] ]
+    summed_index_info = []
+
+    for i,char in enumerate(summand):
+
+        # skip if bosonic
+        if stats_list[i] in bose_type:
+            continue
+
+        lf =  before.count(char)
+        if has_output :
+            rf = after.count(char)
+            if lf>2 or rf>1 or (lf+rf)%2==1 :
+                if lf>2 :
+                    reason = "lf>2"
+                elif rf>1 :
+                    reason = "rf>1"
+                else :
+                    reason = "(lf+rf)%2==1"
+                error("Error[einsum]: Inconsistent index statistics. (reason:"+reason+")")
+        else :
+            if lf>2:
+                reason = "lf>2"
+                error("Error[einsum]: Inconsistent index statistics. (reason:"+reason+")")
+
+        if lf==1:
+            continue
+
+        # add a new entry if it is a new character
+        if summand[:i].count(char)==0 :
+            summed_index_info += [ [ char, [i] , [stats_list[i]] ] ]
+        else:
+            for k in range(len(summed_index_info)):
+                if(summed_index_info[k][0]==char):
+                    summed_index_info[k][1] += [i]
+                    summed_index_info[k][2] += [stats_list[i]]
+
+    def is_statwise_inconsistent(stat1,stat2):
+        if [stat1,stat2] == [0,0]:
+            return False
+        elif [stat1,stat2] == [1,-1]:
+            return False
+        elif [stat1,stat2] == [-1,1]:
+            return False
+        elif [stat1,stat2] == [hybrid_symbol,hybrid_symbol]:
+            return False
+        else:
+            return True
+
+    for [char,location,stats] in summed_index_info:
+        if len(stats)==2 and is_statwise_inconsistent(stats[0],stats[1]):
+            error("Error[einsum]: The contracted indices have inconsistent statistics!")
+    
+    fsummand   = ""
+    fsummand_u = ""
+    fstats_list = []
+    fshape_list = []
+    charlist = summand
+    for i,char in enumerate(summand):
+        if stats_list[i] == 0:
+            continue
+
+        fsummand    += char
+        fstats_list += stats_list[i],
+        fshape_list += shape_list[i],
+
+        if stats_list[i] == -1 and summand.count(char)>1:
+            new_char = get_char(charlist)
+            charlist += new_char
+            fsummand_u += new_char
+
+            # edit the summed_index_info, with the position swapped a little bit as well
+            for j,[char2,location,stats] in enumerate(summed_index_info):
+                if char2==char :
+                    summed_index_info[j][0] = [char,new_char]
+                    if stats == [-1,1]:
+                        summed_index_info[j][1] = [ summed_index_info[j][1][1], summed_index_info[j][1][0] ]
+                        summed_index_info[j][2] = [ summed_index_info[j][2][1], summed_index_info[j][2][0] ]
+        else:
+            fsummand_u += char
+    fstats = fstats_list.copy()
+    fshape = fshape_list.copy()
+    fstats_u = fstats_list.copy()
+    fshape_u = fshape_list.copy()
+
+    # remove the stat entry as it is redundant
+    for i,elem in enumerate(summed_index_info):
+        summed_index_info[i] = elem[:2]
+
+    # the summed indices are now next to each other with the conjugated one to the right
+
+    fsummand_ur = fsummand_u
+    for [ [c1,c2], loc ] in summed_index_info:
+        fsummand_ur = fsummand_ur.replace(c2,"")
+        fsummand_ur = fsummand_ur.replace(c1,c1+c2)
+
+    fstats_ur = reordering(fsummand_u,fsummand_ur,fstats_list)
+    fshape_ur = reordering(fsummand_u,fsummand_ur,fshape_list)
+
+    # remove the leading and trailing chars that is the same as the pre-rearranged string
+
+    nall_u = len(fsummand_u)
+
+    nl = 0
+    for i in range(nall_u):
+        if fsummand_u[i] != fsummand_ur[i]:
+            break
+        nl+=1
+    nr = 0
+    for i in range(nall_u):
+        if fsummand_u[nall_u-1-i] != fsummand_ur[nall_u-1-i]:
+            break
+        nr+=1
+    nr = nall_u-nr
+
+    fsummand_ut  = fsummand_u[nl:nr]
+    fstats_ut   = fstats_u[nl:nr]
+    fshape_ut   = fshape_u[nl:nr]
+    fsummand_urt  = fsummand_ur[nl:nr]
+    fstats_urt   = fstats_ur[nl:nr]
+    fshape_urt   = fshape_ur[nl:nr]
+
+    if nl>nr :
+        skip_S1 = True
+    else:
+        skip_S1 = False
+        
+    S1_sgn_computation_string = fsummand_ut+"->"+fsummand_urt
+    
+    # =============================================================================================#
+    # Step III: rearrange to the final form                                                        #
+    # =============================================================================================#
+
+    S2_dimlist = []
+    S2_index_string = ""
+    summed_indices = fsummand_ur
+    for [ [c1,c2], loc ] in summed_index_info:
+        S2_dimlist += shape_list[ summand.index(c1) ],
+        S2_index_string += ","+c1
+        summed_indices = summed_indices.replace(c1+c2,"")
+    S2_index_string = S2_index_string[1:]
+    nS2 = len(S2_dimlist)
+    
+    skip_S3 = True
+    if has_output :
+
+        foutput = ""
+        for c in after:
+            if stats_list[ summand.index(c) ] == 0 :
+                continue
+            else:
+                foutput+=c
+
+        S3_shape=[]
+        for c in summed_indices:
+            d = shape_list[ summand.index(c) ]
+            S3_shape += d,
+
+        # again... remove the leading and trailing duplicates
+
+        nall_ur = len(summed_indices)
+        nl = 0
+        for i in range(nall_ur):
+            if summed_indices[i] != foutput[i]:
+                break
+            nl+=1
+
+        nr = 0
+        for i in range(nall_ur):
+            if summed_indices[nall_ur-1-i] != foutput[nall_ur-1-i]:
+                break
+            nr+=1
+        nr = nall_ur-nr
+
+        final = foutput[nl:nr]
+        prefinal = summed_indices[nl:nr]
+        S3_shape   = S3_shape[nl:nr]
+
+        if nl>nr :
+            skip_S3 = True
+        else:
+            skip_S3 = False
+
+        S3_sgn_computation_string = prefinal+"->"+final
+
+    # =============================================================================================#
+    # Step IV: Determine the einsum string                                                         #
+    # =============================================================================================#
+
+    before_plus_sigma = before
+    for elem in summed_index_info:
+        before_plus_sigma+=(","+elem[0][0])
+    final_einsum_string = before_plus_sigma+"->"+after
+
+    # =============================================================================================#
+    # Step V: Iterate over all parity config                                                       #
+    #          For each parity config, the sign factor is computed                                 #
+    # =============================================================================================#
+
+    if has_output:
+        # count unique indices
+        unique_fsummand = "".join(sorted(list(set(fbefore))))
+        nsum = len(unique_fsummand)
+
+        # the comprehensive list of sign factors (fermion only)
+        all_sgn = [[],[]]
+        for obj in obj_list:
+            for ind_parity in [0,1]:
+                for s in obj.sgn[ind_parity]:
+                    all_sgn[ind_parity] += [s]
+
+        block_list = [[]] # this is the set of all blocks
+        for char in unique_fsummand:
+            block_list_E = [ config+[0] for config in block_list ]
+            block_list_O = [ config+[1] for config in block_list ]
+            block_list = block_list_E+block_list_O
+
+        block_list = [ tuple(block) for block in block_list ]
+
+        for block in block_list:
+            #print()
+            #print(unique_fsummand,"=",block)
+
+            # ======================================================================================================
+            # now you have the summand list and the block list, you can do whatever you want here
+            # unique_fsummand is the ordered list of summed indices
+            # block is the value of each index
+            # ======================================================================================================
+
+            # ======================================================================================================
+            # This part determines the block number of each object
+            # ======================================================================================================
+            obj_block_list = []
+            for i,findex in enumerate(obj_findex_list):
+                sub_block = []
+                for c in findex:
+                    if c not in unique_fsummand:
+                        error("Error[einsum_block]: the character c is not contained in unique_fsummand. Unexplanable error! Possibly a bug.")
+                    c_location = unique_fsummand.index(c)
+                    sub_block += [block[c_location]]
+                obj_block_list += [tuple(sub_block)]
+            
+            #print(obj_findex_list,"=",obj_block_list)
+
+            # ======================================================================================================
+            # get the specified block from each object
+            # ======================================================================================================
+            blocked_obj_list = [ obj.data[obj_block_list[i]] for i,obj in enumerate(obj_list) ]
+
+            sigma_list = []
+            #print(summand)
+            #print(all_sgn[0])
+            #print(unique_fsummand)
+            #print(block)
+            
+            for ic, c in enumerate(unique_fsummand):
+                c_index_in_summand = summand.index(c)
+                sgn_c = all_sgn[block[ic]][c_index_in_summand]
+                if summand.count(c) > 1:
+                    err = 0
+                    for ic2, c2 in enumerate(summand):
+                        if c2==c :
+                            sgn_c2 = all_sgn[block[ic]][ic2]
+                            err += np.linalg.norm(sgn_c-sgn_c2)
+                    if err>numer_cutoff :
+                        error("Error[einsum_block]: some sign factors are not consistent.")
+                sigma_list += [ sgn_c ]
+
+            
+
+            '''
+            for c in unique_fsummand:
+                # check if there are multiples
+                if summand.count(c) > 1:
+                    err = 0
+                    for c2 in summand:
+                        if c2==c :
+                            sgn_c2 = all_sgn[][summand.index(c2)]
+                            err += np.linalg.norm(sgn_c-sgn_c2)
+                    if err>numer_cutoff :
+                        error("Error[einsum_block]: some sign factors are not consistent.")
+                sigma_list += [ sgn_c ]
+            '''
+
+            # ======================================================================================================
+            # evaluate the block sign factor
+            # ======================================================================================================
+
+            # step1: from moving conjugated summed index to the non-conjugated counterpart
+            S1 = 1
+            #print("compute S1:", not skip_S1, end="; S1 = ")
+            if not skip_S1:
+                S1_com_before = S1_sgn_computation_string.split("->")[0]
+                # replaced the new index with the old index
+                for elem in summed_index_info:
+                    S1_com_before = S1_com_before.replace(elem[0][1],elem[0][0])
+                # get the parity list
+                parity_list = [ block[unique_fsummand.index(c)] for c in S1_com_before ]
+                S1 = relative_sign(S1_sgn_computation_string,parity_list)
+                #print("S1:",S1_sgn_computation_string,"=",S1)
+                #print(S1)
+
+            # step2: from moving the result after the summation to the specified output form
+            S3 = 1
+            #print("compute S3:", not skip_S3, end="; S3 = ")
+            if not skip_S3:
+                S3_com_before = S3_sgn_computation_string.split("->")[0]
+                parity_list = [ block[unique_fsummand.index(c)] for c in S3_com_before ]
+                S3 = relative_sign(S3_sgn_computation_string,parity_list)
+                #print("S3:",S3_sgn_computation_string,"=",S3)
+                #print(S3)
+
+            block_sign = S1*S3
+            #print("block sign = (",S1,")*(",S3,") =",block_sign)
+
+            # ======================================================================================================
+            # obtain the sign vectors
+            # ======================================================================================================
+            sigma_summed_list = []
+            for elem in summed_index_info:
+                c = elem[0][0]
+                sigma_summed_list += [ sigma_list[unique_fsummand.index(c)] ]
+            
+            # ======================================================================================================
+            # the summation
+            # ======================================================================================================
+            einsum_obj_list = blocked_obj_list + sigma_summed_list
+            for i,elem in enumerate(einsum_obj_list):
+                if elem.dtype == object :
+                    newelem = np.array(elem.tolist())
+                    einsum_obj_list[i] = newelem
+
+            sum_result = block_sign*np.einsum(*tuple([final_einsum_string]+einsum_obj_list))
+
+
+            # ======================================================================================================
+            # obtain the output block
+            # ======================================================================================================
+
+            out_block = tuple([ block[unique_fsummand.index(c)] for c in fafter ])
+            #print("output block:",fafter,";",out_block)
+            ret.data[out_block] += sum_result
+            ret.shape = newshape_final
+
+            skip_power_of_two_check = False
+            
+    else:
+        # if returns scalar
+        # count unique indices
+        unique_fsummand = "".join(sorted(list(set(fbefore))))
+        nsum = len(unique_fsummand)
+
+        # the comprehensive list of sign factors (fermion only)
+        all_sgn = [[],[]]
+        for obj in obj_list:
+            for ind_parity in [0,1]:
+                for s in obj.sgn[ind_parity]:
+                    all_sgn[ind_parity] += [s]
+
+        block_list = [[]] # this is the set of all blocks
+        for char in unique_fsummand:
+            block_list_E = [ config+[0] for config in block_list ]
+            block_list_O = [ config+[1] for config in block_list ]
+            block_list = block_list_E+block_list_O
+
+        block_list = [ tuple(block) for block in block_list ]
+
+        scalar_output=0
+        for block in block_list:
+            #print()
+            #print(unique_fsummand,"=",block)
+
+            # ======================================================================================================
+            # now you have the summand list and the block list, you can do whatever you want here
+            # unique_fsummand is the ordered list of summed indices
+            # block is the value of each index
+            # ======================================================================================================
+
+            # ======================================================================================================
+            # This part determines the block number of each object
+            # ======================================================================================================
+            obj_block_list = []
+            for i,findex in enumerate(obj_findex_list):
+                sub_block = []
+                for c in findex:
+                    if c not in unique_fsummand:
+                        error("Error[einsum_block]: the character c is not contained in unique_fsummand. Unexplanable error! Possibly a bug.")
+                    c_location = unique_fsummand.index(c)
+                    sub_block += [block[c_location]]
+                obj_block_list += [tuple(sub_block)]
+            
+            #print(obj_findex_list,"=",obj_block_list)
+
+            # ======================================================================================================
+            # get the specified block from each object
+            # ======================================================================================================
+            '''
+            blocked_obj_list = [ obj.data[obj_block_list[i]] for i,obj in enumerate(obj_list) ]
+            blocked_sgn_list = sum([ obj.sgn[obj_block_list[i]].tolist()  for i,obj in enumerate(obj_list) ],[])
+            blocked_sgn_list = [ np.array(elem) for elem in blocked_sgn_list ]
+            #
+            # /\
+            # ||
+            #
+            # dont use this one
+            #
+            # use this one instead
+            #
+            # |
+            # V
+            #
+            sigma_list = []
+            for c in unique_fsummand:
+                # check if there are multiples
+                sgn_c = blocked_sgn_list[summand.index(c)]
+                if summand.count(c) > 1:
+                    err = 0
+                    for c2 in summand:
+                        if c2==c :
+                            sgn_c2 = blocked_sgn_list[summand.index(c2)]
+                            err += np.linalg.norm(sgn_c-sgn_c2)
+                    if err>numer_cutoff :
+                        error("Error[einsum_block]: some sign factors are not consistent.")
+                sigma_list += [ sgn_c ]
+            '''
+            blocked_obj_list = [ obj.data[obj_block_list[i]] for i,obj in enumerate(obj_list) ]
+
+            sigma_list = []
+            #print(summand)
+            #print(all_sgn[0])
+            #print(unique_fsummand)
+            #print(block)
+            
+            for ic, c in enumerate(unique_fsummand):
+                c_index_in_summand = summand.index(c)
+                sgn_c = all_sgn[block[ic]][c_index_in_summand]
+                if summand.count(c) > 1:
+                    err = 0
+                    for ic2, c2 in enumerate(summand):
+                        if c2==c :
+                            sgn_c2 = all_sgn[block[ic]][ic2]
+                            err += np.linalg.norm(sgn_c-sgn_c2)
+                    if err>numer_cutoff :
+                        error("Error[einsum_block]: some sign factors are not consistent.")
+                sigma_list += [ sgn_c ]
+
+            # ======================================================================================================
+            # evaluate the block sign factor
+            # ======================================================================================================
+
+            # step1: from moving conjugated summed index to the non-conjugated counterpart
+            S1 = 1
+            #print("compute S1:", not skip_S1, end="; S1 = ")
+            if not skip_S1:
+                S1_com_before = S1_sgn_computation_string.split("->")[0]
+                # replaced the new index with the old index
+                for elem in summed_index_info:
+                    S1_com_before = S1_com_before.replace(elem[0][1],elem[0][0])
+                # get the parity list
+                parity_list = [ block[unique_fsummand.index(c)] for c in S1_com_before ]
+                S1 = relative_sign(S1_sgn_computation_string,parity_list)
+                #print("S1:",S1_sgn_computation_string,"=",S1)
+                #print(S1)
+
+            block_sign = S1
+            #print("block sign = (",S1,")*(",S3,") =",block_sign)
+
+            # ======================================================================================================
+            # obtain the sign vectors
+            # ======================================================================================================
+            sigma_summed_list = []
+            for elem in summed_index_info:
+                c = elem[0][0]
+                sigma_summed_list += [ sigma_list[unique_fsummand.index(c)] ]
+            
+            # ======================================================================================================
+            # the summation
+            # ======================================================================================================
+            einsum_obj_list = blocked_obj_list + sigma_summed_list
+            sum_result = block_sign*np.einsum(*tuple([final_einsum_string]+einsum_obj_list))
+
+            scalar_output+=sum_result
+
+            skip_power_of_two_check = False
+
+        return scalar_output
+
+    return ret.force_format(first_format)
+
+def einsum(*args):
+    subscripts = args[0].replace(" ","")
+    subscripts = denumerate(subscripts)
+
+    before=""
+    after=""
+    return_scalar = True
+    if subscripts.count("->")==1 :
+        before,after = subscripts.split("->")
+        return_scalar = False
+    elif subscripts.count("->")>1 :
+        print(error("Error[einsum]: There should be no more than one '->' indicator in the subscript input."))
+    else:
+        before = subscripts
+    has_output = not return_scalar
+
+    summand = before.replace(",","")
+
+    obj_index_list = before.split(",")
+    nobj = len(obj_index_list)
+
+    obj_list = make_list(args[1:1+nobj])
+
+    if type(obj_list[0]) == block:
+        return einsum_block(*args)
+    else:
+        return einsum_ds(*args)
+
 ####################################################
 ##                     Reshape                    ##
 ####################################################
@@ -1749,10 +2737,11 @@ def join_legs(InpObj,string_inp,make_format='standard',intermediate_stat=None,sa
         if stat == hybrid_symbol:
             can_convert = False
             break
-
+    '''
     if can_convert :
         Obj = Obj.force_format(this_format)
         Obj = Obj.force_encoder(this_encoder)
+    '''
 
     return Obj
     
@@ -2003,6 +2992,515 @@ def get_intermediate_info(sorted_group_info,intermediate_stat):
     final_shape = make_tuple(final_shape)
     
     return new_stats, new_shape, final_stats, final_shape
+
+####################################################
+##                 Reshape (block)                ##
+####################################################
+
+def join_index(*args):
+
+    # this function tells the information about the block this product belongs to
+
+    # x = (p,d,s) = (parity,dimension,sigma)
+    ndim   = len(args)
+    pi     = [ _[0] for _ in args ]
+    di     = [[ _[1] for _ in args ],
+              [ _[2] for _ in args ]]
+    sgni   = [ _[3] for _ in args ]
+
+    # determine which sub-block this belongs to
+    block = sum(pi)%2
+    sub_block = -1
+    n_sub_block = 2**ndim
+    sub_block_shift = 0
+    sub_block_size = 0
+    for ip in range(n_sub_block):
+
+        ib = param.to_bin_parity_preserving(ip,ndim).tolist()
+        if ip%2!=block :
+            continue
+
+        # compute the block size
+        sub_block_size = 1
+        for i in range(ndim):
+            sub_block_size *= di[ib[i]][i]
+
+        # check if this is the correct block
+        if ib == pi:
+            sub_block = int(math.floor(ip/2))
+            break
+
+        sub_block_shift += sub_block_size
+
+    sgn_sigma_perm = 1
+    for i in range(ndim):
+        for j in range(i+1,ndim):
+            sgn_sigma_perm *= (-1)**(pi[i]*pi[j])
+
+    einsum_string_before = ",".join(char_list[:ndim])
+    einsum_string_after = "".join(char_list[:ndim])
+    einsum_string = einsum_string_before+"->"+einsum_string_after
+    einsum_obj = [einsum_string]+sgni
+    new_sgn = sgn_sigma_perm*np.reshape(np.einsum(*tuple(einsum_obj)),make_tuple(sub_block_size))
+
+    #print("            block:",block)
+    #print("        sub-block:",sub_block,"/",n_sub_block)
+    #print("   sub-block size:",sub_block_size)
+    #print("  sub-block shift:",sub_block_shift)
+    #print("   sgn_correction:",sgn_correction)
+
+    return (block,sub_block_shift,sub_block_size,new_sgn)
+
+def join_legs_block(InpObj,string_inp,final_stat):
+
+    #
+    #                    IMPORTANT NOTE
+    #  THIS FUNCTION IS NOT INTENDED TO BE USED BY USER ! !
+    #  ONLY USED THIS IN SVD, EIG, OR HCONJUGATE ONLY ! ! !
+    #  ALSO, SGN MUST BE REMEMBERED SEPARATELY  ! ! ! ! ! !
+    #  IF YOU WANT TO SPLIT THE TENSOR LATER  ! ! ! ! ! ! !
+    #
+
+    string_inp = string_inp.replace(" ","")
+    string_inp = denumerate(string_inp)
+
+    final_stat = make_tuple(final_stat)
+    
+    Obj = InpObj.copy()
+
+    #===============================================================================#
+    #   Step 1: Get the grouping information                                        #
+    #===============================================================================#
+    
+    # get the grouping info first
+    group_info, sorted_group_info = get_group_info(string_inp, Obj.statistics, Obj.effective_shape)
+    #group_info contains the index_string, statistics, and shape of each group
+    #sorted_group_info (not used) is the same, but with bosonic indices sorted to the left
+
+    # check if there is any hybrid index here
+    if '*' in final_stat:
+        error("Error[join_legs_block]: Hybrid joining is not allowed for block format.")
+    for elem in group_info:
+        elem_stat = elem[1]
+        if ( 1 in elem_stat or -1 in elem_stat ) and ( 0 in elem_stat or '*' in elem_stat ):
+            error("Error[join_legs_block]: Hybrid joining is not allowed for block format.")
+    
+    newshape = []
+    for elem in group_info:
+        dim = 1
+        for d in elem[2]:
+            dim*=d
+        newshape+=[dim]
+    newshape = tuple(newshape)
+
+    n_indices = sum([ len(indices) for [indices,stats,shape] in group_info ])
+    # the number of indices after the joining
+    
+    if n_indices != Obj.ndim :
+        error("Error[join_legs_block]: The number of indices is not consistent with the object's shape.")
+
+    if Obj.marked_as_joined :
+        error("Error[join_legs_block]: The tensor can only be joined once!")
+    
+    sign_factors_list = get_grouping_sign_factors(sorted_group_info, final_stat)
+    corrected_indices = sign_factors_list[0].replace(",","")
+    # this one tells which index we need to multiply the correction sign factor
+    # probably only need the first element (corrected_indices)
+
+    ret = zero_block(newshape,final_stat,Obj.format,dtype=Obj.dtype)
+    ret.statistics = final_stat
+
+    #--clear the sgn list first
+    fi = 0
+    for axis in range(ret.ndim):
+        if ret.statistics[axis] in fermi_type:
+            ret.sgn[0][axis] = ret.sgn[1][axis]*0
+            ret.sgn[1][axis] = ret.sgn[1][axis]*0
+            fi += 1
+        else:
+            ndimaxis = len(ret.sgn[0][axis])
+            ret.sgn[0][axis] = np.array(copy.deepcopy([1]*ndimaxis),dtype=int)
+            ret.sgn[1][axis] = np.array(copy.deepcopy([1]*ndimaxis),dtype=int)
+
+    #print(ret.sgn[0][0].shape)
+    #print(ret.sgn[0][1].shape)
+    #print(ret.sgn[0][2].shape)
+
+    group_block_info = []
+    for elem in group_info:
+        if 0 not in elem[1]:
+            group_block_info += [elem]
+
+    it = np.nditer(Obj.data, flags=['multi_index','refs_ok'])
+    for _ in it:
+        # look into each block and determine where it should be in ret
+
+        block = it.multi_index ;
+        #print(block,":",_.item().shape)
+        
+        block_group = []
+        i = 0
+        for elem in group_block_info:
+            n = len(elem[0])
+            block_group += [tuple(block[i:i+n])]
+            i+=n
+        # block_group is just the regrouping of block according the grouping info
+        block_group = tuple(block_group); #print(block_group)
+
+        # blocknum is the corresponding block in ret
+        blocknum = tuple([ sum(list(blk))%2 for blk in block_group ]); 
+        #print(blocknum)
+
+        # ================= Explanation of the sub block ================= #
+        #   The product 1x0 and 0x1 both results in the block 1            #
+        #   So each of them are the sub block of 1                         #
+        # ================================================================ #
+
+        indices_all = string_inp.replace("(","").replace(")","").replace(",","")
+        check_block = []
+        fblock_shift = []
+        subblocksize = []
+        new_sgn_list = []
+        fielem = 0
+        for ielem, elem in enumerate(group_info):
+            if (0 in elem[1]) or (hybrid_symbol in elem[1]):
+                continue
+            axis_loc = [ indices_all.index(c) for c in elem[0] ]
+
+            d0 = [ len(Obj.sgn[0][axis]) for axis in axis_loc ]
+            d1 = [ len(Obj.sgn[1][axis]) for axis in axis_loc ]
+
+            sgn_list = [ Obj.sgn[p][axis] for axis,p in zip(axis_loc,block_group[fielem]) ]
+
+            x_list = zip(block_group[fielem],d0,d1,sgn_list)
+
+            _block,_shift,_size,_sgn = gtn.join_index(*x_list)
+            check_block += [_block]
+            fblock_shift += [_shift]
+            subblocksize += [_size]
+            new_sgn_list += [_sgn]
+            fielem += 1
+
+        subblocksize = make_tuple(subblocksize)
+        fblock_shift = make_tuple(fblock_shift)
+
+        # this is the size of the subblock including the bosonic axes
+        subblocksizefull = []
+        fcount = 0
+        for i,d in enumerate(ret.data[blocknum].shape):
+            if ret.statistics[i] in fermi_type:
+                subblocksizefull += [subblocksize[fcount]]
+                fcount+=1
+            else:
+                subblocksizefull += [d]
+        subblocksizefull = tuple(subblocksizefull)
+
+        # the shifting factor
+        block_shift = 0*np.array(subblocksizefull)
+        fcount=0
+        for i in range(len(block_shift)):
+            if ret.statistics[i] in fermi_type :
+                block_shift[i] += fblock_shift[fcount]
+                fcount += 1
+        block_shift = tuple(block_shift)
+
+        # reshape the block
+        reshaped_block = np.reshape(_.item(),subblocksizefull)
+
+        fstat = [ s for s in ret.statistics if s in fermi_type ]
+
+        group_stat = []
+        for elem in group_info:
+            if 0 in elem[1]:
+                continue
+            else:
+                group_stat += [elem[1]]
+
+        sgn_correction = 1
+        for grp_num,blk in enumerate(block_group):
+            #correction sign
+            if fstat[grp_num] == -1:
+                for j,stat in enumerate(group_stat[grp_num]):
+                    if stat == 1:
+                        sgn_correction *= (-1)**blk[j]
+
+        subit = np.nditer(reshaped_block, flags=['multi_index','refs_ok'])
+        for val in subit:
+            block_index = subit.multi_index
+            newblock_index = tuple((np.array(block_index)+np.array(block_shift)).tolist())
+            ret.data[blocknum][newblock_index] += sgn_correction*val.item()
+
+        # make a full sgn list (with the bosonic sgn)
+        fi = 0
+        for axis in range(ret.ndim):
+            if ret.statistics[axis] in fermi_type:
+                s = new_sgn_list[fi]
+
+                for index in range(len(s)):
+                    v0 = ret.sgn[blocknum[fi]][axis][index+block_shift[axis]]
+                    v1 = new_sgn_list[fi][index]
+                    if v0!=0 and v0!=v1:
+                        error("Error[join_legs_block]: Sign factor is not consistent!")
+                    ret.sgn[blocknum[fi]][axis][index+block_shift[axis]]=v1
+
+                #ret.sgn[blocknum[fi]][axis] += new_sgn_list[fi]
+                fi += 1
+    
+    ret.marked_as_joined = True
+    
+    return ret
+
+def split_legs_block(InpObj,string_inp,final_stat,final_shape,final_even_shape,final_odd_shape):
+
+    #
+    #                    IMPORTANT NOTE
+    #  THIS FUNCTION IS NOT INTENDED TO BE USED BY USER ! !
+    #  ONLY USED THIS IN SVD, EIG, OR HCONJUGATE ONLY ! ! !
+    #  ALSO, SGN MUST BE REMEMBERED SEPARATELY  ! ! ! ! ! !
+    #  IF YOU WANT TO SPLIT THE TENSOR LATER  ! ! ! ! ! ! !
+    #
+
+    string_inp = string_inp.replace(" ","")
+    string_inp = denumerate(string_inp)
+
+    final_stat = make_tuple(final_stat)
+    final_shape = make_tuple(final_shape)
+    final_even_shape = make_tuple(final_even_shape)
+    final_odd_shape = make_tuple(final_odd_shape)
+    
+    Obj = InpObj.copy()
+
+    final_fstat = make_tuple([ stat for stat in final_stat if stat in fermi_type ])
+    fstat = make_tuple([ stat for stat in Obj.statistics if stat in fermi_type ])
+    
+    #===============================================================================#
+    #   Step 1: Get the grouping information                                        #
+    #===============================================================================#
+    
+    # get the grouping info first
+    final_effective_stat = np.array(final_even_shape)+np.array(final_odd_shape)
+    for i in range(len(final_stat)):
+        if final_stat[i] in bose_type:
+            final_effective_stat[i] = final_shape[i]
+    group_info, sorted_group_info = get_group_info(string_inp, final_stat, final_effective_stat)
+    #group_info contains the index_string, statistics, and shape of each group
+    #sorted_group_info (not used) is the same, but with bosonic indices sorted to the left
+
+    # check if there is any hybrid index here
+    if '*' in final_stat:
+        error("Error[split_legs_block]: Hybrid joining is not allowed for block format.")
+    for elem in group_info:
+        elem_stat = elem[1]
+        if ( 1 in elem_stat or -1 in elem_stat ) and ( 0 in elem_stat or '*' in elem_stat ):
+            error("Error[split_legs_block]: Hybrid joining is not allowed for block format.")
+    
+    n_indices = sum([ len(indices) for [indices,stats,shape] in group_info ])
+    # the number of indices after the joining
+
+    if not Obj.marked_as_joined :
+        error("Error[split_legs_block]: You can only split the joined tensor!")
+
+    sign_factors_list = get_grouping_sign_factors(sorted_group_info, InpObj.statistics)
+    corrected_indices = sign_factors_list[0].replace(",","")
+    # this one tells which index we need to multiply the correction sign factor
+    # probably only need the first element (corrected_indices)
+
+    ret = zero_block(final_shape,final_stat,Obj.format,dtype=Obj.dtype)
+    ret.statistics = final_stat
+    
+    # reassign each block to be of the correct shape
+    it = np.nditer(ret.data, flags=['multi_index','refs_ok'])
+    for _ in it:
+        block = it.multi_index ; #print(block)
+        sub_block_shape = []
+        faxis = 0
+        for axis in range(_.item().ndim):
+            if ret.statistics[axis] in bose_type:
+                sub_block_shape+=[final_even_shape[axis]]
+            else:
+                if block[faxis]==0:
+                    sub_block_shape+=[final_even_shape[axis]]
+                else:
+                    sub_block_shape+=[final_odd_shape[axis]]
+                faxis+=1
+        sub_block_shape = make_tuple(sub_block_shape)
+        ret.data[block] = np.zeros(sub_block_shape)
+    
+    for axis in range(ret.ndim):
+        ret.sgn[0][axis] = ret.sgn[0][axis][:final_even_shape[axis]]
+        ret.sgn[1][axis] = ret.sgn[1][axis][:final_odd_shape[axis]]
+
+    #--clear the sgn list first
+    fi = 0
+    for axis in range(ret.ndim):
+        if ret.statistics[axis] in fermi_type:
+            #ret.sgn[0][axis] = ret.sgn[1][axis]*0
+            #ret.sgn[1][axis] = ret.sgn[1][axis]*0
+            fi += 1
+        else:
+            ndimaxis = len(ret.sgn[0][axis])
+            ret.sgn[0][axis] = np.array(copy.deepcopy([1]*ndimaxis),dtype=int)
+            ret.sgn[1][axis] = np.array(copy.deepcopy([1]*ndimaxis),dtype=int)
+
+    group_block_info = []
+    for elem in group_info:
+        if 0 not in elem[1]:
+            group_block_info += [elem]
+    
+    findex_loc = [ i for i,stat in enumerate(Obj.statistics) if stat in fermi_type ]
+    
+    fgroup_info = []
+    for elem in group_info:
+        if 0 in elem[1] or hybrid_symbol in elem[1]:
+            continue
+        else:
+            fgroup_info += [elem]
+    
+    fndim_list = [ len(elem[0]) for elem in fgroup_info]
+    fstat_group = [ elem[1] for elem in fgroup_info]
+    
+    subshape = [final_even_shape,final_odd_shape]
+    final_even_fshape = [ dim for dim,stat in zip(final_even_shape,final_stat) if stat in fermi_type ]
+    final_odd_fshape = [ dim for dim,stat in zip(final_odd_shape,final_stat) if stat in fermi_type ]
+    fsubshape = [final_even_fshape,final_odd_fshape]
+
+    it = np.nditer(Obj.data, flags=['multi_index','refs_ok'])
+    for _ in it:
+        # look into each block and determine where it should be in ret
+        #print()
+        
+        blocknum = it.multi_index ; #print(block)
+        #print(blocknum)
+        
+        block_mat = _.item()
+        
+        # get the fermionic shape for this block
+        fshape = make_tuple([
+            _.item().shape[i]
+            for i in range(_.item().ndim) if Obj.statistics[i] in fermi_type ])
+        #print(fshape)
+        
+        # list the possible products
+        product_list = []
+        for fdim,parity in zip(fndim_list,blocknum):
+            sub_axis = []
+            for ip in range(2**fdim):
+                if ip%2==parity:
+                    sub_axis += [ make_tuple(param.to_bin_parity_preserving(ip,fdim)) ]
+            product_list += [sub_axis]
+            #print()
+        #print(product_list)
+        
+        
+        # compute the size of the sub block
+        sub_block_size_list = []
+        axis_shift = 0
+        for fi,group in enumerate(product_list):
+            axis_list = []
+            #print("- ",group)
+            for config in group:
+                #print("---- ",config)
+                dim=1
+                for axis,val in enumerate(config):
+                #    print("------- ",fsubshape[val][axis+axis_shift],(val,axis+axis_shift))
+                    dim *= fsubshape[val][axis+axis_shift]
+                axis_list += [dim]
+            sub_block_size_list += [axis_list]
+            axis_shift += len(group[0])
+        #print(sub_block_size_list)
+        
+        coords_list = []
+        index_list = []
+        coords_dim = [ len(elem) for elem in product_list ]
+        
+        def gen_all_coords(c_index,c_dim,c_index_list,coord_rep=None):
+            complete = True
+            reset_prev = False
+            incr_axis = 0
+            for axis in range(len(c_index)):
+                if c_index[axis]+1<c_dim[axis]:
+                    complete = False
+                    incr_axis = axis
+                    break
+            if coord_rep == None:
+                item = c_index.copy()
+            else:
+                item = [ coord_rep[i][ index ] for i,index in enumerate(c_index) ]
+            c_index_list += [item]
+            if not complete:
+                for axis in range(incr_axis):
+                    c_index[axis]=0
+                c_index[incr_axis]+=1
+                gen_all_coords(c_index,c_dim,c_index_list,coord_rep)
+        
+        coords_index = [0]*len(product_list)
+        gen_all_coords(coords_index,coords_dim,coords_list,product_list)
+        coords_index = [0]*len(product_list)
+        gen_all_coords(coords_index,coords_dim,index_list)
+        
+        for index,coords in zip(index_list,coords_list):
+            #print()
+            #print("blocknum:",blocknum)
+            #print("sub block index:",index)
+            #print("new block groups:",coords)
+            
+            block = make_tuple(sum( [ make_list(c) for c in coords ] ,[]))
+            #print("block:",block)
+            
+            # compute the shifting factor
+            coords_shift = []
+            for grp,i in enumerate(index):
+                shift = 0
+                for j in range(i):
+                    shift += sub_block_size_list[grp][j]
+                coords_shift += [shift]
+            sub_block_size = [ sub_block_size_list[grp][conf] for grp,conf in enumerate(index) ]
+            
+            #print("shift axis:",findex_loc)
+            #print("coords shift:",coords_shift)
+            #print("sub block size:",sub_block_size)
+            
+            extracted_mat = block_mat
+            
+            # original = 4(ab)
+            # after = 2(2*ab)
+            
+            
+            #print("joined_shape:",extracted_mat.shape)
+            #print("splitted_shape:",ret.data[block].shape)
+            for ig, group in enumerate(index):
+                index_from = coords_shift[ig]
+                index_to = index_from + sub_block_size[ig]
+                taken_axis = findex_loc[ig]
+                #print("take index from", index_from,"to",index_to,"in the axis",taken_axis)
+                extracted_mat = extracted_mat.take(
+                    indices=range(index_from,index_to),axis=taken_axis
+                    )
+                #print(extracted_mat.shape)
+            
+            extracted_mat = np.reshape(extracted_mat,ret.data[block].shape)
+            
+            # compute the correction sign factor
+            #print(blocknum,block)
+            #print(fstat,final_fstat)
+            #print("----")
+            sign_correction = 1
+            for joined, splitted,jstat,sstat in zip(blocknum,coords,fstat,fstat_group):
+                #print()
+                #print(joined,"->",splitted)
+                #print(jstat,"->",sstat)
+                
+                for prt,st in zip(splitted,sstat):
+                    if st==1 and jstat==-1:
+                        sign_correction*=(-1)**prt
+                
+            ret.data[block] = sign_correction*extracted_mat
+        
+    # compute the new sigma factors
+    
+    ret.marked_as_joined = False
+    
+    return ret
 
 ####################################################
 ##          Trim the Grassmann-odd parts          ##
@@ -2289,6 +3787,7 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
 
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #2
     Obj = Obj.join_legs(join_legs_string_input,"matrix",intermediate_stat=intermediate_stat,save_memory=True)
+    Obj = Obj.force_encoder("parity-preserving")
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 2 - BLOCK SVD (MAKE SURE IT'S PARITY-PRESERVING!)                          :::::
@@ -2633,6 +4132,9 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00) #2
     intermediate_stat = ( zero_or_else(stats_left,-1),zero_or_else(stats_right,1) )
     Obj = Obj.join_legs(join_legs_string_input,"matrix",intermediate_stat=intermediate_stat,save_memory=True)
+    Obj = Obj.force_encoder("parity-preserving")
+    #print("eig",Obj.encoder,Obj.format)
+    #exit()
 
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     #:::::      STEP 2 - BLOCK SVD (MAKE SURE IT'S PARITY-PRESERVING!)                          :::::
@@ -2738,6 +4240,966 @@ def eig(InpObj,string,cutoff=None,debug_mode=False,save_memory=False):
     tab_up()
     
     return U, Λ, V
+
+####################################################
+##               Block decomposition              ##
+####################################################
+
+def svd_block(InpObj,string,cutoff=None,save_memory=False):
+
+    string = string.replace(" ","")
+    string = denumerate(string)
+
+    
+    Obj = InpObj.copy()
+    this_format = Obj.format
+
+    if save_memory :
+        del InpObj.data
+        del InpObj
+        gc.collect()
+
+    # check if Obj.statistics or final_statistics is weird or not
+    for stat in Obj.statistics:
+        if stat not in allowed_stat :
+            error("Error[svd_block]: The input object contains illegal statistics. (0, 1, -1, or "+hybrid_symbol+" only)")
+
+    # convert to standard format first
+    Obj = Obj.force_format("standard")
+
+    if string.count("(")==string.count(")") and string.count("(")>0:
+        string = string.replace(" ","")
+        string = string.replace(")(","|")
+        if string.count("(")>1 or string.count(")")<1:
+            error("Error[svd_block]: Parentheses don't match")
+        string = string.replace(")","")
+        string = string.replace("(","")
+
+    partition_count = 0
+    for partition in separator_list:
+        partition_count += string.count(partition)
+    if(partition_count!=1):
+        partition_string = ""
+        for i, partition in enumerate(separator_list):
+            if(i==0):
+                partition_string += "( "
+            elif(i==len(separator_list)-1):
+                partition_string += ", or "
+            else:
+                partition_string += ", "
+
+            partition_string += "'"+partition+"'"
+
+            if(i==len(separator_list)-1):
+                partition_string += " )"
+
+        error("Error[svd_block]: The input string must contain one and only one partition "+partition_string+" in it.")
+
+    for separator in separator_list:
+        if separator == "|":
+            continue
+        else:
+            string = string.replace(separator,"|")
+
+    # ===========================================================================
+    # These are the index info before the rearrangement
+    # ===========================================================================
+
+    index_num = 0
+    subscripts1 = ["",""]
+    stats1 = [[],[]]
+    shape1 = [[],[]]
+    even_shape1 = [[],[]]
+    odd_shape1 = [[],[]]
+
+    lr = 0
+    for c in string:
+        if c=="|":
+            lr = 1
+            continue
+        else:
+            subscripts1[lr] += c
+            stats1[lr] += [Obj.statistics[index_num]]
+            shape1[lr] += [Obj.shape[index_num]]
+            even_shape1[lr] += [Obj.even_shape[index_num]]
+            odd_shape1[lr] += [Obj.odd_shape[index_num]]
+            index_num += 1
+
+    if False:
+        print("       Set 1")
+        print("  subscripts:",subscripts1)
+        print("  statistics:",stats1)
+        print("  full shape:",shape1)
+        print("  even shape:",even_shape1)
+        print("   odd shape:",odd_shape1)
+
+
+
+    # ===========================================================================
+    # Now move bosonic indices to the left of fermionic indices
+    # ===========================================================================
+
+    subscripts2 = ["",""]
+    stats2 = [[],[]]
+    shape2 = [[],[]]
+    even_shape2 = [[],[]]
+    odd_shape2 = [[],[]]
+
+    for lr in [0,1]:
+        for char,stat,dim,edim,odim in zip(subscripts1[lr],stats1[lr],shape1[lr],even_shape1[lr],odd_shape1[lr]):
+            if stat == 0:
+                subscripts2[lr] = char+subscripts2[lr]
+                stats2[lr] = [stat]+stats2[lr]
+                shape2[lr] = [dim]+shape2[lr]
+                even_shape2[lr] = [edim]+even_shape2[lr]
+                odd_shape2[lr] = [odim]+odd_shape2[lr]
+            else:
+                subscripts2[lr] += char
+                stats2[lr] += [stat]
+                shape2[lr] += [dim]
+                even_shape2[lr] += [edim]
+                odd_shape2[lr] += [odim]
+
+    if False:
+        print("       Set 2")
+        print("  subscripts:",subscripts2)
+        print("  statistics:",stats2)
+        print("  full shape:",shape2)
+        print("  even shape:",even_shape2)
+        print("   odd shape:",odd_shape2)
+
+    # ===========================================================================
+    # Merge the infos into one vector
+    # ===========================================================================
+
+    subscripts3 = subscripts2[0]+subscripts2[1]
+    stats3 = stats2[0]+stats2[1]
+    shape3 = shape2[0]+shape2[1]
+    even_shape3 = even_shape2[0]+even_shape2[1]
+    odd_shape3 = odd_shape2[0]+odd_shape2[1]
+
+    if False:
+        print("       Set 3")
+        print("  subscripts:",subscripts3)
+        print("  statistics:",stats3)
+        print("  full shape:",shape3)
+        print("  even shape:",even_shape3)
+        print("   odd shape:",odd_shape3)
+
+
+    # ===========================================================================
+    # Rearrange with einsum
+    # ===========================================================================
+
+    einsum_string = string.replace("|","")+"->"+subscripts3
+    Obj3 = einsum_block(einsum_string,Obj)
+
+
+    if save_memory :
+        del Obj.data
+        del Obj
+        gc.collect()
+
+    # ===========================================================================
+    # join the indices into four groups
+    # ===========================================================================
+
+    group_string = ""
+    group_string_left = ""
+    group_string_right = ""
+    is_left = True
+    for i,c in enumerate(subscripts3):
+
+        add_middle = False
+        if i==len(subscripts2[0]):
+            add_middle = True
+            is_left = False
+            group_string += ","
+
+        if i>0 :
+            if (
+                ((Obj3.statistics[i] in bose_type) and (Obj3.statistics[i-1] in fermi_type))
+                or
+                ((Obj3.statistics[i] in fermi_type) and (Obj3.statistics[i-1] in bose_type))
+                ):
+                if not add_middle:
+                    group_string += ","
+                    if is_left:
+                        group_string_left += ","
+                    else:
+                        group_string_right += ","
+        group_string += c
+
+        if is_left:
+            group_string_left += c
+        else:
+            group_string_right += c
+
+    final_stat4 = []
+    group_substring = ""
+    if 0 in stats2[0]:
+        final_stat4+=[0]
+        group_substring += "x"
+    if 1 in stats2[0] or -1 in stats2[0]:
+        final_stat4+=[-1]
+        group_substring += "y"
+    group_substring += "|"
+    if 0 in stats2[1]:
+        final_stat4+=[0]
+        group_substring += "z"
+    if 1 in stats2[1] or -1 in stats2[1]:
+        final_stat4+=[1]
+        group_substring += "w"
+    final_stat4 = make_tuple(final_stat4)
+
+    group_string_left = "("+group_string_left.replace(",",")(")+")"
+    group_string_right = "("+group_string_right.replace(",",")(")+")"
+
+    if False:
+        print("-------------------- -2 -------------------------------------------------------")
+        Obj3.force_format("standard").display()
+
+    Obj4 = join_legs_block(Obj3,group_string,final_stat4)
+
+
+    l = 0
+    r = 0
+    if 0 in stats2[0]:
+        l+=1
+    if (1 in stats2[0]) or (-1  in stats2[0]):
+        l+=1
+    if 0 in stats2[1]:
+        r+=1
+    if (1 in stats2[1]) or (-1 in stats2[1]):
+        r+=1
+
+    stats4 = [[],[]]
+    shape4 = [[],[]]
+    even_shape4 = [[],[]]
+    odd_shape4  = [[],[]]
+
+    index = 0
+    for il in range(l):
+        stats4[0] += Obj4.statistics[index],
+        shape4[0] += Obj4.shape[index],
+        even_shape4[0] += Obj4.even_shape[index],
+        odd_shape4[0] += Obj4.odd_shape[index],
+        index+=1
+    for ir in range(r): 
+        stats4[1] += Obj4.statistics[index],
+        shape4[1] += Obj4.shape[index],
+        even_shape4[1] += Obj4.even_shape[index],
+        odd_shape4[1] += Obj4.odd_shape[index],
+        index+=1
+
+    if False:
+        print("       Set 4")
+        print("  statistics:",stats4)
+        print("  full shape:",shape4)
+        print("  even shape:",even_shape4)
+        print("   odd shape:",odd_shape4)
+
+
+    if save_memory :
+        del Obj3.data
+        del Obj3
+        gc.collect()
+
+    # ===========================================================================
+    # Convert to matrix format
+    # ===========================================================================
+
+    #Obj4.info("Set 4")
+
+    Obj5 = Obj4.force_format("matrix")
+    sgn5 = Obj5.sgn
+
+    if save_memory :
+        del Obj4.data
+        del Obj4
+        gc.collect()
+
+    if False:
+        print("-------------------- -1 -------------------------------------------------------")
+        Obj5.force_format("standard").display()
+
+    # ===========================================================================
+    # Extract the block matrix
+    # ===========================================================================
+
+    it = np.nditer(Obj5.data, flags=['multi_index','refs_ok'])
+    for val in it:
+        #total index
+        block = it.multi_index
+        norm = np.linalg.norm(val.item())
+        parity = sum(block)%2
+        
+        if parity==1 and norm > numer_cutoff:
+            error("Error[SVD_block]: This function only works for even tensors!")
+
+    def prod(x):
+        x = make_list(x)
+        ret = 1
+        for val in x:
+            ret *= val
+        return ret
+
+    merged_shape_even = ( prod(even_shape4[0]),prod(even_shape4[1]) )
+    merged_shape_odd = ( prod(odd_shape4[0]),prod(odd_shape4[1]) )
+
+    ME = np.reshape(Obj5.data[0,0],merged_shape_even)
+    MO = np.reshape(Obj5.data[1,1],merged_shape_odd)
+
+    # ===========================================================================
+    # SVD
+    # ===========================================================================
+
+    UE,SE,VE = SortedSVD(ME,cutoff=cutoff)
+    UO,SO,VO = SortedSVD(MO,cutoff=cutoff)
+
+    SE = np.diag(SE)
+    SO = np.diag(SO)
+
+    NE = SE.shape[0]
+    NO = SO.shape[0]
+
+    Nfull = 2**int(1+np.ceil(np.log2(max(NE,NO))))
+
+    # ===========================================================================
+    # Construct the template matrix
+    # ===========================================================================
+
+    U_even_shape = make_tuple(even_shape4[0]+[NE])
+    S_even_shape = (NE,NE)
+    V_even_shape = make_tuple([NE]+even_shape4[1])
+
+    U_odd_shape = make_tuple(odd_shape4[0]+[NO])
+    S_odd_shape = (NO,NO)
+    V_odd_shape = make_tuple([NO]+odd_shape4[1])
+
+    U_shape = make_tuple(shape4[0]+[Nfull])
+    S_shape = (Nfull,Nfull)
+    V_shape = make_tuple([Nfull]+shape4[1])
+
+    U_stat = make_tuple(stats4[0]+[1])
+    S_stat = (-1,1)
+    V_stat = make_tuple([-1]+stats4[1])
+
+    # Don't forget the off-diagonal matrix !!!!!
+
+    U_01_shape = make_tuple(even_shape4[0]+[NO])
+    U_10_shape = make_tuple(odd_shape4[0]+[NE])
+
+    S_01_shape = (NE,NO)
+    S_10_shape = (NO,NE)
+
+    V_01_shape = make_tuple([NE]+odd_shape4[1])
+    V_10_shape = make_tuple([NO]+even_shape4[1])
+
+    UE = np.reshape(UE,U_even_shape)
+    VE = np.reshape(VE,V_even_shape)
+    UO = np.reshape(UO,U_odd_shape)
+    VO = np.reshape(VO,V_odd_shape)
+
+    U = zero_block(U_shape,U_stat,format='matrix')
+    S = zero_block(S_shape,S_stat,format='matrix')
+    V = zero_block(V_shape,V_stat,format='matrix')
+
+    U.data[0,0] = UE
+    U.data[1,1] = UO
+    U.data[0,1] = np.zeros(U_01_shape)
+    U.data[1,0] = np.zeros(U_10_shape)
+
+    S.data[0,0] = SE
+    S.data[1,1] = SO
+    S.data[0,1] = np.zeros(S_01_shape)
+    S.data[1,0] = np.zeros(S_10_shape)
+
+    V.data[0,0] = VE
+    V.data[1,1] = VO
+    V.data[0,1] = np.zeros(V_01_shape)
+    V.data[1,0] = np.zeros(V_10_shape)
+
+    U.marked_as_joined = True
+    V.marked_as_joined = True
+
+    # ===========================================================================
+    # The sign factor is not correct!!!
+    # ===========================================================================
+
+    sgn_E = S.sgn[0][0][:NE]
+    sgn_O = S.sgn[1][0][:NO]
+
+    U.sgn[0][l] = sgn_E.copy()
+    U.sgn[1][l] = sgn_O.copy()
+
+    S.sgn[0][0] = sgn_E.copy()
+    S.sgn[1][0] = sgn_O.copy()
+
+    S.sgn[0][1] = sgn_E.copy()
+    S.sgn[1][1] = sgn_O.copy()
+
+    V.sgn[0][0] = sgn_E.copy()
+    V.sgn[1][0] = sgn_O.copy()
+
+    for axis in range(l):
+        U.sgn[0][axis] = sgn5[0][axis]
+        U.sgn[1][axis] = sgn5[1][axis]
+
+    for axis in range(r):
+        V.sgn[0][1+axis] = sgn5[0][l+axis]
+        V.sgn[1][1+axis] = sgn5[1][l+axis]
+
+    if False:
+        print("-------------------- 1 -------------------------------------------------------")
+        X0 = einsum_block('ij,jk,kl->il',U,S,V).force_format("standard")
+        X0.marked_as_joined = True
+        X0.display()
+
+    U = U.force_format(this_format)
+    S = S.force_format(this_format)
+    V = V.force_format(this_format)
+
+    # ===========================================================================
+    # Split back
+    # ===========================================================================
+
+    U_even_shape = make_tuple(even_shape2[0]+[NE])
+    V_even_shape = make_tuple([NE]+even_shape2[1])
+
+    U_odd_shape = make_tuple(odd_shape2[0]+[NO])
+    V_odd_shape = make_tuple([NO]+odd_shape2[1])
+
+    U_shape = make_tuple(shape2[0]+[Nfull])
+    V_shape = make_tuple([Nfull]+shape2[1])
+
+    U_stat = make_tuple(stats2[0]+[1])
+    V_stat = make_tuple([-1]+stats2[1])
+
+    strL = group_string_left.replace("(","").replace(")","")
+    strR = group_string_right.replace("(","").replace(")","")
+
+    string_U = group_string_left+"("+get_char(strL)+")"
+    string_V = "("+get_char(strR)+")"+group_string_right
+
+    U = split_legs_block(U,string_U,U_stat,U_shape,U_even_shape,U_odd_shape)
+    V = split_legs_block(V,string_V,V_stat,V_shape,V_even_shape,V_odd_shape)
+
+    if False:
+        print("-------------------- 2 -------------------------------------------------------")
+        X1 = einsum_block('ij,jk,kl->il',U,S,V)
+        X1.force_format("standard").display()
+
+        X11 = split_legs_block(X0,'i,j',X1.statistics,X1.shape,X1.even_shape,X1.odd_shape)
+        X11.force_format("standard").display()
+
+    # ===========================================================================
+    # Rearrange back
+    # ===========================================================================
+
+    cU = get_char(subscripts2[0])
+    strU = subscripts2[0]+cU+"->"+subscripts1[0]+cU
+
+    cV = get_char(subscripts2[1])
+    strV = cV+subscripts2[1]+"->"+cV+subscripts1[1]
+
+    if False:
+        U.info("U")
+        V.info("V")
+        print(strU,strV)
+
+    global skip_power_of_two_check
+
+    skip_power_of_two_check = True
+
+    U = einsum_block(strU,U)
+    V = einsum_block(strV,V)
+
+    skip_power_of_two_check = False
+
+    if False:
+        U.info("U")
+        V.info("V")
+
+    return U, S, V
+
+def eig_block(InpObj,string,cutoff=None,save_memory=False):
+
+    string = string.replace(" ","")
+    string = denumerate(string)
+
+    
+    Obj = InpObj.copy()
+    this_format = Obj.format
+
+    if save_memory :
+        del InpObj.data
+        del InpObj
+        gc.collect()
+
+    # check if Obj.statistics or final_statistics is weird or not
+    for stat in Obj.statistics:
+        if stat not in allowed_stat :
+            error("Error[svd_block]: The input object contains illegal statistics. (0, 1, -1, or "+hybrid_symbol+" only)")
+
+    # convert to standard format first
+    Obj = Obj.force_format("standard")
+
+    if string.count("(")==string.count(")") and string.count("(")>0:
+        string = string.replace(" ","")
+        string = string.replace(")(","|")
+        if string.count("(")>1 or string.count(")")<1:
+            error("Error[svd_block]: Parentheses don't match")
+        string = string.replace(")","")
+        string = string.replace("(","")
+
+    partition_count = 0
+    for partition in separator_list:
+        partition_count += string.count(partition)
+    if(partition_count!=1):
+        partition_string = ""
+        for i, partition in enumerate(separator_list):
+            if(i==0):
+                partition_string += "( "
+            elif(i==len(separator_list)-1):
+                partition_string += ", or "
+            else:
+                partition_string += ", "
+
+            partition_string += "'"+partition+"'"
+
+            if(i==len(separator_list)-1):
+                partition_string += " )"
+
+        error("Error[svd_block]: The input string must contain one and only one partition "+partition_string+" in it.")
+
+    for separator in separator_list:
+        if separator == "|":
+            continue
+        else:
+            string = string.replace(separator,"|")
+
+    # ===========================================================================
+    # These are the index info before the rearrangement
+    # ===========================================================================
+
+    index_num = 0
+    subscripts1 = ["",""]
+    stats1 = [[],[]]
+    shape1 = [[],[]]
+    even_shape1 = [[],[]]
+    odd_shape1 = [[],[]]
+
+    lr = 0
+    for c in string:
+        if c=="|":
+            lr = 1
+            continue
+        else:
+            subscripts1[lr] += c
+            stats1[lr] += [Obj.statistics[index_num]]
+            shape1[lr] += [Obj.shape[index_num]]
+            even_shape1[lr] += [Obj.even_shape[index_num]]
+            odd_shape1[lr] += [Obj.odd_shape[index_num]]
+            index_num += 1
+
+    if False:
+        print("       Set 1")
+        print("  subscripts:",subscripts1)
+        print("  statistics:",stats1)
+        print("  full shape:",shape1)
+        print("  even shape:",even_shape1)
+        print("   odd shape:",odd_shape1)
+
+
+
+    # ===========================================================================
+    # Now move bosonic indices to the left of fermionic indices
+    # ===========================================================================
+
+    subscripts2 = ["",""]
+    stats2 = [[],[]]
+    shape2 = [[],[]]
+    even_shape2 = [[],[]]
+    odd_shape2 = [[],[]]
+
+    for lr in [0,1]:
+        for char,stat,dim,edim,odim in zip(subscripts1[lr],stats1[lr],shape1[lr],even_shape1[lr],odd_shape1[lr]):
+            if stat == 0:
+                subscripts2[lr] = char+subscripts2[lr]
+                stats2[lr] = [stat]+stats2[lr]
+                shape2[lr] = [dim]+shape2[lr]
+                even_shape2[lr] = [edim]+even_shape2[lr]
+                odd_shape2[lr] = [odim]+odd_shape2[lr]
+            else:
+                subscripts2[lr] += char
+                stats2[lr] += [stat]
+                shape2[lr] += [dim]
+                even_shape2[lr] += [edim]
+                odd_shape2[lr] += [odim]
+
+    if False:
+        print("       Set 2")
+        print("  subscripts:",subscripts2)
+        print("  statistics:",stats2)
+        print("  full shape:",shape2)
+        print("  even shape:",even_shape2)
+        print("   odd shape:",odd_shape2)
+
+    # ===========================================================================
+    # Merge the infos into one vector
+    # ===========================================================================
+
+    subscripts3 = subscripts2[0]+subscripts2[1]
+    stats3 = stats2[0]+stats2[1]
+    shape3 = shape2[0]+shape2[1]
+    even_shape3 = even_shape2[0]+even_shape2[1]
+    odd_shape3 = odd_shape2[0]+odd_shape2[1]
+
+    if False:
+        print("       Set 3")
+        print("  subscripts:",subscripts3)
+        print("  statistics:",stats3)
+        print("  full shape:",shape3)
+        print("  even shape:",even_shape3)
+        print("   odd shape:",odd_shape3)
+
+
+    # ===========================================================================
+    # Rearrange with einsum
+    # ===========================================================================
+
+    einsum_string = string.replace("|","")+"->"+subscripts3
+    Obj3 = einsum_block(einsum_string,Obj)
+
+
+    if save_memory :
+        del Obj.data
+        del Obj
+        gc.collect()
+
+    # ===========================================================================
+    # join the indices into four groups
+    # ===========================================================================
+
+    group_string = ""
+    group_string_left = ""
+    group_string_right = ""
+    is_left = True
+    for i,c in enumerate(subscripts3):
+
+        add_middle = False
+        if i==len(subscripts2[0]):
+            add_middle = True
+            is_left = False
+            group_string += ","
+
+        if i>0 :
+            if (
+                ((Obj3.statistics[i] in bose_type) and (Obj3.statistics[i-1] in fermi_type))
+                or
+                ((Obj3.statistics[i] in fermi_type) and (Obj3.statistics[i-1] in bose_type))
+                ):
+                if not add_middle:
+                    group_string += ","
+                    if is_left:
+                        group_string_left += ","
+                    else:
+                        group_string_right += ","
+        group_string += c
+
+        if is_left:
+            group_string_left += c
+        else:
+            group_string_right += c
+
+    final_stat4 = []
+    group_substring = ""
+    if 0 in stats2[0]:
+        final_stat4+=[0]
+        group_substring += "x"
+    if 1 in stats2[0] or -1 in stats2[0]:
+        final_stat4+=[-1]
+        group_substring += "y"
+    group_substring += "|"
+    if 0 in stats2[1]:
+        final_stat4+=[0]
+        group_substring += "z"
+    if 1 in stats2[1] or -1 in stats2[1]:
+        final_stat4+=[1]
+        group_substring += "w"
+    final_stat4 = make_tuple(final_stat4)
+
+    group_string_left = "("+group_string_left.replace(",",")(")+")"
+    group_string_right = "("+group_string_right.replace(",",")(")+")"
+
+    if False:
+        print("-------------------- -2 -------------------------------------------------------")
+        Obj3.force_format("standard").display()
+
+    Obj4 = join_legs_block(Obj3,group_string,final_stat4)
+
+
+    l = 0
+    r = 0
+    if 0 in stats2[0]:
+        l+=1
+    if (1 in stats2[0]) or (-1  in stats2[0]):
+        l+=1
+    if 0 in stats2[1]:
+        r+=1
+    if (1 in stats2[1]) or (-1 in stats2[1]):
+        r+=1
+
+    stats4 = [[],[]]
+    shape4 = [[],[]]
+    even_shape4 = [[],[]]
+    odd_shape4  = [[],[]]
+
+    index = 0
+    for il in range(l):
+        stats4[0] += Obj4.statistics[index],
+        shape4[0] += Obj4.shape[index],
+        even_shape4[0] += Obj4.even_shape[index],
+        odd_shape4[0] += Obj4.odd_shape[index],
+        index+=1
+    for ir in range(r): 
+        stats4[1] += Obj4.statistics[index],
+        shape4[1] += Obj4.shape[index],
+        even_shape4[1] += Obj4.even_shape[index],
+        odd_shape4[1] += Obj4.odd_shape[index],
+        index+=1
+
+    if False:
+        print("       Set 4")
+        print("  statistics:",stats4)
+        print("  full shape:",shape4)
+        print("  even shape:",even_shape4)
+        print("   odd shape:",odd_shape4)
+
+
+    if save_memory :
+        del Obj3.data
+        del Obj3
+        gc.collect()
+
+    # ===========================================================================
+    # Convert to matrix format
+    # ===========================================================================
+
+    #Obj4.info("Set 4")
+
+    Obj5 = Obj4.force_format("matrix")
+    sgn5 = Obj5.sgn
+
+    if save_memory :
+        del Obj4.data
+        del Obj4
+        gc.collect()
+
+    if False:
+        print("-------------------- -1 -------------------------------------------------------")
+        Obj5.force_format("standard").display()
+
+    # ===========================================================================
+    # Extract the block matrix
+    # ===========================================================================
+
+    it = np.nditer(Obj5.data, flags=['multi_index','refs_ok'])
+    for val in it:
+        #total index
+        block = it.multi_index
+        norm = np.linalg.norm(val.item())
+        parity = sum(block)%2
+        
+        if parity==1 and norm > numer_cutoff:
+            error("Error[SVD_block]: This function only works for even tensors!")
+
+    def prod(x):
+        x = make_list(x)
+        ret = 1
+        for val in x:
+            ret *= val
+        return ret
+
+    merged_shape_even = ( prod(even_shape4[0]),prod(even_shape4[1]) )
+    merged_shape_odd = ( prod(odd_shape4[0]),prod(odd_shape4[1]) )
+
+    ME = np.reshape(Obj5.data[0,0],merged_shape_even)
+    MO = np.reshape(Obj5.data[1,1],merged_shape_odd)
+
+    # ===========================================================================
+    # SVD
+    # ===========================================================================
+
+    UE,SE,VE = SortedEig(ME,cutoff=cutoff)
+    UO,SO,VO = SortedEig(MO,cutoff=cutoff)
+
+    SE = np.diag(SE)
+    SO = np.diag(SO)
+
+    NE = SE.shape[0]
+    NO = SO.shape[0]
+
+    Nfull = 2**int(1+np.ceil(np.log2(max(NE,NO))))
+
+    # ===========================================================================
+    # Construct the template matrix
+    # ===========================================================================
+
+    U_even_shape = make_tuple(even_shape4[0]+[NE])
+    S_even_shape = (NE,NE)
+    V_even_shape = make_tuple([NE]+even_shape4[1])
+
+    U_odd_shape = make_tuple(odd_shape4[0]+[NO])
+    S_odd_shape = (NO,NO)
+    V_odd_shape = make_tuple([NO]+odd_shape4[1])
+
+    U_shape = make_tuple(shape4[0]+[Nfull])
+    S_shape = (Nfull,Nfull)
+    V_shape = make_tuple([Nfull]+shape4[1])
+
+    U_stat = make_tuple(stats4[0]+[1])
+    S_stat = (-1,1)
+    V_stat = make_tuple([-1]+stats4[1])
+
+    # Don't forget the off-diagonal matrix !!!!!
+
+    U_01_shape = make_tuple(even_shape4[0]+[NO])
+    U_10_shape = make_tuple(odd_shape4[0]+[NE])
+
+    S_01_shape = (NE,NO)
+    S_10_shape = (NO,NE)
+
+    V_01_shape = make_tuple([NE]+odd_shape4[1])
+    V_10_shape = make_tuple([NO]+even_shape4[1])
+
+    UE = np.reshape(UE,U_even_shape)
+    VE = np.reshape(VE,V_even_shape)
+    UO = np.reshape(UO,U_odd_shape)
+    VO = np.reshape(VO,V_odd_shape)
+
+    U = zero_block(U_shape,U_stat,format='matrix')
+    S = zero_block(S_shape,S_stat,format='matrix')
+    V = zero_block(V_shape,V_stat,format='matrix')
+
+    U.data[0,0] = UE
+    U.data[1,1] = UO
+    U.data[0,1] = np.zeros(U_01_shape)
+    U.data[1,0] = np.zeros(U_10_shape)
+
+    S.data[0,0] = SE
+    S.data[1,1] = SO
+    S.data[0,1] = np.zeros(S_01_shape)
+    S.data[1,0] = np.zeros(S_10_shape)
+
+    V.data[0,0] = VE
+    V.data[1,1] = VO
+    V.data[0,1] = np.zeros(V_01_shape)
+    V.data[1,0] = np.zeros(V_10_shape)
+
+    U.marked_as_joined = True
+    V.marked_as_joined = True
+
+    # ===========================================================================
+    # The sign factor is not correct!!!
+    # ===========================================================================
+
+    sgn_E = S.sgn[0][0][:NE]
+    sgn_O = S.sgn[1][0][:NO]
+
+    U.sgn[0][l] = sgn_E.copy()
+    U.sgn[1][l] = sgn_O.copy()
+
+    S.sgn[0][0] = sgn_E.copy()
+    S.sgn[1][0] = sgn_O.copy()
+
+    S.sgn[0][1] = sgn_E.copy()
+    S.sgn[1][1] = sgn_O.copy()
+
+    V.sgn[0][0] = sgn_E.copy()
+    V.sgn[1][0] = sgn_O.copy()
+
+    for axis in range(l):
+        U.sgn[0][axis] = sgn5[0][axis]
+        U.sgn[1][axis] = sgn5[1][axis]
+
+    for axis in range(r):
+        V.sgn[0][1+axis] = sgn5[0][l+axis]
+        V.sgn[1][1+axis] = sgn5[1][l+axis]
+
+    if False:
+        print("-------------------- 1 -------------------------------------------------------")
+        X0 = einsum_block('ij,jk,kl->il',U,S,V).force_format("standard")
+        X0.marked_as_joined = True
+        X0.display()
+
+    U = U.force_format(this_format)
+    S = S.force_format(this_format)
+    V = V.force_format(this_format)
+
+    # ===========================================================================
+    # Split back
+    # ===========================================================================
+
+    U_even_shape = make_tuple(even_shape2[0]+[NE])
+    V_even_shape = make_tuple([NE]+even_shape2[1])
+
+    U_odd_shape = make_tuple(odd_shape2[0]+[NO])
+    V_odd_shape = make_tuple([NO]+odd_shape2[1])
+
+    U_shape = make_tuple(shape2[0]+[Nfull])
+    V_shape = make_tuple([Nfull]+shape2[1])
+
+    U_stat = make_tuple(stats2[0]+[1])
+    V_stat = make_tuple([-1]+stats2[1])
+
+    strL = group_string_left.replace("(","").replace(")","")
+    strR = group_string_right.replace("(","").replace(")","")
+
+    string_U = group_string_left+"("+get_char(strL)+")"
+    string_V = "("+get_char(strR)+")"+group_string_right
+
+    U = split_legs_block(U,string_U,U_stat,U_shape,U_even_shape,U_odd_shape)
+    V = split_legs_block(V,string_V,V_stat,V_shape,V_even_shape,V_odd_shape)
+
+    if False:
+        print("-------------------- 2 -------------------------------------------------------")
+        X1 = einsum_block('ij,jk,kl->il',U,S,V)
+        X1.force_format("standard").display()
+
+        X11 = split_legs_block(X0,'i,j',X1.statistics,X1.shape,X1.even_shape,X1.odd_shape)
+        X11.force_format("standard").display()
+
+    # ===========================================================================
+    # Rearrange back
+    # ===========================================================================
+
+    cU = get_char(subscripts2[0])
+    strU = subscripts2[0]+cU+"->"+subscripts1[0]+cU
+
+    cV = get_char(subscripts2[1])
+    strV = cV+subscripts2[1]+"->"+cV+subscripts1[1]
+
+    if False:
+        U.info("U")
+        V.info("V")
+        print(strU,strV)
+
+    global skip_power_of_two_check
+
+    skip_power_of_two_check = True
+
+    U = einsum_block(strU,U)
+    V = einsum_block(strV,V)
+
+    skip_power_of_two_check = False
+
+    if False:
+        U.info("U")
+        V.info("V")
+
+    return U, S, V
 
 ####################################################
 ##                   Conjugation                  ##
@@ -2863,6 +5325,8 @@ def hconjugate(InpObj,string,save_memory=False):
             return hybrid_symbol
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     Obj = Obj.join_legs(join_legs_string_input,"matrix",intermediate_stat=(-1,1),save_memory=True)
+    Obj = Obj.force_encoder("parity-preserving")
+
     
     step = show_progress(step,process_length,process_name+" "+"<"+current_memory_display()+">",color=process_color,time=time.time()-s00)
     #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2936,6 +5400,375 @@ def hconjugate(InpObj,string,save_memory=False):
 
     return Obj
 
+def hconjugate_block(InpObj,string,save_memory=False):
+
+    string = string.replace(" ","")
+    string = denumerate(string)
+
+    
+    Obj = InpObj.copy()
+    this_format = Obj.format
+
+    if save_memory :
+        del InpObj.data
+        del InpObj
+        gc.collect()
+
+    # check if Obj.statistics or final_statistics is weird or not
+    for stat in Obj.statistics:
+        if stat not in allowed_stat :
+            error("Error[svd_block]: The input object contains illegal statistics. (0, 1, -1, or "+hybrid_symbol+" only)")
+
+    # convert to standard format first
+    Obj = Obj.force_format("standard")
+
+    if string.count("(")==string.count(")") and string.count("(")>0:
+        string = string.replace(" ","")
+        string = string.replace(")(","|")
+        if string.count("(")>1 or string.count(")")<1:
+            error("Error[svd_block]: Parentheses don't match")
+        string = string.replace(")","")
+        string = string.replace("(","")
+
+    partition_count = 0
+    for partition in separator_list:
+        partition_count += string.count(partition)
+    if(partition_count!=1):
+        partition_string = ""
+        for i, partition in enumerate(separator_list):
+            if(i==0):
+                partition_string += "( "
+            elif(i==len(separator_list)-1):
+                partition_string += ", or "
+            else:
+                partition_string += ", "
+
+            partition_string += "'"+partition+"'"
+
+            if(i==len(separator_list)-1):
+                partition_string += " )"
+
+        error("Error[svd_block]: The input string must contain one and only one partition "+partition_string+" in it.")
+
+    for separator in separator_list:
+        if separator == "|":
+            continue
+        else:
+            string = string.replace(separator,"|")
+
+    # ===========================================================================
+    # These are the index info before the rearrangement
+    # ===========================================================================
+
+    index_num = 0
+    subscripts1 = ["",""]
+    stats1 = [[],[]]
+    shape1 = [[],[]]
+    even_shape1 = [[],[]]
+    odd_shape1 = [[],[]]
+
+    lr = 0
+    for c in string:
+        if c=="|":
+            lr = 1
+            continue
+        else:
+            subscripts1[lr] += c
+            stats1[lr] += [Obj.statistics[index_num]]
+            shape1[lr] += [Obj.shape[index_num]]
+            even_shape1[lr] += [Obj.even_shape[index_num]]
+            odd_shape1[lr] += [Obj.odd_shape[index_num]]
+            index_num += 1
+
+    if False:
+        print("       Set 1")
+        print("  subscripts:",subscripts1)
+        print("  statistics:",stats1)
+        print("  full shape:",shape1)
+        print("  even shape:",even_shape1)
+        print("   odd shape:",odd_shape1)
+
+
+
+    # ===========================================================================
+    # Now move bosonic indices to the left of fermionic indices
+    # ===========================================================================
+
+    subscripts2 = ["",""]
+    stats2 = [[],[]]
+    shape2 = [[],[]]
+    even_shape2 = [[],[]]
+    odd_shape2 = [[],[]]
+
+    for lr in [0,1]:
+        for char,stat,dim,edim,odim in zip(subscripts1[lr],stats1[lr],shape1[lr],even_shape1[lr],odd_shape1[lr]):
+            if stat == 0:
+                subscripts2[lr] = char+subscripts2[lr]
+                stats2[lr] = [stat]+stats2[lr]
+                shape2[lr] = [dim]+shape2[lr]
+                even_shape2[lr] = [edim]+even_shape2[lr]
+                odd_shape2[lr] = [odim]+odd_shape2[lr]
+            else:
+                subscripts2[lr] += char
+                stats2[lr] += [stat]
+                shape2[lr] += [dim]
+                even_shape2[lr] += [edim]
+                odd_shape2[lr] += [odim]
+
+    if False:
+        print("       Set 2")
+        print("  subscripts:",subscripts2)
+        print("  statistics:",stats2)
+        print("  full shape:",shape2)
+        print("  even shape:",even_shape2)
+        print("   odd shape:",odd_shape2)
+
+    # ===========================================================================
+    # Merge the infos into one vector
+    # ===========================================================================
+
+    subscripts3 = subscripts2[0]+subscripts2[1]
+    stats3 = stats2[0]+stats2[1]
+    shape3 = shape2[0]+shape2[1]
+    even_shape3 = even_shape2[0]+even_shape2[1]
+    odd_shape3 = odd_shape2[0]+odd_shape2[1]
+
+    if False:
+        print("       Set 3")
+        print("  subscripts:",subscripts3)
+        print("  statistics:",stats3)
+        print("  full shape:",shape3)
+        print("  even shape:",even_shape3)
+        print("   odd shape:",odd_shape3)
+
+
+    # ===========================================================================
+    # Rearrange with einsum
+    # ===========================================================================
+
+    einsum_string = string.replace("|","")+"->"+subscripts3
+    Obj3 = einsum_block(einsum_string,Obj)
+
+
+    if save_memory :
+        del Obj.data
+        del Obj
+        gc.collect()
+
+    # ===========================================================================
+    # join the indices into four groups
+    # ===========================================================================
+
+    group_string = ""
+    group_string_left = ""
+    group_string_right = ""
+    is_left = True
+    for i,c in enumerate(subscripts3):
+
+        add_middle = False
+        if i==len(subscripts2[0]):
+            add_middle = True
+            is_left = False
+            group_string += ","
+
+        if i>0 :
+            if (
+                ((Obj3.statistics[i] in bose_type) and (Obj3.statistics[i-1] in fermi_type))
+                or
+                ((Obj3.statistics[i] in fermi_type) and (Obj3.statistics[i-1] in bose_type))
+                ):
+                if not add_middle:
+                    group_string += ","
+                    if is_left:
+                        group_string_left += ","
+                    else:
+                        group_string_right += ","
+        group_string += c
+
+        if is_left:
+            group_string_left += c
+        else:
+            group_string_right += c
+
+    final_stat4 = []
+    group_substring = ""
+    if 0 in stats2[0]:
+        final_stat4+=[0]
+        group_substring += "x"
+    if 1 in stats2[0] or -1 in stats2[0]:
+        final_stat4+=[-1]
+        group_substring += "y"
+    group_substring += "|"
+    if 0 in stats2[1]:
+        final_stat4+=[0]
+        group_substring += "z"
+    if 1 in stats2[1] or -1 in stats2[1]:
+        final_stat4+=[1]
+        group_substring += "w"
+    final_stat4 = make_tuple(final_stat4)
+
+    group_string_left = "("+group_string_left.replace(",",")(")+")"
+    group_string_right = "("+group_string_right.replace(",",")(")+")"
+
+    Obj4 = join_legs_block(Obj3,group_string,final_stat4)
+
+
+    l = 0
+    r = 0
+    if 0 in stats2[0]:
+        l+=1
+    if (1 in stats2[0]) or (-1  in stats2[0]):
+        l+=1
+    if 0 in stats2[1]:
+        r+=1
+    if (1 in stats2[1]) or (-1 in stats2[1]):
+        r+=1
+
+    stats4 = [[],[]]
+    shape4 = [[],[]]
+    even_shape4 = [[],[]]
+    odd_shape4  = [[],[]]
+
+    index = 0
+    for il in range(l):
+        stats4[0] += Obj4.statistics[index],
+        shape4[0] += Obj4.shape[index],
+        even_shape4[0] += Obj4.even_shape[index],
+        odd_shape4[0] += Obj4.odd_shape[index],
+        index+=1
+    for ir in range(r): 
+        stats4[1] += Obj4.statistics[index],
+        shape4[1] += Obj4.shape[index],
+        even_shape4[1] += Obj4.even_shape[index],
+        odd_shape4[1] += Obj4.odd_shape[index],
+        index+=1
+
+    if False:
+        print("       Set 4")
+        print("  statistics:",stats4)
+        print("  full shape:",shape4)
+        print("  even shape:",even_shape4)
+        print("   odd shape:",odd_shape4)
+
+
+    if save_memory :
+        del Obj3.data
+        del Obj3
+        gc.collect()
+
+    # ===========================================================================
+    # Convert to matrix format
+    # ===========================================================================
+
+    #Obj4.info("Set 4")
+
+    Obj5 = Obj4.force_format("matrix")
+    sgn5 = copy.deepcopy(Obj5.sgn)
+
+    if save_memory :
+        del Obj4.data
+        del Obj4
+        gc.collect()
+
+    if False:
+        print("-------------------- -1 -------------------------------------------------------")
+        Obj5.force_format("standard").display()
+
+    # ===========================================================================
+    # Extract the block matrix
+    # ===========================================================================
+
+    it = np.nditer(Obj5.data, flags=['multi_index','refs_ok'])
+    for val in it:
+        #total index
+        block = it.multi_index
+        norm = np.linalg.norm(val.item())
+        parity = sum(block)%2
+        
+        if parity==1 and norm > numer_cutoff:
+            error("Error[SVD_block]: This function only works for even tensors!")
+
+    def prod(x):
+        x = make_list(x)
+        ret = 1
+        for val in x:
+            ret *= val
+        return ret
+
+    merged_shape_even = ( prod(even_shape4[0]),prod(even_shape4[1]) )
+    merged_shape_odd = ( prod(odd_shape4[0]),prod(odd_shape4[1]) )
+
+    ME = np.reshape(Obj5.data[0,0],merged_shape_even)
+    MO = np.reshape(Obj5.data[1,1],merged_shape_odd)
+
+    # ===========================================================================
+    # conjugate
+    # ===========================================================================
+
+    MEh = np.conjugate(np.einsum('ij->ji',ME))
+    MOh = np.conjugate(np.einsum('ij->ji',MO))
+
+    unmerged_shape_even = make_tuple(even_shape4[1]+even_shape4[0])
+    unmerged_shape_odd = make_tuple(odd_shape4[1]+odd_shape4[0])
+
+    TEh = np.reshape(MEh,unmerged_shape_even)
+    TOh = np.reshape(MOh,unmerged_shape_odd)
+
+    # make a rough template
+    einstr = "".join(char_list[:l])+"".join(char_list[l:l+r])+"->"+"".join(char_list[l:l+r])+"".join(char_list[:l])
+    ret = einsum_block(einstr,Obj5)
+    newstat = make_tuple( [ -stat if stat in fermi_type else stat for stat in ret.statistics ] )
+    ret.statistics = newstat
+
+    # -------------------------------------
+    # RECALCULATE THE SIGN FACTORS !!!
+    # -------------------------------------
+    sgn_0 = sgn5[0]
+    sgn_1 = sgn5[1]
+
+    new_sgn_0 = sgn_0[l:l+r]+sgn_0[:l]
+    new_sgn_1 = sgn_1[l:l+r]+sgn_1[:l]
+
+    new_sgn = [new_sgn_0,new_sgn_1]
+
+    ret.sgn = copy.deepcopy(new_sgn)
+
+    ret.data[0,0] = TEh
+    ret.data[1,1] = TOh
+    ret.data[0,1] = ret.data[0,1]*0
+    ret.data[1,0] = ret.data[1,0]*0
+
+    ret = ret.force_format(this_format)
+    ret.marked_as_joined = True
+
+    # ===========================================================================
+    # split
+    # ===========================================================================
+
+    def swap(vec):
+        return make_tuple(vec[1]+vec[0])
+
+    stats6 = swap(stats2)
+    shape6 = swap(shape2)
+    even_shape6 = swap(even_shape2)
+    odd_shape6 = swap(odd_shape2)
+
+    split_string = group_string_right+group_string_left
+
+    stats6 = make_tuple( [ -stat if stat in fermi_type else stat for stat in stats6 ] )
+
+    ret = split_legs_block(ret,split_string,stats6,shape6,even_shape6,odd_shape6)
+    
+    # ===========================================================================
+    # revert the subscript's locations
+    # ===========================================================================
+
+    revert_str = subscripts2[1]+subscripts2[0]+"->"+subscripts1[1]+subscripts1[0]
+
+    ret = einsum_block(revert_str,ret)
+
+    return ret
+
 ####################################################
 ##                    Utilities                   ##
 ####################################################
@@ -2953,6 +5786,15 @@ def random(shape,statistics,tensor_type=dense,encoder="canonical",format="standa
     return A
 
 def power(T,p):
+    if type(T)==block:
+        return power_block(T,p)
+    else:
+        return power_ds(T,p)
+
+def sqrt(T):
+    return power(T,0.5)
+
+def power_ds(T,p):
     this_type = type(T)
     this_format = T.format
     this_encoder = T.encoder
@@ -2963,5 +5805,14 @@ def power(T,p):
         T = sparse(T)
     return T
 
-def sqrt(T):
-    return power(T,0.5)
+def power_block(T,p):
+    this_format = T.format
+    T = T.force_format("matrix")
+    
+    it = np.nditer(T.data, flags=['multi_index','refs_ok'])
+    for val in it:
+        block = it.multi_index
+        T.data[block] = np.power(val.item(),p)
+
+    T = T.force_format(this_format)
+    return T
