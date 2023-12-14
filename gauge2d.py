@@ -136,7 +136,7 @@ def myQuadrature(beta, Nf, npoints, Gauss=False):
     wi = wi**(1.0/Nf)
     return xi, wi
 
-def get_ABtensors_not_used(Nphi=2, beta=1, Nf=1, spacing=1, mass=1, charge=1, mu=1, Gauss=False):
+def get_ABtensors(Nphi=2, beta=1, Nf=1, spacing=1, mass=1, charge=1, mu=1, Gauss=False):
 
     a=spacing
     m=mass/a
@@ -256,7 +256,7 @@ def get_ABtensors_not_used(Nphi=2, beta=1, Nf=1, spacing=1, mass=1, charge=1, mu
 
     return A, B
 
-def get_ABtensors(Nphi=2, beta=1, Nf=1, spacing=1, mass=1, charge=1, mu=1, Gauss=False):
+def get_ABtensors_manual(Nphi=2, beta=1, Nf=1, spacing=1, mass=1, charge=1, mu=1, Gauss=False):
     Npsi = 16 #this value is probably always fixed to 16
     Bshape = (Npsi,Npsi,Npsi,Npsi,Nphi,Nphi,Nphi,Nphi)
     A = np.zeros([Nphi,Nphi,Nphi,Nphi],dtype=float)
