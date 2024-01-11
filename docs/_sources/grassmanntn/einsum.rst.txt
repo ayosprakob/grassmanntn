@@ -13,7 +13,7 @@ Perform the Grassmann tensor contraction of the operands in the Einstein summati
 
 - **operands:** `Grassmann tensors <densesparse.html>`_
 
-  Grassmann tensors (`dense <densesparse.html>`_ or `sparse <densesparse.html>`_ types) in the same order as specified in `subscripts`. Each operand can be of different types, but they will be converted to the same type as the first operand.
+  Grassmann tensors (`dense <densesparse.html>`_, `sparse <densesparse.html>`_, or `block <block.html>`_ types) in the same order as specified in `subscripts`. Each operand can be of different types, but they will be converted to the same type as the first operand.
 
 
 **Returns:**

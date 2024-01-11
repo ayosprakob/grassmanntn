@@ -47,6 +47,8 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../releases.html">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-4-0">v 1.4.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-5">v 1.3.5</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-4">v 1.3.4</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-3">v 1.3.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-2">v 1.3.2</a></li>
@@ -63,6 +65,16 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#hermitian-conjugation">Hermitian conjugation</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../schwinger.html">Advanced example: 2D Schwinger model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../schwinger.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../schwinger.html#initial-tensor-preparation">Initial tensor preparation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../schwinger.html#summarized-code">Summarized code</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../schwinger.html#initial-tensor-compression">Initial tensor compression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../schwinger.html#coarse-graining-procedures">Coarse-graining procedures</a></li>
+</ul>
+</li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">grassmanntn (main module)</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="densesparse.html">dense and sparse</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="densesparse.html#grassmanntn.dense"><code class="docutils literal notranslate"><span class="pre">grassmanntn.dense</span></code></a></li>
@@ -72,6 +84,14 @@
 <li class="toctree-l3"><a class="reference internal" href="densesparse.html#attributes">Attributes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="densesparse.html#unary-and-binary-operations">Unary and binary operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="densesparse.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="block.html">block</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="block.html#grassmanntn.block"><code class="docutils literal notranslate"><span class="pre">grassmanntn.block</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="block.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="block.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="block.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="block.html#methods">Methods</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="einsum.html">einsum()</a><ul>
@@ -277,69 +297,69 @@
 </section>
 <section id="examples">
 <h2>Examples<a class="headerlink" href="#examples" title="Permalink to this heading"></a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">grassmanntn</span> <span class="k">as</span> <span class="nn">gtn</span>
-  <span class="o">&gt;&gt;&gt;</span> <span class="n">A</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-  <span class="o">&gt;&gt;&gt;</span> <span class="n">A</span><span class="o">.</span><span class="n">info</span> <span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">grassmanntn</span> <span class="k">as</span> <span class="nn">gtn</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">A</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">A</span><span class="o">.</span><span class="n">info</span> <span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
 
-      <span class="n">name</span><span class="p">:</span> <span class="n">A</span>
-<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dense</span>
-     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-   <span class="n">density</span><span class="p">:</span> <span class="mi">128</span> <span class="o">/</span> <span class="mi">256</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
-<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
-   <span class="n">encoder</span><span class="p">:</span> <span class="n">canonical</span>
-    <span class="n">memory</span><span class="p">:</span> <span class="mf">2.195</span> <span class="n">KiB</span>
-      <span class="n">norm</span><span class="p">:</span> <span class="mf">6.8893569485959105</span>
+<span class="go">         name: A</span>
+<span class="go">   array type: dense</span>
+<span class="go">        shape: (4, 4, 4, 4)</span>
+<span class="go">      density: 128 / 256 ~ 50.0 %</span>
+<span class="go">   statistics: (1, 1, -1, -1)</span>
+<span class="go">       format: standard</span>
+<span class="go">      encoder: canonical</span>
+<span class="go">       memory: 2.195 KiB</span>
+<span class="go">         norm: 6.8893569485959105</span>
 </pre></div>
 </div>
 <p>Join the legs into two groups with the final statistics of <code class="docutils literal notranslate"><span class="pre">(1,-1)</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="o">&gt;&gt;&gt;</span> <span class="n">M</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">join_legs</span><span class="p">(</span><span class="s1">&#39;(ij)(kl)&#39;</span><span class="p">,</span><span class="n">intermediate_stat</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-  <span class="o">&gt;&gt;&gt;</span> <span class="n">M</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;M&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">M</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">join_legs</span><span class="p">(</span><span class="s1">&#39;(ij)(kl)&#39;</span><span class="p">,</span><span class="n">intermediate_stat</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">M</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;M&quot;</span><span class="p">)</span>
 
-      <span class="n">name</span><span class="p">:</span> <span class="n">M</span>
-<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dense</span>
-     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
-   <span class="n">density</span><span class="p">:</span> <span class="mi">128</span> <span class="o">/</span> <span class="mi">256</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
-<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
-   <span class="n">encoder</span><span class="p">:</span> <span class="n">parity</span><span class="o">-</span><span class="n">preserving</span>
-    <span class="n">memory</span><span class="p">:</span> <span class="mi">168</span> <span class="n">B</span>
-      <span class="n">norm</span><span class="p">:</span> <span class="mf">6.8893569485959105</span>
+<span class="go">         name: M</span>
+<span class="go">   array type: dense</span>
+<span class="go">        shape: (16, 16)</span>
+<span class="go">      density: 128 / 256 ~ 50.0 %</span>
+<span class="go">   statistics: (1, -1)</span>
+<span class="go">       format: standard</span>
+<span class="go">      encoder: parity-preserving</span>
+<span class="go">       memory: 168 B</span>
+<span class="go">         norm: 6.8893569485959105</span>
 </pre></div>
 </div>
 <p>Splitting the legs of this tensor gives the original tensor:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="o">&gt;&gt;&gt;</span> <span class="n">B</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="s1">&#39;(ij)(kl)&#39;</span><span class="p">,</span><span class="n">intermediate_stat</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
-  <span class="o">...</span>                 <span class="n">final_stat</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">final_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
-  <span class="o">&gt;&gt;&gt;</span> <span class="n">B</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">B</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">split_legs</span><span class="p">(</span><span class="s1">&#39;(ij)(kl)&#39;</span><span class="p">,</span><span class="n">intermediate_stat</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+<span class="gp">... </span>                <span class="n">final_stat</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">final_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">)</span>
 
-      <span class="n">name</span><span class="p">:</span> <span class="n">B</span>
-<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dense</span>
-     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-   <span class="n">density</span><span class="p">:</span> <span class="mi">128</span> <span class="o">/</span> <span class="mi">256</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
-<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
-   <span class="n">encoder</span><span class="p">:</span> <span class="n">canonical</span>
-    <span class="n">memory</span><span class="p">:</span> <span class="mf">2.195</span> <span class="n">KiB</span>
-      <span class="n">norm</span><span class="p">:</span> <span class="mf">6.8893569485959105</span>
+<span class="go">         name: B</span>
+<span class="go">   array type: dense</span>
+<span class="go">        shape: (4, 4, 4, 4)</span>
+<span class="go">      density: 128 / 256 ~ 50.0 %</span>
+<span class="go">   statistics: (1, 1, -1, -1)</span>
+<span class="go">       format: standard</span>
+<span class="go">      encoder: canonical</span>
+<span class="go">       memory: 2.195 KiB</span>
+<span class="go">         norm: 6.8893569485959105</span>
 
-  <span class="o">&gt;&gt;&gt;</span> <span class="nb">print</span><span class="p">((</span><span class="n">A</span><span class="o">-</span><span class="n">B</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">)</span> <span class="c1"># is equal to zero if A=B</span>
-  <span class="mf">0.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">((</span><span class="n">A</span><span class="o">-</span><span class="n">B</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">)</span> <span class="c1"># is equal to zero if A=B</span>
+<span class="go">0.0</span>
 </pre></div>
 </div>
 <p>An example of a tensor with hybrid indices:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="o">&gt;&gt;&gt;</span> <span class="n">C</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
-  <span class="o">&gt;&gt;&gt;</span> <span class="n">M</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">join_legs</span><span class="p">(</span><span class="s1">&#39;i,jk&#39;</span><span class="p">,</span><span class="n">intermediate_stat</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
-  <span class="o">&gt;&gt;&gt;</span> <span class="n">M</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;M&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">C</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">M</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">join_legs</span><span class="p">(</span><span class="s1">&#39;i,jk&#39;</span><span class="p">,</span><span class="n">intermediate_stat</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">M</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;M&quot;</span><span class="p">)</span>
 
-      <span class="n">name</span><span class="p">:</span> <span class="n">M</span>
-<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dense</span>
-     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
-   <span class="n">density</span><span class="p">:</span> <span class="mi">12</span> <span class="o">/</span> <span class="mi">24</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
-<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">)</span>
-    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
-   <span class="n">encoder</span><span class="p">:</span> <span class="n">parity</span><span class="o">-</span><span class="n">preserving</span>
-    <span class="n">memory</span><span class="p">:</span> <span class="mi">168</span> <span class="n">B</span>
-      <span class="n">norm</span><span class="p">:</span> <span class="mf">1.824428488802565</span>
+<span class="go">         name: M</span>
+<span class="go">   array type: dense</span>
+<span class="go">        shape: (4, 6)</span>
+<span class="go">      density: 12 / 24 ~ 50.0 %</span>
+<span class="go">   statistics: (-1, &#39;*&#39;)</span>
+<span class="go">       format: standard</span>
+<span class="go">      encoder: parity-preserving</span>
+<span class="go">       memory: 168 B</span>
+<span class="go">         norm: 1.824428488802565</span>
 </pre></div>
 </div>
 </section>

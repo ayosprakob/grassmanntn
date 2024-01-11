@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GrassmannTN 1.3.4 &mdash; grassmanntn 0.1 documentation</title>
+  <title>GrassmannTN 1.4.0 &mdash; grassmanntn 0.1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -46,6 +46,8 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-4-0">v 1.4.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-5">v 1.3.5</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-4">v 1.3.4</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-3">v 1.3.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-2">v 1.3.2</a></li>
@@ -62,6 +64,16 @@
 <li class="toctree-l2"><a class="reference internal" href="examples.html#hermitian-conjugation">Hermitian conjugation</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="schwinger.html">Advanced example: 2D Schwinger model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#initial-tensor-preparation">Initial tensor preparation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schwinger.html#summarized-code">Summarized code</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#initial-tensor-compression">Initial tensor compression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#coarse-graining-procedures">Coarse-graining procedures</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="grassmanntn/index.html">grassmanntn (main module)</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="grassmanntn/densesparse.html">dense and sparse</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#grassmanntn.dense"><code class="docutils literal notranslate"><span class="pre">grassmanntn.dense</span></code></a></li>
@@ -71,6 +83,14 @@
 <li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#attributes">Attributes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#unary-and-binary-operations">Unary and binary operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/block.html">block</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#grassmanntn.block"><code class="docutils literal notranslate"><span class="pre">grassmanntn.block</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#methods">Methods</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="grassmanntn/einsum.html">einsum()</a><ul>
@@ -188,7 +208,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">GrassmannTN 1.3.4</li>
+      <li class="breadcrumb-item active">GrassmannTN 1.4.0</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -198,8 +218,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="grassmanntn-1-3-4">
-<h1>GrassmannTN 1.3.4<a class="headerlink" href="#grassmanntn-1-3-4" title="Permalink to this heading"></a></h1>
+  <section id="grassmanntn-1-4-0">
+<h1>GrassmannTN 1.4.0<a class="headerlink" href="#grassmanntn-1-4-0" title="Permalink to this heading"></a></h1>
 <p>GrassmannTN is a python package that aims to simplify the coding involving Grassmann tensor network.
 The goal is to make the coding as convenient as when you use other standard packages like numpy or scipy.
 All the sign factors are computed automatically without explicit user inputs. If you have further questions about the package and how to use it, please contact me via ayosp-at-phys.sc.niigata-u.ac.jp</p>
@@ -247,6 +267,8 @@ All the sign factors are computed automatically without explicit user inputs. If
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-4-0">v 1.4.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-5">v 1.3.5</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-4">v 1.3.4</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-3">v 1.3.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-2">v 1.3.2</a></li>
@@ -263,8 +285,16 @@ All the sign factors are computed automatically without explicit user inputs. If
 <li class="toctree-l2"><a class="reference internal" href="examples.html#hermitian-conjugation">Hermitian conjugation</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="schwinger.html">Advanced example: 2D Schwinger model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#initial-tensor-preparation">Initial tensor preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#initial-tensor-compression">Initial tensor compression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#coarse-graining-procedures">Coarse-graining procedures</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="grassmanntn/index.html">grassmanntn (main module)</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="grassmanntn/densesparse.html">dense and sparse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/block.html">block</a></li>
 <li class="toctree-l2"><a class="reference internal" href="grassmanntn/einsum.html">einsum()</a></li>
 <li class="toctree-l2"><a class="reference internal" href="grassmanntn/joinsplit.html">join_legs() and split_legs()</a></li>
 <li class="toctree-l2"><a class="reference internal" href="grassmanntn/hconjugate.html">hconjugate()</a></li>

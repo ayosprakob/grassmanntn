@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced example: 2D Schwinger model &mdash; grassmanntn 0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="grassmanntn (main module)" href="grassmanntn/index.html" />
+    <link rel="prev" title="Basic examples" href="examples.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            grassmanntn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="releases.html">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-4-0">v 1.4.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-5">v 1.3.5</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-4">v 1.3.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-3">v 1.3.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-2">v 1.3.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-1">v 1.3.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-0">v 1.3.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-2-3">v 1.2.3</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="settings.html">Package settings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Basic examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#initialization">Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#contraction">Contraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#tensor-decompositions">Tensor decompositions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#hermitian-conjugation">Hermitian conjugation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Advanced example: 2D Schwinger model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#initial-tensor-preparation">Initial tensor preparation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#summarized-code">Summarized code</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#initial-tensor-compression">Initial tensor compression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#coarse-graining-procedures">Coarse-graining procedures</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grassmanntn/index.html">grassmanntn (main module)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/densesparse.html">dense and sparse</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#grassmanntn.dense"><code class="docutils literal notranslate"><span class="pre">grassmanntn.dense</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#grassmanntn.sparse"><code class="docutils literal notranslate"><span class="pre">grassmanntn.sparse</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#examples">Examples</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/block.html">block</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#grassmanntn.block"><code class="docutils literal notranslate"><span class="pre">grassmanntn.block</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/einsum.html">einsum()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/einsum.html#grassmanntn.einsum"><code class="docutils literal notranslate"><span class="pre">grassmanntn.einsum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/einsum.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/einsum.html#algorithm">Algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/einsum.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/joinsplit.html">join_legs() and split_legs()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/joinsplit.html#grassmanntn.join_legs"><code class="docutils literal notranslate"><span class="pre">grassmanntn.join_legs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/joinsplit.html#grassmanntn.split_legs"><code class="docutils literal notranslate"><span class="pre">grassmanntn.split_legs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/joinsplit.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/joinsplit.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/hconjugate.html">hconjugate()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/hconjugate.html#grassmanntn.hconjugate"><code class="docutils literal notranslate"><span class="pre">grassmanntn.hconjugate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/hconjugate.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/hconjugate.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/decomposition.html">svd() and eig()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/decomposition.html#grassmanntn.svd"><code class="docutils literal notranslate"><span class="pre">grassmanntn.svd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/decomposition.html#grassmanntn.eig"><code class="docutils literal notranslate"><span class="pre">grassmanntn.eig()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/decomposition.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/decomposition.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/power.html">power()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/power.html#grassmanntn.power"><code class="docutils literal notranslate"><span class="pre">grassmanntn.power()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/power.html#description">Description</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/sqrt.html">sqrt()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/sqrt.html#grassmanntn.sqrt"><code class="docutils literal notranslate"><span class="pre">grassmanntn.sqrt()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/random.html">random()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/random.html#grassmanntn.random"><code class="docutils literal notranslate"><span class="pre">grassmanntn.random()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grassmanntn.param/index.html">grassmanntn.param</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.param/gparity.html">gparity()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/gparity.html#grassmanntn.param.gparity"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.gparity()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/gparity.html#description">Description</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.param/sgn.html">sgn()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/sgn.html#grassmanntn.param.sgn"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.sgn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/sgn.html#description">Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="grassmanntn.param/sgn.html#proof-for-the-equivalence">Proof for the equivalence</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.param/encoder.html">encoder()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/encoder.html#grassmanntn.param.encoder"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.encoder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/encoder.html#description">Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="grassmanntn.param/encoder.html#proof-of-the-self-inverse">Proof of the self-inverse</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grassmanntn.arith/index.html">grassmanntn.arith</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/grassmann_number.html">grassmann_number</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/grassmann_number.html#grassmanntn.arith.grassmann_number"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.grassmann_number</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/grassmann_number.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/grassmann_number.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/grassmann_number.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html">berezin_measure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html#grassmanntn.arith.berezin_measure"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.berezin_measure</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html#grassmanntn.arith.d"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html#binary-operations">Binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/set_ac.html">set_anticommutative</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/set_ac.html#grassmanntn.arith.set_anticommutative"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.set_anticommutative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/set_ac.html#grassmanntn.arith.set_ac"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.set_ac()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/set_ac.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/get_coeff.html">get_coeff()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/get_coeff.html#grassmanntn.arith.get_coeff"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.get_coeff()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/get_coeff.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/exp.html">exp()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/exp.html#grassmanntn.arith.exp"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.exp()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">grassmanntn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Advanced example: 2D Schwinger model</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/schwinger.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="advanced-example-2d-schwinger-model">
+<h1>Advanced example: 2D Schwinger model<a class="headerlink" href="#advanced-example-2d-schwinger-model" title="Permalink to this heading"></a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h2>
+<p>In this example, we are writing the code for the tensor renormalization group computation of the 2D Schwinger model (or rather the <span class="math notranslate nohighlight">\(\mathbb{Z}_K\)</span> gauge theory equivalence) with <span class="math notranslate nohighlight">\(N_f\)</span> flavors of Wilson fermion. See <a class="reference external" href="https://doi.org/10.1007/JHEP11(2023)187">JHEP11(2023)187</a> for more details.</p>
+<p>We will organize the code into three parts: the initial tensor preparation, the initial tensor compression, and the coarse-graining procedure.</p>
+</section>
+<section id="initial-tensor-preparation">
+<h2>Initial tensor preparation<a class="headerlink" href="#initial-tensor-preparation" title="Permalink to this heading"></a></h2>
+<p>Let us first declare some parameters for our calculation. We will focus on the 1-flavor <span class="math notranslate nohighlight">\(\mathbb{Z}_2\)</span> gauge theory for the sake of simplicitty of the demonstration.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="c1"># importing relevant libraries</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">sparse</span> <span class="k">as</span> <span class="nn">sp</span>
+<span class="kn">import</span> <span class="nn">sympy</span>
+<span class="kn">import</span> <span class="nn">grassmanntn</span> <span class="k">as</span> <span class="nn">gtn</span>
+<span class="kn">from</span> <span class="nn">grassmanntn</span> <span class="kn">import</span> <span class="n">arith</span>
+
+<span class="c1"># set up some parameters (you can change these parameters)</span>
+<span class="n">K</span>  <span class="o">=</span> <span class="mi">2</span>    <span class="c1"># Z_2 gauge theory</span>
+<span class="n">Nf</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># 1 flavors</span>
+<span class="n">β</span>  <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># the inverse coupling</span>
+<span class="n">m</span>  <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># dimensionless mass</span>
+<span class="n">μ</span>  <span class="o">=</span> <span class="mi">0</span>    <span class="c1"># dimensionless chemical potential</span>
+<span class="n">q</span>  <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># charge</span>
+
+<span class="n">gtn</span><span class="o">.</span><span class="n">progress_bar_enabled</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="c1"># set this to true to show the progress bar</span>
+<span class="c1"># otherwise you will have a blank screen most of the time</span>
+</pre></div>
+</div>
+<p>In the <span class="math notranslate nohighlight">\(\mathbb{Z}_K\)</span> gauge theory, the site tensor <span class="math notranslate nohighlight">\(\mathcal{T}^{(\alpha)}\)</span> is composed of 4 subtensors: a plaquette tensor <span class="math notranslate nohighlight">\(P^{(\alpha)}\)</span>, two link tensors <span class="math notranslate nohighlight">\(L^{(\alpha)}\)</span>, and a site tensor <span class="math notranslate nohighlight">\(\mathcal{S}^{(\alpha)}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}P^{(\alpha)}_{j_1j_2j_3j_4}&amp;=(2\pi/K)^{2/N_f}\exp\left[\frac{\beta}{N_f}\left\{\cos\left(\varphi^{(\alpha)}_{j_4}+\varphi^{(\alpha)}_{j_1}-\varphi^{(\alpha)}_{j_2}-\varphi^{(\alpha)}_{j_3}\right)-1\right\}\right],\\
+L^{(\alpha)}_{ijklm}&amp;=\delta_{mi}\delta_{mj}\delta_{mk}\delta_{ml},\\
+\mathcal{S}^{(\alpha)}&amp;=\int d\psi_x^{(\alpha)}d\bar\psi_x^{(\alpha)}
+\exp\left[
+   -\bar\psi^{(\alpha)}_{x}W^{(\alpha)}_{x}\psi^{(\alpha)}_{x}
+   -\sum_{\pm,\nu}\left\{
+   \bar\psi^{(\alpha)}_{x}\eta^{(\alpha)}_{x,\pm\nu}-\bar\eta^{(\alpha)}_{x\mp\hat\nu,\pm\nu}H^{(\alpha)}_{x\mp\hat\nu,\pm\nu}\psi^{(\alpha)}_{x}
+   \right\}
+   \right]\end{split}\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}W^{(\alpha)}_{x}&amp;=\tilde m_\alpha+2,\\
+H^{(\alpha)}_{x,+\nu}&amp;=-\frac{1}{2}(\mathbb{1}-\gamma_\nu)e^{+(\tilde\mu_\alpha\delta_{\nu,2}+iq_\alpha\varphi^{(\alpha)}_{x,\nu})},\\
+H^{(\alpha)}_{x,-\nu}&amp;=-\frac{1}{2}(\mathbb{1}+\gamma_\nu)e^{-(\tilde\mu_\alpha\delta_{\nu,2}+iq_\alpha\varphi^{(\alpha)}_{x-\hat\nu,\nu})}.\end{split}\]</div>
+<p>The site fermions <span class="math notranslate nohighlight">\(\psi^{(\alpha)}\)</span> and <span class="math notranslate nohighlight">\(\bar\psi^{(\alpha)}\)</span> are integrated out completely, leaving only the link fermions <span class="math notranslate nohighlight">\(\eta^{(\alpha)}\)</span> and <span class="math notranslate nohighlight">\(\bar\eta^{(\alpha)}\)</span>. The link fermions are then later rewritten as new fermions <span class="math notranslate nohighlight">\(\zeta\)</span> and <span class="math notranslate nohighlight">\(\bar\zeta\)</span> (which we will discuss later). See Figure 1-d in <a class="reference external" href="https://doi.org/10.1007/JHEP11(2023)187">JHEP11(2023)187</a> for the connection of these four tensors.</p>
+<p>Next we construct the plaquette tensor.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="c1"># ...</span>
+
+<span class="k">def</span> <span class="nf">P_tensor</span><span class="p">():</span>
+   <span class="c1"># this is the nodes of the group integral</span>
+   <span class="n">φ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span> <span class="p">[</span> <span class="n">i</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">K</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">)</span> <span class="p">]</span> <span class="p">)</span>
+
+   <span class="n">coeff</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">K</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mf">2.0</span><span class="o">/</span><span class="n">Nf</span><span class="p">)</span>
+   <span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+   <span class="k">for</span> <span class="n">j1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">j2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+         <span class="k">for</span> <span class="n">j3</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j4</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+               <span class="n">P</span><span class="p">[</span><span class="n">j1</span><span class="p">,</span><span class="n">j2</span><span class="p">,</span><span class="n">j3</span><span class="p">,</span><span class="n">j4</span><span class="p">]</span> <span class="o">=</span> <span class="n">coeff</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">β</span><span class="o">/</span><span class="n">Nf</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">φ</span><span class="p">[</span><span class="n">j4</span><span class="p">]</span><span class="o">+</span><span class="n">φ</span><span class="p">[</span><span class="n">j1</span><span class="p">]</span><span class="o">-</span><span class="n">φ</span><span class="p">[</span><span class="n">j2</span><span class="p">]</span><span class="o">-</span><span class="n">φ</span><span class="p">[</span><span class="n">j3</span><span class="p">])</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+   <span class="c1"># convert to the sparse tensor</span>
+   <span class="n">P</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sparse</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+   <span class="c1"># statistics=(0,0,0,0) means that P is a tensor with only bosonic indices</span>
+   <span class="k">return</span> <span class="n">P</span>
+</pre></div>
+</div>
+<p>We will come back to the link tensors later. For the site tensor, we have to perform the Berezin integral of the Boltzmann weight first before we can form the tensor. We will use the <a class="reference external" href="grassmanntn.arith/index.html">grassmann.arith</a> module for this. Let us first define some variables.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="c1"># ...</span>
+
+<span class="k">def</span> <span class="nf">S_tensor</span><span class="p">():</span>
+
+   <span class="c1"># site fermions (2-component spinors)</span>
+   <span class="n">ψ</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ψ_up&quot;</span><span class="p">,</span><span class="s2">&quot;ψ_down&quot;</span><span class="p">)</span>
+   <span class="n">ψbar</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ψbar_up&quot;</span><span class="p">,</span><span class="s2">&quot;ψbar_down&quot;</span><span class="p">)</span>
+
+   <span class="c1"># link fermions (2-component spinors)</span>
+   <span class="n">ηp1</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ηp1_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηp1_down&quot;</span><span class="p">)</span>            <span class="c1"># this is η_{x,+1}</span>
+   <span class="n">ηp2</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ηp2_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηp2_down&quot;</span><span class="p">)</span>            <span class="c1"># this is η_{x,+2}</span>
+   <span class="n">ηm1</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ηm1_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηm1_down&quot;</span><span class="p">)</span>            <span class="c1"># this is η_{x,-1}</span>
+   <span class="n">ηm2</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ηm2_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηm2_down&quot;</span><span class="p">)</span>            <span class="c1"># this is η_{x,-2}</span>
+   <span class="n">hp1</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;hp1_up&quot;</span><span class="p">,</span><span class="s2">&quot;hp1_down&quot;</span><span class="p">)</span>            <span class="c1"># this is \bar η_{x+1,-1}</span>
+   <span class="n">hp2</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;hp2_up&quot;</span><span class="p">,</span><span class="s2">&quot;hp2_down&quot;</span><span class="p">)</span>            <span class="c1"># this is \bar η_{x+2,-2}</span>
+   <span class="n">hm1</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;hm1_up&quot;</span><span class="p">,</span><span class="s2">&quot;hm1_down&quot;</span><span class="p">)</span>            <span class="c1"># this is \bar η_{x-1,+1}</span>
+   <span class="n">hm2</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;hm2_up&quot;</span><span class="p">,</span><span class="s2">&quot;hm2_down&quot;</span><span class="p">)</span>            <span class="c1"># this is \bar η_{x-2,+2}</span>
+
+   <span class="c1"># the integration measure</span>
+   <span class="n">dψ</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">d</span><span class="p">(</span><span class="n">ψ</span><span class="p">)</span>
+   <span class="n">dψbar</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">d</span><span class="p">(</span><span class="n">ψbar</span><span class="p">)</span>
+
+   <span class="c1"># the symbolic expression for the gauge fields</span>
+   <span class="n">φp1</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;φp1&quot;</span><span class="p">)</span>                          <span class="c1"># this is φ_{x,1}</span>
+   <span class="n">φp2</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;φp2&quot;</span><span class="p">)</span>                          <span class="c1"># this is φ_{x,2}</span>
+   <span class="n">φm1</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;φm1&quot;</span><span class="p">)</span>                          <span class="c1"># this is φ_{x-1,1}</span>
+   <span class="n">φm2</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;φm2&quot;</span><span class="p">)</span>                          <span class="c1"># this is φ_{x-1,2}</span>
+
+   <span class="c1"># the imaginary unit</span>
+   <span class="n">cI</span> <span class="o">=</span> <span class="nb">complex</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+
+   <span class="c1"># the Pauli matrices</span>
+   <span class="n">γ0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]])</span>                       <span class="c1"># this is the identity matrix</span>
+   <span class="n">γ1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]])</span>
+   <span class="n">γ2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="n">cI</span><span class="p">],[</span><span class="n">cI</span><span class="p">,</span><span class="mi">0</span><span class="p">]])</span>
+
+   <span class="c1"># the bilinear matrices</span>
+   <span class="n">W</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">γ0</span>
+   <span class="n">Hp1</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">γ0</span><span class="o">-</span><span class="n">γ1</span><span class="p">)</span><span class="o">*</span><span class="n">sympy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">cI</span><span class="o">*</span><span class="n">q</span><span class="o">*</span><span class="n">φm1</span><span class="p">)</span>
+   <span class="n">Hm1</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">γ0</span><span class="o">+</span><span class="n">γ1</span><span class="p">)</span><span class="o">*</span><span class="n">sympy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">cI</span><span class="o">*</span><span class="n">q</span><span class="o">*</span><span class="n">φp1</span><span class="p">)</span>
+   <span class="n">Hp2</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">γ0</span><span class="o">-</span><span class="n">γ2</span><span class="p">)</span><span class="o">*</span><span class="n">sympy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">μ</span><span class="o">+</span><span class="n">cI</span><span class="o">*</span><span class="n">q</span><span class="o">*</span><span class="n">φm2</span><span class="p">)</span>
+   <span class="n">Hm2</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">γ0</span><span class="o">+</span><span class="n">γ2</span><span class="p">)</span><span class="o">*</span><span class="n">sympy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">μ</span><span class="o">-</span><span class="n">cI</span><span class="o">*</span><span class="n">q</span><span class="o">*</span><span class="n">φp2</span><span class="p">)</span>
+
+   <span class="c1"># to be continued...</span>
+</pre></div>
+</div>
+<p>Next, we construct the Boltzmann weight and then integrate the site fermions.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="c1"># ...</span>
+
+<span class="k">def</span> <span class="nf">S_tensor</span><span class="p">():</span>
+
+   <span class="c1"># ...continued from above</span>
+
+   <span class="c1"># The @ symbol is the inner product</span>
+   <span class="n">f</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ψbar</span><span class="nd">@W@ψ</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ψbar</span><span class="nd">@ηp1</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ψbar</span><span class="nd">@ηp2</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ψbar</span><span class="nd">@ηm1</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ψbar</span><span class="nd">@ηm2</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">=</span> <span class="n">dψbar</span><span class="o">*</span><span class="n">f</span>   <span class="c1"># integrate the conjugated fermion first</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">hm1</span><span class="nd">@Hp1@ψ</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">hm2</span><span class="nd">@Hp2@ψ</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">hp1</span><span class="nd">@Hm1@ψ</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">hp2</span><span class="nd">@Hm2@ψ</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">=</span> <span class="n">dψ</span><span class="o">*</span><span class="n">f</span>      <span class="c1"># integrate the non-conjugated fermion</span>
+
+   <span class="c1"># to be continued...</span>
+</pre></div>
+</div>
+<p>Once we have integrated out the site fermions, we can extracted the coefficients for our site tensor.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="c1"># ...</span>
+
+<span class="k">def</span> <span class="nf">S_tensor</span><span class="p">():</span>
+
+   <span class="c1"># ...continued from above</span>
+
+   <span class="c1"># Extract the coefficient with this specific Grassmann basis</span>
+   <span class="n">S_coeff</span><span class="p">,</span> <span class="n">S_fcoord</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">get_coeff</span><span class="p">(</span><span class="n">basis</span><span class="o">=</span><span class="p">[</span>
+      <span class="s2">&quot;ηp1_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηp1_down&quot;</span><span class="p">,</span><span class="s2">&quot;hp1_up&quot;</span><span class="p">,</span><span class="s2">&quot;hp1_down&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;ηp2_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηp2_down&quot;</span><span class="p">,</span><span class="s2">&quot;hp2_up&quot;</span><span class="p">,</span><span class="s2">&quot;hp2_down&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;hm1_up&quot;</span><span class="p">,</span><span class="s2">&quot;hm1_down&quot;</span><span class="p">,</span><span class="s2">&quot;ηm1_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηm1_down&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;hm2_up&quot;</span><span class="p">,</span><span class="s2">&quot;hm2_down&quot;</span><span class="p">,</span><span class="s2">&quot;ηm2_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηm2_down&quot;</span>
+      <span class="p">])</span>
+
+   <span class="c1"># S_coeff contains the ordered list of the coefficient</span>
+   <span class="c1"># S_fcoord contains the ordered list of the fermion occupation numbers</span>
+   <span class="c1">#                                             (aka, the fermionic indices)</span>
+
+   <span class="c1"># Note that S_coeff is still symbolic, which we have to turn to numeric next.</span>
+
+   <span class="n">S</span> <span class="o">=</span> <span class="p">[]</span>                                <span class="c1"># this will store the numerical coefficients</span>
+   <span class="n">coords</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span> <span class="p">]</span>    <span class="c1"># this will store the fermionic indices</span>
+   <span class="n">i1</span> <span class="o">=</span> <span class="p">[];</span> <span class="n">i2</span> <span class="o">=</span> <span class="p">[];</span> <span class="n">i3</span> <span class="o">=</span> <span class="p">[];</span> <span class="n">i4</span> <span class="o">=</span> <span class="p">[];</span>   <span class="c1"># this will store the bosonic indices</span>
+
+   <span class="n">φ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span> <span class="p">[</span> <span class="n">i</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">K</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">)</span> <span class="p">]</span> <span class="p">)</span>  <span class="c1"># the nodes</span>
+   <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+
+               <span class="c1"># replace the symbols by the corresponding numerical values</span>
+               <span class="n">S_replaced</span> <span class="o">=</span> <span class="p">[</span> <span class="nb">complex</span><span class="p">(</span><span class="n">coeff</span><span class="o">.</span><span class="n">subs</span><span class="p">(</span>
+                  <span class="p">[(</span><span class="n">φp1</span><span class="p">,</span><span class="n">φ</span><span class="p">[</span><span class="n">i</span><span class="p">]),(</span><span class="n">φp2</span><span class="p">,</span><span class="n">φ</span><span class="p">[</span><span class="n">j</span><span class="p">]),(</span><span class="n">φm1</span><span class="p">,</span><span class="n">φ</span><span class="p">[</span><span class="n">k</span><span class="p">]),(</span><span class="n">φm2</span><span class="p">,</span><span class="n">φ</span><span class="p">[</span><span class="n">l</span><span class="p">])]</span>
+                  <span class="p">))</span> <span class="k">for</span> <span class="n">coeff</span> <span class="ow">in</span> <span class="n">S_coeff</span> <span class="p">]</span>
+               <span class="n">S</span> <span class="o">+=</span> <span class="n">S_replaced</span>
+
+               <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">S_replaced</span><span class="p">:</span>
+                  <span class="c1"># bosonic indices</span>
+                  <span class="n">i1</span><span class="o">+=</span><span class="p">[</span><span class="n">i</span><span class="p">];</span> <span class="n">i2</span><span class="o">+=</span><span class="p">[</span><span class="n">j</span><span class="p">];</span> <span class="n">i3</span><span class="o">+=</span><span class="p">[</span><span class="n">k</span><span class="p">];</span> <span class="n">i4</span><span class="o">+=</span><span class="p">[</span><span class="n">l</span><span class="p">]</span>
+
+               <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">coord_loc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">S_fcoord</span><span class="p">):</span>
+                  <span class="c1"># fermionic indices</span>
+                  <span class="n">coords</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">+=</span> <span class="n">coord_loc</span>
+
+   <span class="c1"># append the 4 bosonic indices with the 16 fermionic indices</span>
+   <span class="n">coords</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i1</span><span class="p">,</span><span class="n">i2</span><span class="p">,</span><span class="n">i3</span><span class="p">,</span><span class="n">i4</span><span class="p">]</span>
+   <span class="c1"># namely, each entrie of coords now contains 24 indices</span>
+
+   <span class="c1"># to be continued...</span>
+</pre></div>
+</div>
+<p>The list <cite>S</cite> now contains the list of numerical coefficients, with the corresponding entry in <cite>coords</cite> containing the fermionic and bosonic indices. We are now ready to construct the sparse Grassmann tensor.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="k">def</span> <span class="nf">S_tensor</span><span class="p">():</span>
+
+   <span class="c1"># ...continued from above</span>
+
+   <span class="c1"># convert the lists to the COO format (reusing the same symbol S)</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">COO</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">))</span>
+
+   <span class="c1"># convert the COO format to the sparse tensor format</span>
+   <span class="c1"># the statistic is +1 for η, -1 for \bar η, and 0 for bosons</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sparse</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+
+   <span class="c1"># join 4 η fermions into one ζ fermion according to [JHEP11(2023)187]</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">join_legs</span><span class="p">(</span><span class="s1">&#39;(i1 i2 i3 i4)(j1 j2 j3 j4)(k1 k2 k3 k4)(l1 l2 l3 l4)(i)(j)(k)(l)&#39;</span>
+                        <span class="p">,</span><span class="n">intermediate_stat</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">force_encoder</span><span class="p">(</span><span class="s1">&#39;canonical&#39;</span><span class="p">)</span>
+
+   <span class="k">return</span> <span class="n">S</span>
+</pre></div>
+</div>
+<p>In the final step, we merge some fermions for a more compacted representation (See eq. 2.22-2.25 in <a class="reference external" href="https://doi.org/10.1007/JHEP11(2023)187">JHEP11(2023)187</a>). The sign factor from the merging is applied automatically in this case.</p>
+<p>To test the result, temporarily add the following lines at the end of the file:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="c1"># ....</span>
+
+<span class="n">P</span> <span class="o">=</span> <span class="n">P_tensor</span><span class="p">()</span>
+<span class="n">S</span> <span class="o">=</span> <span class="n">S_tensor</span><span class="p">()</span>
+
+<span class="n">P</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;P&quot;</span><span class="p">)</span>
+<span class="n">S</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;S&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You should obtain the following result:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>      <span class="n">name</span><span class="p">:</span> <span class="n">P</span>
+<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">sparse</span>
+     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+   <span class="n">density</span><span class="p">:</span> <span class="mi">16</span> <span class="o">/</span> <span class="mi">16</span> <span class="o">~</span> <span class="mf">100.0</span> <span class="o">%</span>
+<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+   <span class="n">encoder</span><span class="p">:</span> <span class="n">canonical</span>
+    <span class="n">memory</span><span class="p">:</span> <span class="mi">704</span> <span class="n">B</span>
+      <span class="n">norm</span><span class="p">:</span> <span class="mf">28.169941536305828</span>
+
+
+      <span class="n">name</span><span class="p">:</span> <span class="n">S</span>
+<span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">sparse</span>
+     <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+   <span class="n">density</span><span class="p">:</span> <span class="mi">7184</span> <span class="o">/</span> <span class="mi">1048576</span> <span class="o">~</span> <span class="mf">0.68511962890625</span> <span class="o">%</span>
+<span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+   <span class="n">encoder</span><span class="p">:</span> <span class="n">canonical</span>
+    <span class="n">memory</span><span class="p">:</span> <span class="mf">561.3</span> <span class="n">KiB</span>
+      <span class="n">norm</span><span class="p">:</span> <span class="mf">96.02236005203834</span>
+</pre></div>
+</div>
+<section id="summarized-code">
+<h3>Summarized code<a class="headerlink" href="#summarized-code" title="Permalink to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="c1"># importing relevant libraries</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">sparse</span> <span class="k">as</span> <span class="nn">sp</span>
+<span class="kn">import</span> <span class="nn">sympy</span>
+<span class="kn">import</span> <span class="nn">grassmanntn</span> <span class="k">as</span> <span class="nn">gtn</span>
+<span class="kn">from</span> <span class="nn">grassmanntn</span> <span class="kn">import</span> <span class="n">arith</span>
+
+<span class="c1"># set up some parameters (you can change these parameters)</span>
+<span class="n">K</span>  <span class="o">=</span> <span class="mi">2</span>    <span class="c1"># Z_2 gauge theory</span>
+<span class="n">Nf</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># 1 flavors</span>
+<span class="n">β</span>  <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># the inverse coupling</span>
+<span class="n">m</span>  <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># dimensionless mass</span>
+<span class="n">μ</span>  <span class="o">=</span> <span class="mi">0</span>    <span class="c1"># dimensionless chemical potential</span>
+<span class="n">q</span>  <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># charge</span>
+
+<span class="n">gtn</span><span class="o">.</span><span class="n">progress_bar_enabled</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="c1"># set this to true to show the progress bar</span>
+<span class="c1"># otherwise you will have a blank screen most of the time</span>
+
+<span class="k">def</span> <span class="nf">P_tensor</span><span class="p">():</span>
+   <span class="c1"># this is the nodes of the group integral</span>
+   <span class="n">φ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span> <span class="p">[</span> <span class="n">i</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">K</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">)</span> <span class="p">]</span> <span class="p">)</span>
+
+   <span class="n">coeff</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">K</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mf">2.0</span><span class="o">/</span><span class="n">Nf</span><span class="p">)</span>
+   <span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+   <span class="k">for</span> <span class="n">j1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">j2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+         <span class="k">for</span> <span class="n">j3</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j4</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+               <span class="n">P</span><span class="p">[</span><span class="n">j1</span><span class="p">,</span><span class="n">j2</span><span class="p">,</span><span class="n">j3</span><span class="p">,</span><span class="n">j4</span><span class="p">]</span> <span class="o">=</span> <span class="n">coeff</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">β</span><span class="o">/</span><span class="n">Nf</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">φ</span><span class="p">[</span><span class="n">j4</span><span class="p">]</span><span class="o">+</span><span class="n">φ</span><span class="p">[</span><span class="n">j1</span><span class="p">]</span><span class="o">-</span><span class="n">φ</span><span class="p">[</span><span class="n">j2</span><span class="p">]</span><span class="o">-</span><span class="n">φ</span><span class="p">[</span><span class="n">j3</span><span class="p">])</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+   <span class="c1"># convert to the sparse tensor</span>
+   <span class="n">P</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sparse</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+   <span class="c1"># statistics=(0,0,0,0) means that P is a tensor with only bosonic indices</span>
+   <span class="k">return</span> <span class="n">P</span>
+
+<span class="k">def</span> <span class="nf">S_tensor</span><span class="p">():</span>
+
+   <span class="c1"># site fermions (2-component spinors)</span>
+   <span class="n">ψ</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ψ_up&quot;</span><span class="p">,</span><span class="s2">&quot;ψ_down&quot;</span><span class="p">)</span>
+   <span class="n">ψbar</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ψbar_up&quot;</span><span class="p">,</span><span class="s2">&quot;ψbar_down&quot;</span><span class="p">)</span>
+
+   <span class="c1"># link fermions (2-component spinors)</span>
+   <span class="n">ηp1</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ηp1_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηp1_down&quot;</span><span class="p">)</span>            <span class="c1"># this is η_{x,+1}</span>
+   <span class="n">ηp2</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ηp2_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηp2_down&quot;</span><span class="p">)</span>            <span class="c1"># this is η_{x,+2}</span>
+   <span class="n">ηm1</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ηm1_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηm1_down&quot;</span><span class="p">)</span>            <span class="c1"># this is η_{x,-1}</span>
+   <span class="n">ηm2</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;ηm2_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηm2_down&quot;</span><span class="p">)</span>            <span class="c1"># this is η_{x,-2}</span>
+   <span class="n">hp1</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;hp1_up&quot;</span><span class="p">,</span><span class="s2">&quot;hp1_down&quot;</span><span class="p">)</span>            <span class="c1"># this is \bar η_{x+1,-1}</span>
+   <span class="n">hp2</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;hp2_up&quot;</span><span class="p">,</span><span class="s2">&quot;hp2_down&quot;</span><span class="p">)</span>            <span class="c1"># this is \bar η_{x+2,-2}</span>
+   <span class="n">hm1</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;hm1_up&quot;</span><span class="p">,</span><span class="s2">&quot;hm1_down&quot;</span><span class="p">)</span>            <span class="c1"># this is \bar η_{x-1,+1}</span>
+   <span class="n">hm2</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">set_ac</span><span class="p">(</span><span class="s2">&quot;hm2_up&quot;</span><span class="p">,</span><span class="s2">&quot;hm2_down&quot;</span><span class="p">)</span>            <span class="c1"># this is \bar η_{x-2,+2}</span>
+
+   <span class="c1"># the integration measure</span>
+   <span class="n">dψ</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">d</span><span class="p">(</span><span class="n">ψ</span><span class="p">)</span>
+   <span class="n">dψbar</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">d</span><span class="p">(</span><span class="n">ψbar</span><span class="p">)</span>
+
+   <span class="c1"># the symbolic expression for the gauge fields</span>
+   <span class="n">φp1</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;φp1&quot;</span><span class="p">)</span>                          <span class="c1"># this is φ_{x,1}</span>
+   <span class="n">φp2</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;φp2&quot;</span><span class="p">)</span>                          <span class="c1"># this is φ_{x,2}</span>
+   <span class="n">φm1</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;φm1&quot;</span><span class="p">)</span>                          <span class="c1"># this is φ_{x-1,1}</span>
+   <span class="n">φm2</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Symbol</span><span class="p">(</span><span class="s2">&quot;φm2&quot;</span><span class="p">)</span>                          <span class="c1"># this is φ_{x-1,2}</span>
+
+   <span class="c1"># the imaginary unit</span>
+   <span class="n">cI</span> <span class="o">=</span> <span class="nb">complex</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+
+   <span class="c1"># the Pauli matrices</span>
+   <span class="n">γ0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]])</span>                       <span class="c1"># this is the identity matrix</span>
+   <span class="n">γ1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]])</span>
+   <span class="n">γ2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="n">cI</span><span class="p">],[</span><span class="n">cI</span><span class="p">,</span><span class="mi">0</span><span class="p">]])</span>
+
+   <span class="c1"># the bilinear matrices</span>
+   <span class="n">W</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">γ0</span>
+   <span class="n">Hp1</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">γ0</span><span class="o">-</span><span class="n">γ1</span><span class="p">)</span><span class="o">*</span><span class="n">sympy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">cI</span><span class="o">*</span><span class="n">q</span><span class="o">*</span><span class="n">φm1</span><span class="p">)</span>
+   <span class="n">Hm1</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">γ0</span><span class="o">+</span><span class="n">γ1</span><span class="p">)</span><span class="o">*</span><span class="n">sympy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">cI</span><span class="o">*</span><span class="n">q</span><span class="o">*</span><span class="n">φp1</span><span class="p">)</span>
+   <span class="n">Hp2</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">γ0</span><span class="o">-</span><span class="n">γ2</span><span class="p">)</span><span class="o">*</span><span class="n">sympy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">μ</span><span class="o">+</span><span class="n">cI</span><span class="o">*</span><span class="n">q</span><span class="o">*</span><span class="n">φm2</span><span class="p">)</span>
+   <span class="n">Hm2</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">γ0</span><span class="o">+</span><span class="n">γ2</span><span class="p">)</span><span class="o">*</span><span class="n">sympy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">μ</span><span class="o">-</span><span class="n">cI</span><span class="o">*</span><span class="n">q</span><span class="o">*</span><span class="n">φp2</span><span class="p">)</span>
+
+   <span class="c1"># The @ symbol is the inner product</span>
+   <span class="n">f</span> <span class="o">=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ψbar</span><span class="nd">@W@ψ</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ψbar</span><span class="nd">@ηp1</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ψbar</span><span class="nd">@ηp2</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ψbar</span><span class="nd">@ηm1</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ψbar</span><span class="nd">@ηm2</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">=</span> <span class="n">dψbar</span><span class="o">*</span><span class="n">f</span>   <span class="c1"># integrate the conjugated fermion first</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">hm1</span><span class="nd">@Hp1@ψ</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">hm2</span><span class="nd">@Hp2@ψ</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">hp1</span><span class="nd">@Hm1@ψ</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">*=</span> <span class="n">arith</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">hp2</span><span class="nd">@Hm2@ψ</span><span class="p">)</span>
+   <span class="n">f</span> <span class="o">=</span> <span class="n">dψ</span><span class="o">*</span><span class="n">f</span>      <span class="c1"># integrate the non-conjugated fermion</span>
+
+   <span class="c1"># Extract the coefficient with this specific Grassmann basis</span>
+   <span class="n">S_coeff</span><span class="p">,</span> <span class="n">S_fcoord</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">get_coeff</span><span class="p">(</span><span class="n">basis</span><span class="o">=</span><span class="p">[</span>
+      <span class="s2">&quot;ηp1_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηp1_down&quot;</span><span class="p">,</span><span class="s2">&quot;hp1_up&quot;</span><span class="p">,</span><span class="s2">&quot;hp1_down&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;ηp2_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηp2_down&quot;</span><span class="p">,</span><span class="s2">&quot;hp2_up&quot;</span><span class="p">,</span><span class="s2">&quot;hp2_down&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;hm1_up&quot;</span><span class="p">,</span><span class="s2">&quot;hm1_down&quot;</span><span class="p">,</span><span class="s2">&quot;ηm1_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηm1_down&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;hm2_up&quot;</span><span class="p">,</span><span class="s2">&quot;hm2_down&quot;</span><span class="p">,</span><span class="s2">&quot;ηm2_up&quot;</span><span class="p">,</span><span class="s2">&quot;ηm2_down&quot;</span>
+      <span class="p">])</span>
+
+   <span class="c1"># S_coeff contains the ordered list of the coefficient</span>
+   <span class="c1"># S_fcoord contains the ordered list of the fermion occupation numbers</span>
+   <span class="c1">#                                             (aka, the fermionic indices)</span>
+
+   <span class="c1"># Note that S_coeff is still symbolic, which we have to turn to numeric next.</span>
+
+   <span class="n">S</span> <span class="o">=</span> <span class="p">[]</span>                                <span class="c1"># this will store the numerical coefficients</span>
+   <span class="n">coords</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span> <span class="p">]</span>    <span class="c1"># this will store the fermionic indices</span>
+   <span class="n">i1</span> <span class="o">=</span> <span class="p">[];</span> <span class="n">i2</span> <span class="o">=</span> <span class="p">[];</span> <span class="n">i3</span> <span class="o">=</span> <span class="p">[];</span> <span class="n">i4</span> <span class="o">=</span> <span class="p">[];</span>   <span class="c1"># this will store the bosonic indices</span>
+
+   <span class="n">φ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span> <span class="p">[</span> <span class="n">i</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">K</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">)</span> <span class="p">]</span> <span class="p">)</span>  <span class="c1"># the nodes</span>
+   <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+
+               <span class="c1"># replace the symbols by the corresponding numerical values</span>
+               <span class="n">S_replaced</span> <span class="o">=</span> <span class="p">[</span> <span class="nb">complex</span><span class="p">(</span><span class="n">coeff</span><span class="o">.</span><span class="n">subs</span><span class="p">(</span>
+                  <span class="p">[(</span><span class="n">φp1</span><span class="p">,</span><span class="n">φ</span><span class="p">[</span><span class="n">i</span><span class="p">]),(</span><span class="n">φp2</span><span class="p">,</span><span class="n">φ</span><span class="p">[</span><span class="n">j</span><span class="p">]),(</span><span class="n">φm1</span><span class="p">,</span><span class="n">φ</span><span class="p">[</span><span class="n">k</span><span class="p">]),(</span><span class="n">φm2</span><span class="p">,</span><span class="n">φ</span><span class="p">[</span><span class="n">l</span><span class="p">])]</span>
+                  <span class="p">))</span> <span class="k">for</span> <span class="n">coeff</span> <span class="ow">in</span> <span class="n">S_coeff</span> <span class="p">]</span>
+               <span class="n">S</span> <span class="o">+=</span> <span class="n">S_replaced</span>
+
+               <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">S_replaced</span><span class="p">:</span>
+                  <span class="c1"># bosonic indices</span>
+                  <span class="n">i1</span><span class="o">+=</span><span class="p">[</span><span class="n">i</span><span class="p">];</span> <span class="n">i2</span><span class="o">+=</span><span class="p">[</span><span class="n">j</span><span class="p">];</span> <span class="n">i3</span><span class="o">+=</span><span class="p">[</span><span class="n">k</span><span class="p">];</span> <span class="n">i4</span><span class="o">+=</span><span class="p">[</span><span class="n">l</span><span class="p">]</span>
+
+               <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">coord_loc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">S_fcoord</span><span class="p">):</span>
+                  <span class="c1"># fermionic indices</span>
+                  <span class="n">coords</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">+=</span> <span class="n">coord_loc</span>
+
+   <span class="c1"># append the 4 bosonic indices with the 16 fermionic indices</span>
+   <span class="n">coords</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i1</span><span class="p">,</span><span class="n">i2</span><span class="p">,</span><span class="n">i3</span><span class="p">,</span><span class="n">i4</span><span class="p">]</span>
+   <span class="c1"># namely, each entrie of coords now contains 24 indices</span>
+
+   <span class="c1"># convert the lists to the COO format (reusing the same symbol S)</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">COO</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">))</span>
+
+   <span class="c1"># convert the COO format to the sparse tensor format</span>
+   <span class="c1"># the statistic is +1 for η, -1 for \bar η, and 0 for bosons</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sparse</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+
+   <span class="c1"># join 4 η fermions into one ζ fermion according to [JHEP11(2023)187]</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">join_legs</span><span class="p">(</span><span class="s1">&#39;(i1 i2 i3 i4)(j1 j2 j3 j4)(k1 k2 k3 k4)(l1 l2 l3 l4)(i)(j)(k)(l)&#39;</span>
+                        <span class="p">,</span><span class="n">intermediate_stat</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">force_encoder</span><span class="p">(</span><span class="s1">&#39;canonical&#39;</span><span class="p">)</span>
+
+   <span class="k">return</span> <span class="n">S</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="initial-tensor-compression">
+<h2>Initial tensor compression<a class="headerlink" href="#initial-tensor-compression" title="Permalink to this heading"></a></h2>
+<p>There are three steps of compressions: the compression on the <span class="math notranslate nohighlight">\(\mathcal{S}\)</span> tensor, the compression on the <span class="math notranslate nohighlight">\(L\)</span> tensor, and the compression on the whole tensor.</p>
+<p>For the <span class="math notranslate nohighlight">\(\mathcal{S}\)</span> tensor compression, we will do in two smaller steps: the compression of the fermionic indices (this is not presented in <a class="reference external" href="https://doi.org/10.1007/JHEP11(2023)187">JHEP11(2023)187</a> but it helps make the computation significantly faster) and the hybrid compression which merges the fermionic and the bosonic indices.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="c1"># ...</span>
+
+<span class="k">def</span> <span class="nf">S_fermionic_compression</span><span class="p">(</span><span class="n">S</span><span class="p">,</span><span class="n">cutoff</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
+
+   <span class="c1"># The compression of the fermionic indices based on Grassmann HOSVD</span>
+   <span class="c1"># 1. For each axis, we compute two Hermitian matrices based on</span>
+   <span class="c1">#    the legs in the positive and negative directions</span>
+   <span class="c1"># 2. The eigenspectrum of the two matrices are then compared</span>
+   <span class="c1"># 3. The unitary matrix from the Eigen decomposition with the fastest-</span>
+   <span class="c1">#    falling spectrum is used as the projector of the compression</span>
+
+   <span class="c1"># compression in the x axis -------------------------------------------</span>
+
+   <span class="n">Qp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl -&gt; JKLijkl I&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">)</span>              <span class="c1"># move +x leg (I) to the right</span>
+   <span class="n">cQp</span> <span class="o">=</span> <span class="n">Qp</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;abcdefg|x&quot;</span><span class="p">)</span>                        <span class="c1"># Hermitian conjugate</span>
+   <span class="n">Mp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;I abcdefg,abcdefg J -&gt; IJ&#39;</span><span class="p">,</span><span class="n">cQp</span><span class="p">,</span><span class="n">Qp</span><span class="p">)</span>     <span class="c1"># The Hermitian matrix</span>
+
+   <span class="n">Qm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl -&gt; K IJLijkl&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">)</span>              <span class="c1"># move -x leg (K) to the left</span>
+   <span class="n">cQm</span> <span class="o">=</span> <span class="n">Qm</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;x|abcdefg&quot;</span><span class="p">)</span>                        <span class="c1"># Hermitian conjugate</span>
+   <span class="n">Mm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;I abcdefg,abcdefg J -&gt; IJ&#39;</span><span class="p">,</span><span class="n">Qm</span><span class="p">,</span><span class="n">cQm</span><span class="p">)</span>     <span class="c1"># The Hermitian matrix</span>
+
+   <span class="c1"># Eigen decomposition</span>
+   <span class="n">Up</span><span class="p">,</span> <span class="n">Λp</span><span class="p">,</span> <span class="n">cUp</span> <span class="o">=</span> <span class="n">Mp</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;I|J&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+   <span class="n">Um</span><span class="p">,</span> <span class="n">Λm</span><span class="p">,</span> <span class="n">cUm</span> <span class="o">=</span> <span class="n">Mm</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;I|J&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+
+   <span class="c1"># Compare the spectrum</span>
+   <span class="k">if</span> <span class="n">Λp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">Λm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span>
+      <span class="n">U1</span> <span class="o">=</span> <span class="n">Up</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+      <span class="n">cU1</span> <span class="o">=</span> <span class="n">cUp</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+   <span class="k">else</span><span class="p">:</span>
+      <span class="n">U1</span> <span class="o">=</span> <span class="n">Um</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+      <span class="n">cU1</span> <span class="o">=</span> <span class="n">cUm</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+   <span class="c1"># Apply the projector on the legs</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IA,IJKLijkl-&gt;AJKLijkl&#39;</span><span class="p">,</span><span class="n">U1</span><span class="p">,</span><span class="n">S</span><span class="p">)</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;CK,AJKLijkl-&gt;AJCLijkl&#39;</span><span class="p">,</span><span class="n">cU1</span><span class="p">,</span><span class="n">S</span><span class="p">)</span>
+
+   <span class="c1"># compression in the y axis -------------------------------------------</span>
+
+   <span class="n">Qp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl -&gt; IKLijkl J&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">)</span>              <span class="c1"># move +y leg (J) to the right</span>
+   <span class="n">cQp</span> <span class="o">=</span> <span class="n">Qp</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;abcdefg|x&quot;</span><span class="p">)</span>                        <span class="c1"># Hermitian conjugate</span>
+   <span class="n">Mp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;I abcdefg,abcdefg J -&gt; IJ&#39;</span><span class="p">,</span><span class="n">cQp</span><span class="p">,</span><span class="n">Qp</span><span class="p">)</span>     <span class="c1"># The Hermitian matrix</span>
+
+   <span class="n">Qm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl -&gt; L IJKijkl&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">)</span>              <span class="c1"># move -y leg (L) to the left</span>
+   <span class="n">cQm</span> <span class="o">=</span> <span class="n">Qm</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;x|abcdefg&quot;</span><span class="p">)</span>                        <span class="c1"># Hermitian conjugate</span>
+   <span class="n">Mm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;I abcdefg,abcdefg J -&gt; IJ&#39;</span><span class="p">,</span><span class="n">Qm</span><span class="p">,</span><span class="n">cQm</span><span class="p">)</span>     <span class="c1"># The Hermitian matrix</span>
+
+   <span class="c1"># Eigen decomposition</span>
+   <span class="n">Up</span><span class="p">,</span> <span class="n">Λp</span><span class="p">,</span> <span class="n">cUp</span> <span class="o">=</span> <span class="n">Mp</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;I|J&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+   <span class="n">Um</span><span class="p">,</span> <span class="n">Λm</span><span class="p">,</span> <span class="n">cUm</span> <span class="o">=</span> <span class="n">Mm</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;I|J&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+
+   <span class="c1"># Compare the spectrum</span>
+   <span class="k">if</span> <span class="n">Λp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">Λm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span>
+      <span class="n">U2</span> <span class="o">=</span> <span class="n">Up</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+      <span class="n">cU2</span> <span class="o">=</span> <span class="n">cUp</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+   <span class="k">else</span><span class="p">:</span>
+      <span class="n">U2</span> <span class="o">=</span> <span class="n">Um</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+      <span class="n">cU2</span> <span class="o">=</span> <span class="n">cUm</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+   <span class="c1"># Apply the projector on the legs</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;JB,AJCLijkl-&gt;ABCLijkl&#39;</span><span class="p">,</span><span class="n">U2</span><span class="p">,</span><span class="n">S</span><span class="p">)</span>
+   <span class="n">S</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;DL,ABCLijkl-&gt;ABCDijkl&#39;</span><span class="p">,</span><span class="n">cU2</span><span class="p">,</span><span class="n">S</span><span class="p">)</span>
+
+   <span class="k">return</span> <span class="n">S</span>
+
+<span class="k">def</span> <span class="nf">S_hybrid_compression</span><span class="p">(</span><span class="n">S</span><span class="p">,</span><span class="n">cutoff</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
+
+   <span class="c1"># The same as the fermionic compression</span>
+   <span class="c1"># except that the four directions must be done separately</span>
+   <span class="c1"># See JHEP11(2023)187 for more details.</span>
+
+   <span class="c1"># constructing the Kronecker delta</span>
+   <span class="n">δ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+   <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+      <span class="n">δ</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+   <span class="n">δ</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sparse</span><span class="p">(</span><span class="n">δ</span><span class="p">,</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+
+   <span class="c1"># μ = 1 ===========================================================================</span>
+
+   <span class="n">Qp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl,km -&gt; JKLjklm Ii&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">δ</span><span class="p">)</span>
+   <span class="n">cQp</span> <span class="o">=</span> <span class="n">Qp</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;JKLjklm|Ii&quot;</span><span class="p">)</span>
+   <span class="n">Mp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdefg,abcdefg Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">cQp</span><span class="p">,</span><span class="n">Qp</span><span class="p">)</span>
+
+   <span class="n">Qm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl,km -&gt; Kk IJLijlm&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">δ</span><span class="p">)</span>
+   <span class="n">cQm</span> <span class="o">=</span> <span class="n">Qm</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;Kk|IJLijlm&quot;</span><span class="p">)</span>
+   <span class="n">Mm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdefg,abcdefg Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">Qm</span><span class="p">,</span><span class="n">cQm</span><span class="p">)</span>
+
+   <span class="n">Up</span><span class="p">,</span> <span class="n">Λp</span><span class="p">,</span> <span class="n">cUp</span> <span class="o">=</span> <span class="n">Mp</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+   <span class="n">Um</span><span class="p">,</span> <span class="n">Λm</span><span class="p">,</span> <span class="n">cUm</span> <span class="o">=</span> <span class="n">Mm</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+
+   <span class="k">if</span> <span class="n">Λp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">Λm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span>
+      <span class="n">U1</span> <span class="o">=</span> <span class="n">Up</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+   <span class="k">else</span><span class="p">:</span>
+      <span class="n">U1</span> <span class="o">=</span> <span class="n">Um</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+   <span class="n">S_compressed</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl,IiA-&gt;AJKLjkl&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">U1</span><span class="p">)</span>
+
+   <span class="c1"># μ = 2 ===========================================================================</span>
+
+   <span class="n">Qp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl,lm -&gt; IKLiklm Jj&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">δ</span><span class="p">)</span>
+   <span class="n">cQp</span> <span class="o">=</span> <span class="n">Qp</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;JKLjklm|Ii&quot;</span><span class="p">)</span>
+   <span class="n">Mp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdefg,abcdefg Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">cQp</span><span class="p">,</span><span class="n">Qp</span><span class="p">)</span>
+
+   <span class="n">Qm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl,lm -&gt; Ll IJKijkm&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">δ</span><span class="p">)</span>
+   <span class="n">cQm</span> <span class="o">=</span> <span class="n">Qm</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;Kk|IJLijlm&quot;</span><span class="p">)</span>
+   <span class="n">Mm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdefg,abcdefg Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">Qm</span><span class="p">,</span><span class="n">cQm</span><span class="p">)</span>
+
+   <span class="n">Up</span><span class="p">,</span> <span class="n">Λp</span><span class="p">,</span> <span class="n">cUp</span> <span class="o">=</span> <span class="n">Mp</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+   <span class="n">Um</span><span class="p">,</span> <span class="n">Λm</span><span class="p">,</span> <span class="n">cUm</span> <span class="o">=</span> <span class="n">Mm</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+
+   <span class="k">if</span> <span class="n">Λp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">Λm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span>
+      <span class="n">U2</span> <span class="o">=</span> <span class="n">Up</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+   <span class="k">else</span><span class="p">:</span>
+      <span class="n">U2</span> <span class="o">=</span> <span class="n">Um</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+   <span class="n">S_compressed</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;AJKLjkl,JjB-&gt;ABKLkl&#39;</span><span class="p">,</span><span class="n">S_compressed</span><span class="p">,</span><span class="n">U2</span><span class="p">)</span>
+
+   <span class="c1"># μ = 3 ===========================================================================</span>
+
+   <span class="n">Qp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl,im -&gt; JKLjklm Ii&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">δ</span><span class="p">)</span>
+   <span class="n">cQp</span> <span class="o">=</span> <span class="n">Qp</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;JKLjklm|Ii&quot;</span><span class="p">)</span>
+   <span class="n">Mp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdefg,abcdefg Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">cQp</span><span class="p">,</span><span class="n">Qp</span><span class="p">)</span>
+
+   <span class="n">Qm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl,im -&gt; Kk IJLijlm&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">δ</span><span class="p">)</span>
+   <span class="n">cQm</span> <span class="o">=</span> <span class="n">Qm</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;Kk|IJLijlm&quot;</span><span class="p">)</span>
+   <span class="n">Mm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdefg,abcdefg Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">Qm</span><span class="p">,</span><span class="n">cQm</span><span class="p">)</span>
+
+   <span class="n">Up</span><span class="p">,</span> <span class="n">Λp</span><span class="p">,</span> <span class="n">cUp</span> <span class="o">=</span> <span class="n">Mp</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+   <span class="n">Um</span><span class="p">,</span> <span class="n">Λm</span><span class="p">,</span> <span class="n">cUm</span> <span class="o">=</span> <span class="n">Mm</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+
+   <span class="k">if</span> <span class="n">Λp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">Λm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span>
+      <span class="n">U3</span> <span class="o">=</span> <span class="n">Up</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+   <span class="k">else</span><span class="p">:</span>
+      <span class="n">U3</span> <span class="o">=</span> <span class="n">Um</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+   <span class="n">S_compressed</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ABKLkl,CKk-&gt;ABCLl&#39;</span><span class="p">,</span><span class="n">S_compressed</span><span class="p">,</span><span class="n">U3</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;ij|k&#39;</span><span class="p">))</span>
+
+   <span class="c1"># μ = 4 ===========================================================================</span>
+
+   <span class="n">Qp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl,jm -&gt; IKLiklm Jj&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">δ</span><span class="p">)</span>
+   <span class="n">cQp</span> <span class="o">=</span> <span class="n">Qp</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;JKLjklm|Ii&quot;</span><span class="p">)</span>
+   <span class="n">Mp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdefg,abcdefg Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">cQp</span><span class="p">,</span><span class="n">Qp</span><span class="p">)</span>
+
+   <span class="n">Qm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijkl,jm -&gt; Ll IJKijkm&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">δ</span><span class="p">)</span>
+   <span class="n">cQm</span> <span class="o">=</span> <span class="n">Qm</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s2">&quot;Kk|IJLijlm&quot;</span><span class="p">)</span>
+   <span class="n">Mm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdefg,abcdefg Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">Qm</span><span class="p">,</span><span class="n">cQm</span><span class="p">)</span>
+
+   <span class="n">Up</span><span class="p">,</span> <span class="n">Λp</span><span class="p">,</span> <span class="n">cUp</span> <span class="o">=</span> <span class="n">Mp</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+   <span class="n">Um</span><span class="p">,</span> <span class="n">Λm</span><span class="p">,</span> <span class="n">cUm</span> <span class="o">=</span> <span class="n">Mm</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+
+   <span class="k">if</span> <span class="n">Λp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">Λm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span>
+      <span class="n">U4</span> <span class="o">=</span> <span class="n">Up</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+   <span class="k">else</span><span class="p">:</span>
+      <span class="n">U4</span> <span class="o">=</span> <span class="n">Um</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+   <span class="n">S_compressed</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ABCLl,DLl-&gt;ABCD&#39;</span><span class="p">,</span><span class="n">S_compressed</span><span class="p">,</span><span class="n">U4</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;ij|k&#39;</span><span class="p">))</span>
+
+   <span class="k">return</span> <span class="n">S_compressed</span><span class="p">,</span> <span class="p">[</span><span class="n">U1</span><span class="p">,</span><span class="n">U2</span><span class="p">,</span><span class="n">U3</span><span class="p">,</span><span class="n">U4</span><span class="p">]</span> <span class="c1"># The function also returns the 4 unitary matrices</span>
+</pre></div>
+</div>
+<p>We can check the correctness of the first compression by computing the trace of the <span class="math notranslate nohighlight">\(\mathcal{S}\)</span> tensor before and after the compression.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Before compression:&quot;</span><span class="p">,</span><span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJIJijij&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">))</span>
+<span class="n">S</span> <span class="o">=</span> <span class="n">S_fermionic_compression</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot; After compression:&quot;</span><span class="p">,</span><span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJIJijij&#39;</span><span class="p">,</span><span class="n">S</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>which should give the following result (the round-off errors might be different):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Before</span> <span class="n">compression</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mi">44</span><span class="o">+</span><span class="mf">1.2835480080359484e-15</span><span class="n">j</span><span class="p">)</span>
+ <span class="n">After</span> <span class="n">compression</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mi">44</span><span class="o">+</span><span class="mf">1.1622647289044558e-16</span><span class="n">j</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Next, we perform the compression on the <span class="math notranslate nohighlight">\(L\)</span> tensors using the projectors obtained from the hybrid compression of the <span class="math notranslate nohighlight">\(\mathcal{S}\)</span> tensor:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="c1"># ...</span>
+
+<span class="k">def</span> <span class="nf">L_compression</span><span class="p">(</span><span class="n">U1</span><span class="p">,</span><span class="n">U2</span><span class="p">,</span><span class="n">U3</span><span class="p">,</span><span class="n">U4</span><span class="p">):</span>
+
+   <span class="n">Lx</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;KXj,XjI-&gt;KIj&#39;</span><span class="p">,</span><span class="n">U1</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;ij|k&#39;</span><span class="p">),</span><span class="n">U3</span><span class="p">)</span>
+   <span class="n">Ly</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;LYj,YjJ-&gt;LJj&#39;</span><span class="p">,</span><span class="n">U2</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;ij|k&#39;</span><span class="p">),</span><span class="n">U4</span><span class="p">)</span>
+
+   <span class="c1"># Although the L tensors should have 5 legs (See figure 2-c in [JHEP11(2023)187]),</span>
+   <span class="c1"># the three bosonic legs always take the same value (because of the Kronecker δ).</span>
+   <span class="c1"># Therefore, we only have one bosonic leg (j) for simplicity</span>
+
+   <span class="k">return</span> <span class="n">Lx</span><span class="p">,</span><span class="n">Ly</span>
+</pre></div>
+</div>
+<p>Finally, we perform the compression of the whole tensor:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="c1"># ...</span>
+
+<span class="k">def</span> <span class="nf">full_compression</span><span class="p">(</span><span class="n">P</span><span class="p">,</span><span class="n">Lx</span><span class="p">,</span><span class="n">Ly</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">cutoff</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
+
+   <span class="c1"># First, construct the full tensor ================================================</span>
+
+   <span class="c1"># the Kronecker delta</span>
+   <span class="n">δ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+   <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+      <span class="n">δ</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+   <span class="n">δ</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sparse</span><span class="p">(</span><span class="n">δ</span><span class="p">,</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+
+   <span class="c1"># Attach the L tensors to P</span>
+   <span class="n">P</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijkl,KIl,LJk,km,ln-&gt;IJKLijklmn&#39;</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">Lx</span><span class="p">,</span><span class="n">Ly</span><span class="p">,</span><span class="n">δ</span><span class="p">,</span><span class="n">δ</span><span class="p">)</span>
+   <span class="n">T</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJXYijklmn,XYKL-&gt;IJKLijklmn&#39;</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">S</span><span class="p">)</span>
+
+   <span class="c1"># x direction =====================================================================</span>
+
+   <span class="n">Txp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijklmn -&gt; JKLjklmn Ii&#39;</span><span class="p">,</span><span class="n">T</span><span class="p">)</span>
+   <span class="n">Txm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijklmn -&gt; Kk IJLijlmn&#39;</span><span class="p">,</span><span class="n">T</span><span class="p">)</span>
+
+   <span class="n">cTxp</span> <span class="o">=</span> <span class="n">Txp</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;abcdefgh|xy&#39;</span><span class="p">)</span>
+   <span class="n">cTxm</span> <span class="o">=</span> <span class="n">Txm</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;xy|abcdefgh&#39;</span><span class="p">)</span>
+
+   <span class="n">Mp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdefgh, abcdefgh Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">cTxp</span><span class="p">,</span><span class="n">Txp</span><span class="p">)</span>
+   <span class="n">Mm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdefgh, abcdefgh Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">Txm</span><span class="p">,</span><span class="n">cTxm</span><span class="p">)</span>
+
+   <span class="n">Up</span><span class="p">,</span> <span class="n">Λp</span><span class="p">,</span> <span class="n">cUp</span> <span class="o">=</span> <span class="n">Mp</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+   <span class="n">Um</span><span class="p">,</span> <span class="n">Λm</span><span class="p">,</span> <span class="n">cUm</span> <span class="o">=</span> <span class="n">Mm</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+
+   <span class="k">if</span> <span class="n">Λp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">Λm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span>
+      <span class="n">U</span> <span class="o">=</span> <span class="n">Up</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+   <span class="k">else</span><span class="p">:</span>
+      <span class="n">U</span> <span class="o">=</span> <span class="n">Um</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+   <span class="n">Tfin</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IJKLijklmn,IiA,CKk-&gt;ACJLjlmn&#39;</span><span class="p">,</span><span class="n">T</span><span class="p">,</span><span class="n">U</span><span class="p">,</span><span class="n">U</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;ij|k&#39;</span><span class="p">))</span>
+
+   <span class="c1"># y direction =====================================================================</span>
+
+   <span class="n">Typ</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IKJLjlmn -&gt; IKLlmn Jj&#39;</span><span class="p">,</span><span class="n">Tfin</span><span class="p">)</span>
+   <span class="n">Tym</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;IKJLjlmn -&gt; Ll IKJjmn&#39;</span><span class="p">,</span><span class="n">Tfin</span><span class="p">)</span>
+
+   <span class="n">cTyp</span> <span class="o">=</span> <span class="n">Typ</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;abcdef|xy&#39;</span><span class="p">)</span>
+   <span class="n">cTym</span> <span class="o">=</span> <span class="n">Tym</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;xy|abcdef&#39;</span><span class="p">)</span>
+
+   <span class="n">Mp</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdef, abcdef Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">cTyp</span><span class="p">,</span><span class="n">Typ</span><span class="p">)</span>
+   <span class="n">Mm</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;Ii abcdef, abcdef Jj -&gt; IiJj&#39;</span><span class="p">,</span><span class="n">Tym</span><span class="p">,</span><span class="n">cTym</span><span class="p">)</span>
+
+   <span class="n">Up</span><span class="p">,</span> <span class="n">Λp</span><span class="p">,</span> <span class="n">cUp</span> <span class="o">=</span> <span class="n">Mp</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+   <span class="n">Um</span><span class="p">,</span> <span class="n">Λm</span><span class="p">,</span> <span class="n">cUm</span> <span class="o">=</span> <span class="n">Mm</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="s2">&quot;Ii|Jj&quot;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)</span>
+
+   <span class="k">if</span> <span class="n">Λp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">Λm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span>
+      <span class="n">U</span> <span class="o">=</span> <span class="n">Up</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+   <span class="k">else</span><span class="p">:</span>
+      <span class="n">U</span> <span class="o">=</span> <span class="n">Um</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+   <span class="n">Tfin</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ACJLjlmn,JjB,DLl-&gt;ABCDmn&#39;</span><span class="p">,</span><span class="n">Tfin</span><span class="p">,</span><span class="n">U</span><span class="p">,</span><span class="n">U</span><span class="o">.</span><span class="n">hconjugate</span><span class="p">(</span><span class="s1">&#39;ij|k&#39;</span><span class="p">))</span>
+
+   <span class="k">return</span> <span class="n">Tfin</span>
+</pre></div>
+</div>
+<p>To test the correctness of the whole compression, we can compare the trace of the tensor before and after the compression:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">P</span> <span class="o">=</span> <span class="n">P_tensor</span><span class="p">()</span>
+<span class="n">S</span> <span class="o">=</span> <span class="n">S_tensor</span><span class="p">()</span>
+
+<span class="c1"># this is the trace of the whole tensor before the compression</span>
+<span class="n">trace1</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;IJIJijij,jiji&quot;</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">P</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Before compression:&quot;</span><span class="p">,</span> <span class="n">trace1</span><span class="p">)</span>
+
+<span class="c1"># now we perform the 4 steps of the compression</span>
+<span class="n">S</span> <span class="o">=</span> <span class="n">S_fermionic_compression</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="n">S</span><span class="p">,[</span><span class="n">U1</span><span class="p">,</span><span class="n">U2</span><span class="p">,</span><span class="n">U3</span><span class="p">,</span><span class="n">U4</span><span class="p">]</span> <span class="o">=</span> <span class="n">S_hybrid_compression</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="n">Lx</span><span class="p">,</span><span class="n">Ly</span> <span class="o">=</span> <span class="n">L_compression</span><span class="p">(</span><span class="n">U1</span><span class="p">,</span><span class="n">U2</span><span class="p">,</span><span class="n">U3</span><span class="p">,</span><span class="n">U4</span><span class="p">)</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">full_compression</span><span class="p">(</span><span class="n">P</span><span class="p">,</span><span class="n">Lx</span><span class="p">,</span><span class="n">Ly</span><span class="p">,</span><span class="n">S</span><span class="p">)</span>
+
+<span class="c1"># this capper tensor is used for tracing out the last two flavor indices</span>
+<span class="n">capper</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sparse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">),</span><span class="mi">1</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+
+<span class="n">trace2</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;IJIJij,ij&quot;</span><span class="p">,</span><span class="n">T</span><span class="p">,</span><span class="n">capper</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot; After compression:&quot;</span><span class="p">,</span> <span class="n">trace2</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The information of the compressed initial tensor:&quot;</span><span class="p">)</span>
+<span class="n">T</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This should give the following results:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Before</span> <span class="n">compression</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">434.2625936479318</span><span class="o">+</span><span class="mf">1.4859603479127313e-14</span><span class="n">j</span><span class="p">)</span>
+ <span class="n">After</span> <span class="n">compression</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">434.262593647931</span><span class="o">+</span><span class="mf">1.6944263844972144e-14</span><span class="n">j</span><span class="p">)</span>
+<span class="n">The</span> <span class="n">information</span> <span class="n">of</span> <span class="n">the</span> <span class="n">compressed</span> <span class="n">initial</span> <span class="n">tensor</span><span class="p">:</span>
+
+  <span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">sparse</span>
+       <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+     <span class="n">density</span><span class="p">:</span> <span class="mi">8192</span> <span class="o">/</span> <span class="mi">16384</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
+  <span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+     <span class="n">encoder</span><span class="p">:</span> <span class="n">canonical</span>
+      <span class="n">memory</span><span class="p">:</span> <span class="mf">512.1</span> <span class="n">KiB</span>
+        <span class="n">norm</span><span class="p">:</span> <span class="mf">480.16044257863484</span>
+</pre></div>
+</div>
+</section>
+<section id="coarse-graining-procedures">
+<h2>Coarse-graining procedures<a class="headerlink" href="#coarse-graining-procedures" title="Permalink to this heading"></a></h2>
+<p>In case of multiple flavors, we need to perform two kinds of coarse-graining procudures: the space-time and the flavor coarse graining. However, since we focus on only one flavor, we will skip the flavor coarse graining and only demonstrate how to write the code for the space-time coarse graining.</p>
+<p>To be specific, we are writing the Levin-Nave TRG algorithm, which acts on a four-legged tensor whose 1st and 3rd leg are connected periodically, as wel as the 2nd and the 4th leg. The tensor obtained from the compression has 6 legs. The last two legs are associated with the flavor direction, which can be readily traced out with the capper in case of one flavor. In other words, we define the two dimensional tensor</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">capper</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sparse</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">K</span><span class="p">,</span><span class="n">K</span><span class="p">),</span><span class="mi">1</span><span class="p">),</span><span class="n">statistics</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;IJKLij,ij-&gt;IJKL&quot;</span><span class="p">,</span><span class="n">T</span><span class="p">,</span><span class="n">capper</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>which now has 4 legs.</p>
+<p>The TRG algorithm is as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- main.py ----</span>
+
+<span class="c1"># ...</span>
+
+<span class="k">def</span> <span class="nf">trg</span><span class="p">(</span><span class="n">T</span><span class="p">,</span><span class="n">dcut</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
+   <span class="c1"># mandatory properties of T:</span>
+   <span class="c1">#    - shape = (nx,ny,nx,ny)</span>
+   <span class="c1">#    - statistics = (1,1,-1,-1)</span>
+
+   <span class="k">if</span> <span class="p">[</span><span class="n">T</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">T</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">!=</span> <span class="p">[</span><span class="n">T</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">T</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]]</span> <span class="p">:</span>
+      <span class="n">gtn</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Error[trg]: The shape must be of the form (m,n,m,n)!&quot;</span><span class="p">)</span>
+
+   <span class="k">if</span> <span class="n">gtn</span><span class="o">.</span><span class="n">make_list</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">statistics</span><span class="p">)</span> <span class="o">!=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="p">:</span>
+      <span class="n">gtn</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Error[trg]: The statistics must be (1,1,-1,-1)!&quot;</span><span class="p">)</span>
+
+   <span class="c1">#===============================================================================#</span>
+   <span class="c1">#   Step 1: Rearrange the tensor legs in two ways                               #</span>
+   <span class="c1">#===============================================================================#</span>
+
+   <span class="n">T1</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijkl-&gt;jkli&#39;</span><span class="p">,</span><span class="n">T</span><span class="p">)</span>
+   <span class="n">T2</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijkl-&gt;klij&#39;</span><span class="p">,</span><span class="n">T</span><span class="p">)</span>
+
+   <span class="n">U1</span><span class="p">,</span><span class="n">S1</span><span class="p">,</span><span class="n">V1</span> <span class="o">=</span> <span class="n">T1</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="s1">&#39;ab|cd&#39;</span><span class="p">,</span><span class="n">dcut</span><span class="p">)</span>
+   <span class="n">U2</span><span class="p">,</span><span class="n">S2</span><span class="p">,</span><span class="n">V2</span> <span class="o">=</span> <span class="n">T2</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="s1">&#39;ab|cd&#39;</span><span class="p">,</span><span class="n">dcut</span><span class="p">)</span>
+
+   <span class="c1">#</span>
+   <span class="c1">#                             j                                     j</span>
+   <span class="c1">#                             ↑                                     ↑</span>
+   <span class="c1">#        j                    ↑                                     ↑</span>
+   <span class="c1">#        ↑              k → →(U1)                                 (V2)→ → i</span>
+   <span class="c1">#        ↑                      ↘                                 ↗</span>
+   <span class="c1">#  k → →(T)→ → i    =             ↘              =              ↗</span>
+   <span class="c1">#        ↑                          ↘                         ↗</span>
+   <span class="c1">#        ↑                          (V1)→ → i         k → →(U2)</span>
+   <span class="c1">#        l                            ↑                     ↑</span>
+   <span class="c1">#                                     ↑                     ↑</span>
+   <span class="c1">#                                     l                     l</span>
+   <span class="c1">#</span>
+
+   <span class="c1">#===============================================================================#</span>
+   <span class="c1">#   Step 2: Multiply sqrt(S) into U and V                                       #</span>
+   <span class="c1">#===============================================================================#</span>
+
+   <span class="n">sqrtS</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">S1</span><span class="p">)</span>
+   <span class="n">U1</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;abx,xc-&gt;abc&#39;</span><span class="p">,</span><span class="n">U1</span><span class="p">,</span><span class="n">sqrtS</span><span class="p">)</span>
+   <span class="n">V1</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ax,xbc-&gt;abc&#39;</span><span class="p">,</span><span class="n">sqrtS</span><span class="p">,</span><span class="n">V1</span><span class="p">)</span>
+
+   <span class="n">sqrtS</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">S2</span><span class="p">)</span>
+   <span class="n">U2</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;abx,xc-&gt;abc&#39;</span><span class="p">,</span><span class="n">U2</span><span class="p">,</span><span class="n">sqrtS</span><span class="p">)</span>
+   <span class="n">V2</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ax,xbc-&gt;abc&#39;</span><span class="p">,</span><span class="n">sqrtS</span><span class="p">,</span><span class="n">V2</span><span class="p">)</span>
+
+   <span class="c1">#===============================================================================#</span>
+   <span class="c1">#   Step 3: Renormalization                                                     #</span>
+   <span class="c1">#===============================================================================#</span>
+
+   <span class="c1">#</span>
+   <span class="c1">#      k                       j</span>
+   <span class="c1">#        ↘                   ↗</span>
+   <span class="c1">#          ↘               ↗</span>
+   <span class="c1">#          (V1)→ → z → →(U2)</span>
+   <span class="c1">#            ↑           ↑</span>
+   <span class="c1">#            ↑           ↑</span>
+   <span class="c1">#            w           y</span>
+   <span class="c1">#            ↑           ↑</span>
+   <span class="c1">#            ↑           ↑</span>
+   <span class="c1">#          (V2)→ → x → →(U1)</span>
+   <span class="c1">#          ↗               ↘</span>
+   <span class="c1">#        ↗                   ↘</span>
+   <span class="c1">#      l                       i</span>
+   <span class="c1">#</span>
+
+   <span class="n">VV</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;kwz,lxw-&gt;lxzk&#39;</span><span class="p">,</span><span class="n">V1</span><span class="p">,</span><span class="n">V2</span><span class="p">);</span>
+   <span class="n">UU</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;yxi,zyj-&gt;jzxi&#39;</span><span class="p">,</span><span class="n">U1</span><span class="p">,</span><span class="n">U2</span><span class="p">);</span>
+   <span class="n">T2</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;lxzk,jzxi-&gt;ijkl&#39;</span><span class="p">,</span><span class="n">VV</span><span class="p">,</span><span class="n">UU</span><span class="p">);</span>
+
+   <span class="n">Tnorm</span> <span class="o">=</span> <span class="n">T2</span><span class="o">.</span><span class="n">norm</span>
+   <span class="n">T2</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">T2</span><span class="o">.</span><span class="n">data</span><span class="o">/</span><span class="n">Tnorm</span>
+
+   <span class="c1"># return the normalized tensor and its norm separately</span>
+   <span class="k">return</span> <span class="n">T2</span><span class="p">,</span> <span class="n">Tnorm</span>
+</pre></div>
+</div>
+<p>This algorithm works for all tensor formats (<a class="reference external" href="grassmanntn/densesparse.html">dense</a>, <a class="reference external" href="grassmanntn/densesparse.html">sparse</a>, or the newly-added <a class="reference external" href="grassmanntn/block.html">block</a> format).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># prepare three formats of the same tensor</span>
+<span class="n">T_dense</span>  <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">dense</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<span class="n">T_sparse</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">T_block</span>  <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+
+<span class="c1"># input the three format into the same TRG function</span>
+<span class="n">T_dense</span><span class="p">,</span> <span class="n">Norm_dense</span>   <span class="o">=</span> <span class="n">trg</span><span class="p">(</span><span class="n">T_dense</span><span class="p">)</span>
+<span class="n">T_sparse</span><span class="p">,</span> <span class="n">Norm_sparse</span> <span class="o">=</span> <span class="n">trg</span><span class="p">(</span><span class="n">T_sparse</span><span class="p">)</span>
+<span class="n">T_block</span><span class="p">,</span> <span class="n">Norm_block</span>   <span class="o">=</span> <span class="n">trg</span><span class="p">(</span><span class="n">T_block</span><span class="p">)</span>
+
+<span class="c1"># inspecting the info of the three outputs</span>
+<span class="n">T_dense</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Dense&quot;</span><span class="p">)</span>
+<span class="n">T_sparse</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Sparse&quot;</span><span class="p">)</span>
+<span class="n">T_block</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Block&quot;</span><span class="p">)</span>
+
+<span class="c1"># the norm of the three outputs</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot; Dense norm:&quot;</span><span class="p">,</span><span class="n">Norm_dense</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sparse norm:&quot;</span><span class="p">,</span><span class="n">Norm_sparse</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot; Block norm:&quot;</span><span class="p">,</span><span class="n">Norm_block</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This should give the following results:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>       <span class="n">name</span><span class="p">:</span> <span class="n">Dense</span>
+ <span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dense</span>
+      <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+    <span class="n">density</span><span class="p">:</span> <span class="mi">25220</span> <span class="o">/</span> <span class="mi">1048576</span> <span class="o">~</span> <span class="mf">2.4051666259765625</span> <span class="o">%</span>
+ <span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+     <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+    <span class="n">encoder</span><span class="p">:</span> <span class="n">canonical</span>
+     <span class="n">memory</span><span class="p">:</span> <span class="mi">16</span> <span class="n">MiB</span>
+       <span class="n">norm</span><span class="p">:</span> <span class="mf">1.0</span>
+
+
+       <span class="n">name</span><span class="p">:</span> <span class="n">Sparse</span>
+ <span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">sparse</span>
+      <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+    <span class="n">density</span><span class="p">:</span> <span class="mi">524288</span> <span class="o">/</span> <span class="mi">1048576</span> <span class="o">~</span> <span class="mf">50.0</span> <span class="o">%</span>
+ <span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+     <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+    <span class="n">encoder</span><span class="p">:</span> <span class="n">canonical</span>
+     <span class="n">memory</span><span class="p">:</span> <span class="mi">24</span> <span class="n">MiB</span>
+       <span class="n">norm</span><span class="p">:</span> <span class="mf">1.0</span>
+
+
+           <span class="n">name</span><span class="p">:</span> <span class="n">Block</span>
+     <span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">block</span>
+    <span class="n">total</span> <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+<span class="n">effective</span> <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+     <span class="n">even</span> <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+      <span class="n">odd</span> <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+     <span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+         <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+        <span class="n">encoder</span><span class="p">:</span> <span class="n">block</span>
+         <span class="n">memory</span><span class="p">:</span> <span class="mi">16</span> <span class="n">MiB</span>
+           <span class="n">norm</span><span class="p">:</span> <span class="mf">1.0</span>
+
+   <span class="n">Dense</span> <span class="n">norm</span><span class="p">:</span> <span class="mf">108943.6922682974</span>
+  <span class="n">Sparse</span> <span class="n">norm</span><span class="p">:</span> <span class="mf">108943.6922682974</span>
+   <span class="n">Block</span> <span class="n">norm</span><span class="p">:</span> <span class="mf">108943.69226829754</span>
+</pre></div>
+</div>
+<p>The block format is different from the other two formats in that it allows for an arbitraly value of integer Dcut, while the other two formats only allow for Dcut that is a power of 2. However, the computational speed of the block format is slightly slower. The following is the example of the computation with Dcut=25:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">T_block</span><span class="p">,</span> <span class="n">Norm_block</span>   <span class="o">=</span> <span class="n">trg</span><span class="p">(</span><span class="n">T_block</span><span class="p">,</span><span class="mi">25</span><span class="p">)</span>
+<span class="n">T_block</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Block&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot; Block norm:&quot;</span><span class="p">,</span><span class="n">Norm_block</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This should give the following results:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>           <span class="n">name</span><span class="p">:</span> <span class="n">Block</span>
+     <span class="n">array</span> <span class="nb">type</span><span class="p">:</span> <span class="n">block</span>
+    <span class="n">total</span> <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+<span class="n">effective</span> <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">25</span><span class="p">)</span>
+     <span class="n">even</span> <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">13</span><span class="p">)</span>
+      <span class="n">odd</span> <span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+     <span class="n">statistics</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+         <span class="nb">format</span><span class="p">:</span> <span class="n">standard</span>
+        <span class="n">encoder</span><span class="p">:</span> <span class="n">block</span>
+         <span class="n">memory</span><span class="p">:</span> <span class="mf">5.963</span> <span class="n">MiB</span>
+           <span class="n">norm</span><span class="p">:</span> <span class="mf">0.9999999999999998</span>
+
+<span class="n">Block</span> <span class="n">norm</span><span class="p">:</span> <span class="mf">108862.00893115578</span>
+</pre></div>
+</div>
+<p>which has the effective bond dimensions of 25 instead of the full 32.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="examples.html" class="btn btn-neutral float-left" title="Basic examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="grassmanntn/index.html" class="btn btn-neutral float-right" title="grassmanntn (main module)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Atis Yosprakob.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

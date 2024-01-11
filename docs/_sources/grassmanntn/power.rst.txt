@@ -7,7 +7,7 @@ Returns the :math:`p`-th power of the tensor T (intended to be used on a matrix 
 
 **Parameters:**
 
-- **T:** `dense <densesparse.html>`__ or `sparse <densesparse.html>`__
+- **T:** `dense <densesparse.html>`_, `sparse <densesparse.html>`_, or `block <block.html>`_ 
 
   The input tensor.
   
@@ -17,7 +17,7 @@ Returns the :math:`p`-th power of the tensor T (intended to be used on a matrix 
 
 **Returns:**
 
-- **out:** `dense <densesparse.html>`__ or `sparse <densesparse.html>`__
+- **out:** `dense <densesparse.html>`_, `sparse <densesparse.html>`_, or `block <block.html>`_ 
 
   The :math:`p`-th power of the tensor T. 
 

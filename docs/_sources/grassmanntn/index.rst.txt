@@ -11,6 +11,7 @@ grassmanntn (main module)
    :caption: Contents:
    
    densesparse
+   block
    einsum
    joinsplit
    hconjugate

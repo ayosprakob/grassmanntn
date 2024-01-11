@@ -182,7 +182,7 @@ Attributes
 
 - **ndim:** ``int``
 
-  The number of indices, equals the length of `shape`.
+  The number of axes, equals the length of `shape`.
 
 - **nnz:** ``int``
 
@@ -259,6 +259,10 @@ Methods
 
   Return a new tensor where the coefficient format is forced to be `target`.
   The original tensor is not altered. Does not work if there is a hybrid index.
+
+- **toblock()**
+
+  Return the `block <block.html>`_ format of self.
 
 - **join_legs(*args)**
 

@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="einsum()" href="einsum.html" />
+    <link rel="next" title="block" href="block.html" />
     <link rel="prev" title="grassmanntn (main module)" href="index.html" /> 
 </head>
 
@@ -47,6 +47,8 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../releases.html">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-4-0">v 1.4.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-5">v 1.3.5</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-4">v 1.3.4</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-3">v 1.3.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../releases.html#v-1-3-2">v 1.3.2</a></li>
@@ -63,6 +65,16 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#hermitian-conjugation">Hermitian conjugation</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../schwinger.html">Advanced example: 2D Schwinger model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../schwinger.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../schwinger.html#initial-tensor-preparation">Initial tensor preparation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../schwinger.html#summarized-code">Summarized code</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../schwinger.html#initial-tensor-compression">Initial tensor compression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../schwinger.html#coarse-graining-procedures">Coarse-graining procedures</a></li>
+</ul>
+</li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">grassmanntn (main module)</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">dense and sparse</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#grassmanntn.dense"><code class="docutils literal notranslate"><span class="pre">grassmanntn.dense</span></code></a></li>
@@ -72,6 +84,14 @@
 <li class="toctree-l3"><a class="reference internal" href="#attributes">Attributes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#unary-and-binary-operations">Unary and binary operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="block.html">block</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="block.html#grassmanntn.block"><code class="docutils literal notranslate"><span class="pre">grassmanntn.block</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="block.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="block.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="block.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="block.html#methods">Methods</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="einsum.html">einsum()</a><ul>
@@ -350,7 +370,7 @@ I_\text{parity-preserving}(i_1,\cdots,i_n)&amp;=
 <p>The number of all elements (including zeros), equals the product of dimensions.</p>
 </li>
 <li><p><strong>ndim:</strong> <code class="docutils literal notranslate"><span class="pre">int</span></code></p>
-<p>The number of indices, equals the length of <cite>shape</cite>.</p>
+<p>The number of axes, equals the length of <cite>shape</cite>.</p>
 </li>
 <li><p><strong>nnz:</strong> <code class="docutils literal notranslate"><span class="pre">int</span></code></p>
 <p>The number of nonzero elements. Nonzero elements are defined to be elements with norms larger than the parameter
@@ -417,6 +437,9 @@ tensor is not altered. Does not work if there is a hybrid index.</p>
 <p>Return a new tensor where the coefficient format is forced to be <cite>target</cite>.
 The original tensor is not altered. Does not work if there is a hybrid index.</p>
 </li>
+<li><p><strong>toblock()</strong></p>
+<p>Return the <a class="reference external" href="block.html">block</a> format of self.</p>
+</li>
 <li><p><strong>join_legs(*args)</strong></p>
 <p>Join tensor legs. Return the result.
 The original tensor is not altered.
@@ -449,7 +472,7 @@ Using this method is the same as using the function <code class="docutils litera
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="grassmanntn (main module)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="einsum.html" class="btn btn-neutral float-right" title="einsum()" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="block.html" class="btn btn-neutral float-right" title="block" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

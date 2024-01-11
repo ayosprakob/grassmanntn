@@ -1,0 +1,950 @@
+.. grassmanntn documentation master file, created by
+   sphinx-quickstart on Thu Aug 24 15:42:41 2023.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Advanced example: 2D Schwinger model
+=======================================
+
+Introduction
++++++++++++++++++++++++
+In this example, we are writing the code for the tensor renormalization group computation of the 2D Schwinger model (or rather the :math:`\mathbb{Z}_K` gauge theory equivalence) with :math:`N_f` flavors of Wilson fermion. See `JHEP11(2023)187 <https://doi.org/10.1007/JHEP11(2023)187>`_ for more details.
+
+We will organize the code into three parts: the initial tensor preparation, the initial tensor compression, and the coarse-graining procedure.
+
+Initial tensor preparation
++++++++++++++++++++++++++++
+
+Let us first declare some parameters for our calculation. We will focus on the 1-flavor :math:`\mathbb{Z}_2` gauge theory for the sake of simplicitty of the demonstration.
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	# importing relevant libraries
+	import numpy as np
+	import sparse as sp
+	import sympy
+	import grassmanntn as gtn
+	from grassmanntn import arith
+
+	# set up some parameters (you can change these parameters)
+	K  = 2    # Z_2 gauge theory
+	Nf = 1    # 1 flavors
+	β  = 1    # the inverse coupling
+	m  = 1    # dimensionless mass
+	μ  = 0    # dimensionless chemical potential
+	q  = 1    # charge
+
+	gtn.progress_bar_enabled = True
+	# set this to true to show the progress bar
+	# otherwise you will have a blank screen most of the time
+
+In the :math:`\mathbb{Z}_K` gauge theory, the site tensor :math:`\mathcal{T}^{(\alpha)}` is composed of 4 subtensors: a plaquette tensor :math:`P^{(\alpha)}`, two link tensors :math:`L^{(\alpha)}`, and a site tensor :math:`\mathcal{S}^{(\alpha)}`:
+
+.. math::
+
+	P^{(\alpha)}_{j_1j_2j_3j_4}&=(2\pi/K)^{2/N_f}\exp\left[\frac{\beta}{N_f}\left\{\cos\left(\varphi^{(\alpha)}_{j_4}+\varphi^{(\alpha)}_{j_1}-\varphi^{(\alpha)}_{j_2}-\varphi^{(\alpha)}_{j_3}\right)-1\right\}\right],\\
+	L^{(\alpha)}_{ijklm}&=\delta_{mi}\delta_{mj}\delta_{mk}\delta_{ml},\\
+	\mathcal{S}^{(\alpha)}&=\int d\psi_x^{(\alpha)}d\bar\psi_x^{(\alpha)}
+	\exp\left[
+		-\bar\psi^{(\alpha)}_{x}W^{(\alpha)}_{x}\psi^{(\alpha)}_{x}
+		-\sum_{\pm,\nu}\left\{
+		\bar\psi^{(\alpha)}_{x}\eta^{(\alpha)}_{x,\pm\nu}-\bar\eta^{(\alpha)}_{x\mp\hat\nu,\pm\nu}H^{(\alpha)}_{x\mp\hat\nu,\pm\nu}\psi^{(\alpha)}_{x}
+		\right\}
+		\right]
+
+where
+
+.. math::
+
+	W^{(\alpha)}_{x}&=\tilde m_\alpha+2,\\
+	H^{(\alpha)}_{x,+\nu}&=-\frac{1}{2}(\mathbb{1}-\gamma_\nu)e^{+(\tilde\mu_\alpha\delta_{\nu,2}+iq_\alpha\varphi^{(\alpha)}_{x,\nu})},\\
+	H^{(\alpha)}_{x,-\nu}&=-\frac{1}{2}(\mathbb{1}+\gamma_\nu)e^{-(\tilde\mu_\alpha\delta_{\nu,2}+iq_\alpha\varphi^{(\alpha)}_{x-\hat\nu,\nu})}.
+
+The site fermions :math:`\psi^{(\alpha)}` and :math:`\bar\psi^{(\alpha)}` are integrated out completely, leaving only the link fermions :math:`\eta^{(\alpha)}` and :math:`\bar\eta^{(\alpha)}`. The link fermions are then later rewritten as new fermions :math:`\zeta` and :math:`\bar\zeta` (which we will discuss later). See Figure 1-d in `JHEP11(2023)187 <https://doi.org/10.1007/JHEP11(2023)187>`_ for the connection of these four tensors.
+
+
+Next we construct the plaquette tensor.
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	# ...
+	
+	def P_tensor():
+	   # this is the nodes of the group integral
+	   φ = np.array( [ i*2*np.pi/K for i in range(K) ] )
+
+	   coeff = (2*np.pi/K)**(2.0/Nf)
+	   P = np.zeros([K,K,K,K],dtype=float)
+	   for j1 in range(K):
+	      for j2 in range(K):
+	         for j3 in range(K):
+	            for j4 in range(K):
+	               P[j1,j2,j3,j4] = coeff*np.exp(β/Nf*(np.cos(φ[j4]+φ[j1]-φ[j2]-φ[j3])-1))
+
+	   # convert to the sparse tensor
+	   P = gtn.sparse(P, statistics=(0,0,0,0))
+	   # statistics=(0,0,0,0) means that P is a tensor with only bosonic indices
+	   return P
+
+We will come back to the link tensors later. For the site tensor, we have to perform the Berezin integral of the Boltzmann weight first before we can form the tensor. We will use the `grassmann.arith <grassmanntn.arith/index.html>`_ module for this. Let us first define some variables.
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	# ...
+	
+	def S_tensor():
+
+		# site fermions (2-component spinors)
+	   ψ = arith.set_ac("ψ_up","ψ_down")
+	   ψbar = arith.set_ac("ψbar_up","ψbar_down")
+
+	   # link fermions (2-component spinors)
+	   ηp1 = arith.set_ac("ηp1_up","ηp1_down")            # this is η_{x,+1}
+	   ηp2 = arith.set_ac("ηp2_up","ηp2_down")            # this is η_{x,+2}
+	   ηm1 = arith.set_ac("ηm1_up","ηm1_down")            # this is η_{x,-1}
+	   ηm2 = arith.set_ac("ηm2_up","ηm2_down")            # this is η_{x,-2}
+	   hp1 = arith.set_ac("hp1_up","hp1_down")            # this is \bar η_{x+1,-1}
+	   hp2 = arith.set_ac("hp2_up","hp2_down")            # this is \bar η_{x+2,-2}
+	   hm1 = arith.set_ac("hm1_up","hm1_down")            # this is \bar η_{x-1,+1}
+	   hm2 = arith.set_ac("hm2_up","hm2_down")            # this is \bar η_{x-2,+2}
+
+	   # the integration measure
+	   dψ = arith.d(ψ)
+	   dψbar = arith.d(ψbar)
+
+	   # the symbolic expression for the gauge fields
+	   φp1 = sympy.Symbol("φp1")                          # this is φ_{x,1}
+	   φp2 = sympy.Symbol("φp2")                          # this is φ_{x,2}
+	   φm1 = sympy.Symbol("φm1")                          # this is φ_{x-1,1}
+	   φm2 = sympy.Symbol("φm2")                          # this is φ_{x-1,2}
+
+	   # the imaginary unit
+	   cI = complex(0,1)
+
+	   # the Pauli matrices
+	   γ0 = np.array([[1,0],[0,1]])                       # this is the identity matrix
+	   γ1 = np.array([[0,1],[1,0]])
+	   γ2 = np.array([[0,-cI],[cI,0]])
+
+	   # the bilinear matrices
+	   W = (m+2)*γ0
+	   Hp1 = -0.5*(γ0-γ1)*sympy.exp(cI*q*φm1)
+	   Hm1 = -0.5*(γ0+γ1)*sympy.exp(-cI*q*φp1)
+	   Hp2 = -0.5*(γ0-γ2)*sympy.exp(μ+cI*q*φm2)
+	   Hm2 = -0.5*(γ0+γ2)*sympy.exp(-μ-cI*q*φp2)
+
+		# to be continued...
+
+Next, we construct the Boltzmann weight and then integrate the site fermions.
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	# ...
+	
+	def S_tensor():
+		
+		# ...continued from above
+
+		# The @ symbol is the inner product
+	   f = arith.exp(-ψbar@W@ψ)
+	   f *= arith.exp(-ψbar@ηp1)
+	   f *= arith.exp(-ψbar@ηp2)
+	   f *= arith.exp(-ψbar@ηm1)
+	   f *= arith.exp(-ψbar@ηm2)
+	   f = dψbar*f   # integrate the conjugated fermion first
+	   f *= arith.exp(hm1@Hp1@ψ)
+	   f *= arith.exp(hm2@Hp2@ψ)
+	   f *= arith.exp(hp1@Hm1@ψ)
+	   f *= arith.exp(hp2@Hm2@ψ)
+	   f = dψ*f      # integrate the non-conjugated fermion
+
+		# to be continued...
+
+Once we have integrated out the site fermions, we can extracted the coefficients for our site tensor.
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	# ...
+	
+	def S_tensor():
+		
+		# ...continued from above
+
+		# Extract the coefficient with this specific Grassmann basis
+	   S_coeff, S_fcoord = f.get_coeff(basis=[
+	      "ηp1_up","ηp1_down","hp1_up","hp1_down",
+	      "ηp2_up","ηp2_down","hp2_up","hp2_down",
+	      "hm1_up","hm1_down","ηm1_up","ηm1_down",
+	      "hm2_up","hm2_down","ηm2_up","ηm2_down"
+	      ])
+
+	   # S_coeff contains the ordered list of the coefficient
+	   # S_fcoord contains the ordered list of the fermion occupation numbers
+	   #                                             (aka, the fermionic indices)
+
+	   # Note that S_coeff is still symbolic, which we have to turn to numeric next.
+
+	   S = []                                # this will store the numerical coefficients
+	   coords = [ [] for i in range(16) ]    # this will store the fermionic indices
+	   i1 = []; i2 = []; i3 = []; i4 = [];   # this will store the bosonic indices
+
+	   φ = np.array( [ i*2*np.pi/K for i in range(K) ] )  # the nodes
+	   for i in range(K):
+	      for j in range(K):
+	         for k in range(K):
+	            for l in range(K):
+
+	               # replace the symbols by the corresponding numerical values
+	               S_replaced = [ complex(coeff.subs(
+	                  [(φp1,φ[i]),(φp2,φ[j]),(φm1,φ[k]),(φm2,φ[l])]
+	                  )) for coeff in S_coeff ]
+	               S += S_replaced
+
+	               for val in S_replaced:
+	                  # bosonic indices
+	                  i1+=[i]; i2+=[j]; i3+=[k]; i4+=[l]
+
+	               for loc, coord_loc in enumerate(S_fcoord):
+	                  # fermionic indices
+	                  coords[loc] += coord_loc
+
+	   # append the 4 bosonic indices with the 16 fermionic indices
+	   coords += [i1,i2,i3,i4]
+	   # namely, each entrie of coords now contains 24 indices
+
+		# to be continued...
+
+The list `S` now contains the list of numerical coefficients, with the corresponding entry in `coords` containing the fermionic and bosonic indices. We are now ready to construct the sparse Grassmann tensor.
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	def S_tensor():
+		
+		# ...continued from above
+
+	   # convert the lists to the COO format (reusing the same symbol S)
+	   S = sp.COO(coords, S, shape=(2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,K,K,K,K))
+
+	   # convert the COO format to the sparse tensor format
+	   # the statistic is +1 for η, -1 for \bar η, and 0 for bosons
+	   S = gtn.sparse(S, statistics=(1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,0,0,0,0))
+
+	   # join 4 η fermions into one ζ fermion according to [JHEP11(2023)187]
+	   S = S.join_legs('(i1 i2 i3 i4)(j1 j2 j3 j4)(k1 k2 k3 k4)(l1 l2 l3 l4)(i)(j)(k)(l)'
+	                        ,intermediate_stat=(1,1,-1,-1,0,0,0,0))
+	   S = S.force_encoder('canonical')
+
+	   return S
+
+In the final step, we merge some fermions for a more compacted representation (See eq. 2.22-2.25 in `JHEP11(2023)187 <https://doi.org/10.1007/JHEP11(2023)187>`_). The sign factor from the merging is applied automatically in this case.
+
+To test the result, temporarily add the following lines at the end of the file:
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	# ....
+
+	P = P_tensor()
+	S = S_tensor()
+
+	P.info("P")
+	S.info("S")
+
+You should obtain the following result:
+
+.. code-block::
+
+        name: P                                                                           
+  array type: sparse                                                                      
+       shape: (2, 2, 2, 2)
+     density: 16 / 16 ~ 100.0 %
+  statistics: (0, 0, 0, 0)
+      format: standard
+     encoder: canonical
+      memory: 704 B
+        norm: 28.169941536305828
+
+
+        name: S
+  array type: sparse
+       shape: (16, 16, 16, 16, 2, 2, 2, 2)
+     density: 7184 / 1048576 ~ 0.68511962890625 %
+  statistics: (1, 1, -1, -1, 0, 0, 0, 0)
+      format: standard
+     encoder: canonical
+      memory: 561.3 KiB
+        norm: 96.02236005203834
+
+Summarized code
+---------------------------
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	# importing relevant libraries
+	import numpy as np
+	import sparse as sp
+	import sympy
+	import grassmanntn as gtn
+	from grassmanntn import arith
+
+	# set up some parameters (you can change these parameters)
+	K  = 2    # Z_2 gauge theory
+	Nf = 1    # 1 flavors
+	β  = 1    # the inverse coupling
+	m  = 1    # dimensionless mass
+	μ  = 0    # dimensionless chemical potential
+	q  = 1    # charge
+
+	gtn.progress_bar_enabled = True
+	# set this to true to show the progress bar
+	# otherwise you will have a blank screen most of the time
+
+	def P_tensor():
+	   # this is the nodes of the group integral
+	   φ = np.array( [ i*2*np.pi/K for i in range(K) ] )
+
+	   coeff = (2*np.pi/K)**(2.0/Nf)
+	   P = np.zeros([K,K,K,K],dtype=float)
+	   for j1 in range(K):
+	      for j2 in range(K):
+	         for j3 in range(K):
+	            for j4 in range(K):
+	               P[j1,j2,j3,j4] = coeff*np.exp(β/Nf*(np.cos(φ[j4]+φ[j1]-φ[j2]-φ[j3])-1))
+
+	   # convert to the sparse tensor
+	   P = gtn.sparse(P, statistics=(0,0,0,0))
+	   # statistics=(0,0,0,0) means that P is a tensor with only bosonic indices
+	   return P
+
+	def S_tensor():
+
+	   # site fermions (2-component spinors)
+	   ψ = arith.set_ac("ψ_up","ψ_down")
+	   ψbar = arith.set_ac("ψbar_up","ψbar_down")
+
+	   # link fermions (2-component spinors)
+	   ηp1 = arith.set_ac("ηp1_up","ηp1_down")            # this is η_{x,+1}
+	   ηp2 = arith.set_ac("ηp2_up","ηp2_down")            # this is η_{x,+2}
+	   ηm1 = arith.set_ac("ηm1_up","ηm1_down")            # this is η_{x,-1}
+	   ηm2 = arith.set_ac("ηm2_up","ηm2_down")            # this is η_{x,-2}
+	   hp1 = arith.set_ac("hp1_up","hp1_down")            # this is \bar η_{x+1,-1}
+	   hp2 = arith.set_ac("hp2_up","hp2_down")            # this is \bar η_{x+2,-2}
+	   hm1 = arith.set_ac("hm1_up","hm1_down")            # this is \bar η_{x-1,+1}
+	   hm2 = arith.set_ac("hm2_up","hm2_down")            # this is \bar η_{x-2,+2}
+
+	   # the integration measure
+	   dψ = arith.d(ψ)
+	   dψbar = arith.d(ψbar)
+
+	   # the symbolic expression for the gauge fields
+	   φp1 = sympy.Symbol("φp1")                          # this is φ_{x,1}
+	   φp2 = sympy.Symbol("φp2")                          # this is φ_{x,2}
+	   φm1 = sympy.Symbol("φm1")                          # this is φ_{x-1,1}
+	   φm2 = sympy.Symbol("φm2")                          # this is φ_{x-1,2}
+
+	   # the imaginary unit
+	   cI = complex(0,1)
+
+	   # the Pauli matrices
+	   γ0 = np.array([[1,0],[0,1]])                       # this is the identity matrix
+	   γ1 = np.array([[0,1],[1,0]])
+	   γ2 = np.array([[0,-cI],[cI,0]])
+
+	   # the bilinear matrices
+	   W = (m+2)*γ0
+	   Hp1 = -0.5*(γ0-γ1)*sympy.exp(cI*q*φm1)
+	   Hm1 = -0.5*(γ0+γ1)*sympy.exp(-cI*q*φp1)
+	   Hp2 = -0.5*(γ0-γ2)*sympy.exp(μ+cI*q*φm2)
+	   Hm2 = -0.5*(γ0+γ2)*sympy.exp(-μ-cI*q*φp2)
+
+	   # The @ symbol is the inner product
+	   f = arith.exp(-ψbar@W@ψ)
+	   f *= arith.exp(-ψbar@ηp1)
+	   f *= arith.exp(-ψbar@ηp2)
+	   f *= arith.exp(-ψbar@ηm1)
+	   f *= arith.exp(-ψbar@ηm2)
+	   f = dψbar*f   # integrate the conjugated fermion first
+	   f *= arith.exp(hm1@Hp1@ψ)
+	   f *= arith.exp(hm2@Hp2@ψ)
+	   f *= arith.exp(hp1@Hm1@ψ)
+	   f *= arith.exp(hp2@Hm2@ψ)
+	   f = dψ*f      # integrate the non-conjugated fermion
+
+	   # Extract the coefficient with this specific Grassmann basis
+	   S_coeff, S_fcoord = f.get_coeff(basis=[
+	      "ηp1_up","ηp1_down","hp1_up","hp1_down",
+	      "ηp2_up","ηp2_down","hp2_up","hp2_down",
+	      "hm1_up","hm1_down","ηm1_up","ηm1_down",
+	      "hm2_up","hm2_down","ηm2_up","ηm2_down"
+	      ])
+
+	   # S_coeff contains the ordered list of the coefficient
+	   # S_fcoord contains the ordered list of the fermion occupation numbers
+	   #                                             (aka, the fermionic indices)
+
+	   # Note that S_coeff is still symbolic, which we have to turn to numeric next.
+
+	   S = []                                # this will store the numerical coefficients
+	   coords = [ [] for i in range(16) ]    # this will store the fermionic indices
+	   i1 = []; i2 = []; i3 = []; i4 = [];   # this will store the bosonic indices
+
+	   φ = np.array( [ i*2*np.pi/K for i in range(K) ] )  # the nodes
+	   for i in range(K):
+	      for j in range(K):
+	         for k in range(K):
+	            for l in range(K):
+
+	               # replace the symbols by the corresponding numerical values
+	               S_replaced = [ complex(coeff.subs(
+	                  [(φp1,φ[i]),(φp2,φ[j]),(φm1,φ[k]),(φm2,φ[l])]
+	                  )) for coeff in S_coeff ]
+	               S += S_replaced
+
+	               for val in S_replaced:
+	                  # bosonic indices
+	                  i1+=[i]; i2+=[j]; i3+=[k]; i4+=[l]
+
+	               for loc, coord_loc in enumerate(S_fcoord):
+	                  # fermionic indices
+	                  coords[loc] += coord_loc
+
+	   # append the 4 bosonic indices with the 16 fermionic indices
+	   coords += [i1,i2,i3,i4]
+	   # namely, each entrie of coords now contains 24 indices
+
+	   # convert the lists to the COO format (reusing the same symbol S)
+	   S = sp.COO(coords, S, shape=(2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,K,K,K,K))
+
+	   # convert the COO format to the sparse tensor format
+	   # the statistic is +1 for η, -1 for \bar η, and 0 for bosons
+	   S = gtn.sparse(S, statistics=(1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,0,0,0,0))
+
+	   # join 4 η fermions into one ζ fermion according to [JHEP11(2023)187]
+	   S = S.join_legs('(i1 i2 i3 i4)(j1 j2 j3 j4)(k1 k2 k3 k4)(l1 l2 l3 l4)(i)(j)(k)(l)'
+	                        ,intermediate_stat=(1,1,-1,-1,0,0,0,0))
+	   S = S.force_encoder('canonical')
+
+	   return S
+
+Initial tensor compression
++++++++++++++++++++++++++++
+
+There are three steps of compressions: the compression on the :math:`\mathcal{S}` tensor, the compression on the :math:`L` tensor, and the compression on the whole tensor.
+
+For the :math:`\mathcal{S}` tensor compression, we will do in two smaller steps: the compression of the fermionic indices (this is not presented in `JHEP11(2023)187 <https://doi.org/10.1007/JHEP11(2023)187>`_ but it helps make the computation significantly faster) and the hybrid compression which merges the fermionic and the bosonic indices.
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	# ...
+
+	def S_fermionic_compression(S,cutoff=64):
+
+		# The compression of the fermionic indices based on Grassmann HOSVD
+		# 1. For each axis, we compute two Hermitian matrices based on
+		#    the legs in the positive and negative directions
+		# 2. The eigenspectrum of the two matrices are then compared
+		# 3. The unitary matrix from the Eigen decomposition with the fastest-
+		#    falling spectrum is used as the projector of the compression
+
+		# compression in the x axis -------------------------------------------
+
+		Qp = gtn.einsum('IJKLijkl -> JKLijkl I',S)              # move +x leg (I) to the right
+		cQp = Qp.hconjugate("abcdefg|x")                        # Hermitian conjugate
+		Mp = gtn.einsum('I abcdefg,abcdefg J -> IJ',cQp,Qp)     # The Hermitian matrix
+
+		Qm = gtn.einsum('IJKLijkl -> K IJLijkl',S)              # move -x leg (K) to the left
+		cQm = Qm.hconjugate("x|abcdefg")                        # Hermitian conjugate
+		Mm = gtn.einsum('I abcdefg,abcdefg J -> IJ',Qm,cQm)     # The Hermitian matrix
+
+		# Eigen decomposition
+		Up, Λp, cUp = Mp.eig("I|J",cutoff)
+		Um, Λm, cUm = Mm.eig("I|J",cutoff)
+
+		# Compare the spectrum
+		if Λp.shape[0] < Λm.shape[0] :
+			U1 = Up.copy()
+			cU1 = cUp.copy()
+		else:
+			U1 = Um.copy()
+			cU1 = cUm.copy()
+
+		# Apply the projector on the legs
+		S = gtn.einsum('IA,IJKLijkl->AJKLijkl',U1,S)
+		S = gtn.einsum('CK,AJKLijkl->AJCLijkl',cU1,S)
+
+		# compression in the y axis -------------------------------------------
+
+		Qp = gtn.einsum('IJKLijkl -> IKLijkl J',S)              # move +y leg (J) to the right
+		cQp = Qp.hconjugate("abcdefg|x")                        # Hermitian conjugate
+		Mp = gtn.einsum('I abcdefg,abcdefg J -> IJ',cQp,Qp)     # The Hermitian matrix
+
+		Qm = gtn.einsum('IJKLijkl -> L IJKijkl',S)              # move -y leg (L) to the left
+		cQm = Qm.hconjugate("x|abcdefg")                        # Hermitian conjugate
+		Mm = gtn.einsum('I abcdefg,abcdefg J -> IJ',Qm,cQm)     # The Hermitian matrix
+
+		# Eigen decomposition
+		Up, Λp, cUp = Mp.eig("I|J",cutoff)
+		Um, Λm, cUm = Mm.eig("I|J",cutoff)
+
+		# Compare the spectrum
+		if Λp.shape[0] < Λm.shape[0] :
+			U2 = Up.copy()
+			cU2 = cUp.copy()
+		else:
+			U2 = Um.copy()
+			cU2 = cUm.copy()
+
+		# Apply the projector on the legs
+		S = gtn.einsum('JB,AJCLijkl->ABCLijkl',U2,S)
+		S = gtn.einsum('DL,ABCLijkl->ABCDijkl',cU2,S)
+
+		return S
+
+	def S_hybrid_compression(S,cutoff=64):
+
+		# The same as the fermionic compression
+		# except that the four directions must be done separately
+		# See JHEP11(2023)187 for more details.
+
+		# constructing the Kronecker delta
+		δ = np.zeros([K,K],dtype=int)
+		for i in range(K):
+			δ[i,i] = 1
+		δ = gtn.sparse(δ,statistics=(0,0))
+
+		# μ = 1 ===========================================================================
+
+		Qp = gtn.einsum('IJKLijkl,km -> JKLjklm Ii',S,δ)
+		cQp = Qp.hconjugate("JKLjklm|Ii")
+		Mp = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',cQp,Qp)
+
+		Qm = gtn.einsum('IJKLijkl,km -> Kk IJLijlm',S,δ)
+		cQm = Qm.hconjugate("Kk|IJLijlm")
+		Mm = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',Qm,cQm)
+
+		Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+		Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
+
+		if Λp.shape[0] < Λm.shape[0] :
+			U1 = Up.copy()
+		else:
+			U1 = Um.copy()
+
+		S_compressed = gtn.einsum('IJKLijkl,IiA->AJKLjkl',S,U1)
+
+		# μ = 2 ===========================================================================
+
+		Qp = gtn.einsum('IJKLijkl,lm -> IKLiklm Jj',S,δ)
+		cQp = Qp.hconjugate("JKLjklm|Ii")
+		Mp = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',cQp,Qp)
+
+		Qm = gtn.einsum('IJKLijkl,lm -> Ll IJKijkm',S,δ)
+		cQm = Qm.hconjugate("Kk|IJLijlm")
+		Mm = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',Qm,cQm)
+
+		Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+		Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
+
+		if Λp.shape[0] < Λm.shape[0] :
+			U2 = Up.copy()
+		else:
+			U2 = Um.copy()
+
+		S_compressed = gtn.einsum('AJKLjkl,JjB->ABKLkl',S_compressed,U2)
+
+		# μ = 3 ===========================================================================
+
+		Qp = gtn.einsum('IJKLijkl,im -> JKLjklm Ii',S,δ)
+		cQp = Qp.hconjugate("JKLjklm|Ii")
+		Mp = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',cQp,Qp)
+
+		Qm = gtn.einsum('IJKLijkl,im -> Kk IJLijlm',S,δ)
+		cQm = Qm.hconjugate("Kk|IJLijlm")
+		Mm = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',Qm,cQm)
+
+		Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+		Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
+
+		if Λp.shape[0] < Λm.shape[0] :
+			U3 = Up.copy()
+		else:
+			U3 = Um.copy()
+
+		S_compressed = gtn.einsum('ABKLkl,CKk->ABCLl',S_compressed,U3.hconjugate('ij|k'))
+
+		# μ = 4 ===========================================================================
+
+		Qp = gtn.einsum('IJKLijkl,jm -> IKLiklm Jj',S,δ)
+		cQp = Qp.hconjugate("JKLjklm|Ii")
+		Mp = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',cQp,Qp)
+
+		Qm = gtn.einsum('IJKLijkl,jm -> Ll IJKijkm',S,δ)
+		cQm = Qm.hconjugate("Kk|IJLijlm")
+		Mm = gtn.einsum('Ii abcdefg,abcdefg Jj -> IiJj',Qm,cQm)
+
+		Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+		Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
+
+		if Λp.shape[0] < Λm.shape[0] :
+			U4 = Up.copy()
+		else:
+			U4 = Um.copy()
+
+		S_compressed = gtn.einsum('ABCLl,DLl->ABCD',S_compressed,U4.hconjugate('ij|k'))
+
+		return S_compressed, [U1,U2,U3,U4] # The function also returns the 4 unitary matrices
+
+We can check the correctness of the first compression by computing the trace of the :math:`\mathcal{S}` tensor before and after the compression.
+
+.. code-block:: python
+	
+	print("Before compression:",gtn.einsum('IJIJijij',S))
+	S = S_fermionic_compression(S)
+	print(" After compression:",gtn.einsum('IJIJijij',S))
+
+which should give the following result (the round-off errors might be different):
+
+.. code-block:: python
+	
+	Before compression: (-44+1.2835480080359484e-15j)
+	 After compression: (-44+1.1622647289044558e-16j)
+
+Next, we perform the compression on the :math:`L` tensors using the projectors obtained from the hybrid compression of the :math:`\mathcal{S}` tensor:
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	# ...
+
+	def L_compression(U1,U2,U3,U4):
+
+		Lx = gtn.einsum('KXj,XjI->KIj',U1.hconjugate('ij|k'),U3)
+		Ly = gtn.einsum('LYj,YjJ->LJj',U2.hconjugate('ij|k'),U4)
+
+		# Although the L tensors should have 5 legs (See figure 2-c in [JHEP11(2023)187]),
+		# the three bosonic legs always take the same value (because of the Kronecker δ).
+		# Therefore, we only have one bosonic leg (j) for simplicity
+
+		return Lx,Ly
+
+Finally, we perform the compression of the whole tensor:
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	# ...
+
+	def full_compression(P,Lx,Ly,S,cutoff=64):
+
+		# First, construct the full tensor ================================================
+
+		# the Kronecker delta
+		δ = np.zeros([K,K],dtype=int)
+		for i in range(K):
+			δ[i,i] = 1
+		δ = gtn.sparse(δ,statistics=(0,0)) 
+
+		# Attach the L tensors to P
+		P = gtn.einsum('ijkl,KIl,LJk,km,ln->IJKLijklmn',P,Lx,Ly,δ,δ)
+		T = gtn.einsum('IJXYijklmn,XYKL->IJKLijklmn',P,S)
+
+		# x direction =====================================================================
+
+		Txp = gtn.einsum('IJKLijklmn -> JKLjklmn Ii',T)
+		Txm = gtn.einsum('IJKLijklmn -> Kk IJLijlmn',T)
+
+		cTxp = Txp.hconjugate('abcdefgh|xy')
+		cTxm = Txm.hconjugate('xy|abcdefgh')
+
+		Mp = gtn.einsum('Ii abcdefgh, abcdefgh Jj -> IiJj',cTxp,Txp)
+		Mm = gtn.einsum('Ii abcdefgh, abcdefgh Jj -> IiJj',Txm,cTxm)
+
+		Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+		Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
+
+		if Λp.shape[0] < Λm.shape[0] :
+			U = Up.copy()
+		else:
+			U = Um.copy()
+
+		Tfin = gtn.einsum('IJKLijklmn,IiA,CKk->ACJLjlmn',T,U,U.hconjugate('ij|k'))
+
+		# y direction =====================================================================
+
+		Typ = gtn.einsum('IKJLjlmn -> IKLlmn Jj',Tfin)
+		Tym = gtn.einsum('IKJLjlmn -> Ll IKJjmn',Tfin)
+
+		cTyp = Typ.hconjugate('abcdef|xy')
+		cTym = Tym.hconjugate('xy|abcdef')
+
+		Mp = gtn.einsum('Ii abcdef, abcdef Jj -> IiJj',cTyp,Typ)
+		Mm = gtn.einsum('Ii abcdef, abcdef Jj -> IiJj',Tym,cTym)
+
+		Up, Λp, cUp = Mp.eig("Ii|Jj",cutoff)
+		Um, Λm, cUm = Mm.eig("Ii|Jj",cutoff)
+
+		if Λp.shape[0] < Λm.shape[0] :
+			U = Up.copy()
+		else:
+			U = Um.copy()
+
+		Tfin = gtn.einsum('ACJLjlmn,JjB,DLl->ABCDmn',Tfin,U,U.hconjugate('ij|k'))
+
+		return Tfin
+
+To test the correctness of the whole compression, we can compare the trace of the tensor before and after the compression:
+
+.. code-block:: python
+	
+	P = P_tensor()
+	S = S_tensor()
+
+	# this is the trace of the whole tensor before the compression
+	trace1 = gtn.einsum("IJIJijij,jiji",S,P)
+	print("Before compression:", trace1)
+
+	# now we perform the 4 steps of the compression
+	S = S_fermionic_compression(S)
+	S,[U1,U2,U3,U4] = S_hybrid_compression(S)
+	Lx,Ly = L_compression(U1,U2,U3,U4)
+	T = full_compression(P,Lx,Ly,S)
+
+	# this capper tensor is used for tracing out the last two flavor indices
+	capper = gtn.sparse(np.full((K,K),1),statistics=(0,0))
+
+	trace2 = gtn.einsum("IJIJij,ij",T,capper)
+	print(" After compression:", trace2)
+
+	print("The information of the compressed initial tensor:")
+	T.info()
+
+This should give the following results:
+
+.. code-block::
+
+	Before compression: (-434.2625936479318+1.4859603479127313e-14j)                          
+	 After compression: (-434.262593647931+1.6944263844972144e-14j)                           
+	The information of the compressed initial tensor:                                         
+	                                                                                          
+	  array type: sparse                                                                      
+	       shape: (8, 8, 8, 8, 2, 2)
+	     density: 8192 / 16384 ~ 50.0 %
+	  statistics: (1, 1, -1, -1, 0, 0)
+	      format: standard
+	     encoder: canonical
+	      memory: 512.1 KiB
+	        norm: 480.16044257863484
+
+
+Coarse-graining procedures
++++++++++++++++++++++++++++
+
+In case of multiple flavors, we need to perform two kinds of coarse-graining procudures: the space-time and the flavor coarse graining. However, since we focus on only one flavor, we will skip the flavor coarse graining and only demonstrate how to write the code for the space-time coarse graining.
+
+To be specific, we are writing the Levin-Nave TRG algorithm, which acts on a four-legged tensor whose 1st and 3rd leg are connected periodically, as wel as the 2nd and the 4th leg. The tensor obtained from the compression has 6 legs. The last two legs are associated with the flavor direction, which can be readily traced out with the capper in case of one flavor. In other words, we define the two dimensional tensor
+
+.. code-block:: python
+
+	capper = gtn.sparse(np.full((K,K),1),statistics=(0,0))
+	T = gtn.einsum("IJKLij,ij->IJKL",T,capper)
+
+which now has 4 legs.
+
+The TRG algorithm is as follows:
+
+.. code-block:: python
+
+	# ---- main.py ----
+
+	# ...
+
+	def trg(T,dcut=64):
+      # mandatory properties of T:
+      #    - shape = (nx,ny,nx,ny)
+      #    - statistics = (1,1,-1,-1)
+
+      if [T.shape[0],T.shape[1]] != [T.shape[2],T.shape[3]] :
+         gtn.error("Error[trg]: The shape must be of the form (m,n,m,n)!")
+
+      if gtn.make_list(T.statistics) != [1,1,-1,-1] :
+         gtn.error("Error[trg]: The statistics must be (1,1,-1,-1)!")
+
+      #===============================================================================#
+      #   Step 1: Rearrange the tensor legs in two ways                               #
+      #===============================================================================#
+
+      T1 = gtn.einsum('ijkl->jkli',T)
+      T2 = gtn.einsum('ijkl->klij',T)
+
+      U1,S1,V1 = T1.svd('ab|cd',dcut)
+      U2,S2,V2 = T2.svd('ab|cd',dcut)
+
+      #
+      #                             j                                     j
+      #                             ↑                                     ↑
+      #        j                    ↑                                     ↑
+      #        ↑              k → →(U1)                                 (V2)→ → i
+      #        ↑                      ↘                                 ↗
+      #  k → →(T)→ → i    =             ↘              =              ↗
+      #        ↑                          ↘                         ↗
+      #        ↑                          (V1)→ → i         k → →(U2)
+      #        l                            ↑                     ↑
+      #                                     ↑                     ↑
+      #                                     l                     l
+      #
+
+      #===============================================================================#
+      #   Step 2: Multiply sqrt(S) into U and V                                       #
+      #===============================================================================#
+
+      sqrtS = gtn.sqrt(S1)
+      U1 = gtn.einsum('abx,xc->abc',U1,sqrtS)
+      V1 = gtn.einsum('ax,xbc->abc',sqrtS,V1)
+
+      sqrtS = gtn.sqrt(S2)
+      U2 = gtn.einsum('abx,xc->abc',U2,sqrtS)
+      V2 = gtn.einsum('ax,xbc->abc',sqrtS,V2)
+
+      #===============================================================================#
+      #   Step 3: Renormalization                                                     #
+      #===============================================================================#
+
+      #
+      #      k                       j
+      #        ↘                   ↗
+      #          ↘               ↗
+      #          (V1)→ → z → →(U2)
+      #            ↑           ↑
+      #            ↑           ↑
+      #            w           y
+      #            ↑           ↑
+      #            ↑           ↑
+      #          (V2)→ → x → →(U1)
+      #          ↗               ↘
+      #        ↗                   ↘
+      #      l                       i
+      #
+
+      VV = gtn.einsum('kwz,lxw->lxzk',V1,V2);
+      UU = gtn.einsum('yxi,zyj->jzxi',U1,U2);
+      T2 = gtn.einsum('lxzk,jzxi->ijkl',VV,UU);
+
+      Tnorm = T2.norm
+      T2.data = T2.data/Tnorm
+      
+      # return the normalized tensor and its norm separately
+      return T2, Tnorm
+
+This algorithm works for all tensor formats (`dense <grassmanntn/densesparse.html>`_, `sparse <grassmanntn/densesparse.html>`_, or the newly-added `block <grassmanntn/block.html>`_ format).
+
+.. code-block:: python
+	
+	# prepare three formats of the same tensor
+	T_dense  = gtn.dense(T)
+	T_sparse = T.copy()
+	T_block  = gtn.block(T)
+
+	# input the three format into the same TRG function
+	T_dense, Norm_dense   = trg(T_dense)
+	T_sparse, Norm_sparse = trg(T_sparse)
+	T_block, Norm_block   = trg(T_block)
+
+	# inspecting the info of the three outputs
+	T_dense.info("Dense")
+	T_sparse.info("Sparse")
+	T_block.info("Block")
+
+	# the norm of the three outputs
+	print(" Dense norm:",Norm_dense)
+	print("Sparse norm:",Norm_sparse)
+	print(" Block norm:",Norm_block)
+
+This should give the following results:
+
+.. code-block::
+	
+        name: Dense                                                                       
+  array type: dense                                                                       
+       shape: (32, 32, 32, 32)                                                            
+     density: 25220 / 1048576 ~ 2.4051666259765625 %
+  statistics: (1, 1, -1, -1)
+      format: standard
+     encoder: canonical
+      memory: 16 MiB
+        norm: 1.0
+
+
+        name: Sparse
+  array type: sparse
+       shape: (32, 32, 32, 32)
+     density: 524288 / 1048576 ~ 50.0 %
+  statistics: (1, 1, -1, -1)
+      format: standard
+     encoder: canonical
+      memory: 24 MiB
+        norm: 1.0
+
+
+            name: Block
+      array type: block
+     total shape: (32, 32, 32, 32)
+ effective shape: (32, 32, 32, 32)
+      even shape: (16, 16, 16, 16)
+       odd shape: (16, 16, 16, 16)
+      statistics: (1, 1, -1, -1)
+          format: standard
+         encoder: block
+          memory: 16 MiB
+            norm: 1.0
+
+	 Dense norm: 108943.6922682974
+	Sparse norm: 108943.6922682974
+	 Block norm: 108943.69226829754
+
+The block format is different from the other two formats in that it allows for an arbitraly value of integer Dcut, while the other two formats only allow for Dcut that is a power of 2. However, the computational speed of the block format is slightly slower. The following is the example of the computation with Dcut=25:
+
+.. code-block:: python
+	
+	T_block, Norm_block   = trg(T_block,25)
+	T_block.info("Block")
+	print(" Block norm:",Norm_block)
+
+This should give the following results:
+
+.. code-block::
+            
+            name: Block                                                                   
+      array type: block                                                                   
+     total shape: (32, 32, 32, 32)                                                        
+ effective shape: (25, 25, 25, 25)
+      even shape: (13, 13, 13, 13)
+       odd shape: (12, 12, 12, 12)
+      statistics: (1, 1, -1, -1)
+          format: standard
+         encoder: block
+          memory: 5.963 MiB
+            norm: 0.9999999999999998
+
+ Block norm: 108862.00893115578
+
+which has the effective bond dimensions of 25 instead of the full 32.
