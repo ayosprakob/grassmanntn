@@ -1,0 +1,27 @@
+Package settings
+========================================
+
+You can set the following global variables to the desired value at any point in your code using
+
+.. code-block:: python
+
+	grassmanntn.<variable name> = <value>
+
+.. list-table::
+   :align: left
+   :widths: 10 5 20
+   :header-rows: 1
+
+   * - Global variable
+     - Default value
+     - Description
+   * - grassmanntn.progress_bar_enabled
+     - `False`
+     - If `True`, show the progressbar in various processes.
+   * - grassmanntn.numer_cutoff
+     - 1.0e-14
+     - To avoid fatal errors, numbers with norm less than this parameter are counted as zero. This parameter is also used in the method ``.remove_zeros()``
+   * - grassmanntn.numer_display_cutoff
+     - 1.0e-11
+     - This is used in two contexts. 1) Counting nonzero elements of a tensor (in ``.nnz`` attribute) and 2) Number with norm less than this parameters are not shown in ``.display()``.
+

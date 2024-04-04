@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GrassmannTN 1.4.0 &mdash; grassmanntn 0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Release notes" href="releases.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            grassmanntn
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-4-0">v 1.4.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-5">v 1.3.5</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-4">v 1.3.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-3">v 1.3.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-2">v 1.3.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-1">v 1.3.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-0">v 1.3.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-2-3">v 1.2.3</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="settings.html">Package settings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Basic examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#initialization">Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#contraction">Contraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#tensor-decompositions">Tensor decompositions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#hermitian-conjugation">Hermitian conjugation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="schwinger.html">Advanced example: 2D Schwinger model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#initial-tensor-preparation">Initial tensor preparation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schwinger.html#summarized-code">Summarized code</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#initial-tensor-compression">Initial tensor compression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#coarse-graining-procedures">Coarse-graining procedures</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grassmanntn/index.html">grassmanntn (main module)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/densesparse.html">dense and sparse</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#grassmanntn.dense"><code class="docutils literal notranslate"><span class="pre">grassmanntn.dense</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#grassmanntn.sparse"><code class="docutils literal notranslate"><span class="pre">grassmanntn.sparse</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#examples">Examples</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/densesparse.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/block.html">block</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#grassmanntn.block"><code class="docutils literal notranslate"><span class="pre">grassmanntn.block</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/block.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/einsum.html">einsum()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/einsum.html#grassmanntn.einsum"><code class="docutils literal notranslate"><span class="pre">grassmanntn.einsum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/einsum.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/einsum.html#algorithm">Algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/einsum.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/joinsplit.html">join_legs() and split_legs()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/joinsplit.html#grassmanntn.join_legs"><code class="docutils literal notranslate"><span class="pre">grassmanntn.join_legs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/joinsplit.html#grassmanntn.split_legs"><code class="docutils literal notranslate"><span class="pre">grassmanntn.split_legs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/joinsplit.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/joinsplit.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/hconjugate.html">hconjugate()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/hconjugate.html#grassmanntn.hconjugate"><code class="docutils literal notranslate"><span class="pre">grassmanntn.hconjugate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/hconjugate.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/hconjugate.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/decomposition.html">svd() and eig()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/decomposition.html#grassmanntn.svd"><code class="docutils literal notranslate"><span class="pre">grassmanntn.svd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/decomposition.html#grassmanntn.eig"><code class="docutils literal notranslate"><span class="pre">grassmanntn.eig()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/decomposition.html#description">Description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/decomposition.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/power.html">power()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/power.html#grassmanntn.power"><code class="docutils literal notranslate"><span class="pre">grassmanntn.power()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/power.html#description">Description</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/sqrt.html">sqrt()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/sqrt.html#grassmanntn.sqrt"><code class="docutils literal notranslate"><span class="pre">grassmanntn.sqrt()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/random.html">random()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn/random.html#grassmanntn.random"><code class="docutils literal notranslate"><span class="pre">grassmanntn.random()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grassmanntn.param/index.html">grassmanntn.param</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.param/gparity.html">gparity()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/gparity.html#grassmanntn.param.gparity"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.gparity()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/gparity.html#description">Description</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.param/sgn.html">sgn()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/sgn.html#grassmanntn.param.sgn"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.sgn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/sgn.html#description">Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="grassmanntn.param/sgn.html#proof-for-the-equivalence">Proof for the equivalence</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.param/encoder.html">encoder()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/encoder.html#grassmanntn.param.encoder"><code class="docutils literal notranslate"><span class="pre">grassmanntn.param.encoder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.param/encoder.html#description">Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="grassmanntn.param/encoder.html#proof-of-the-self-inverse">Proof of the self-inverse</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grassmanntn.arith/index.html">grassmanntn.arith</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/grassmann_number.html">grassmann_number</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/grassmann_number.html#grassmanntn.arith.grassmann_number"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.grassmann_number</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/grassmann_number.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/grassmann_number.html#unary-and-binary-operations">Unary and binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/grassmann_number.html#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html">berezin_measure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html#grassmanntn.arith.berezin_measure"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.berezin_measure</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html#grassmanntn.arith.d"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html#binary-operations">Binary operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/set_ac.html">set_anticommutative</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/set_ac.html#grassmanntn.arith.set_anticommutative"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.set_anticommutative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/set_ac.html#grassmanntn.arith.set_ac"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.set_ac()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/set_ac.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/get_coeff.html">get_coeff()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/get_coeff.html#grassmanntn.arith.get_coeff"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.get_coeff()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/get_coeff.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/exp.html">exp()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="grassmanntn.arith/exp.html#grassmanntn.arith.exp"><code class="docutils literal notranslate"><span class="pre">grassmanntn.arith.exp()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">grassmanntn</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">GrassmannTN 1.4.0</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="grassmanntn-1-4-0">
+<h1>GrassmannTN 1.4.0<a class="headerlink" href="#grassmanntn-1-4-0" title="Permalink to this heading"></a></h1>
+<p>GrassmannTN is a python package that aims to simplify the coding involving Grassmann tensor network.
+The goal is to make the coding as convenient as when you use other standard packages like numpy or scipy.
+All the sign factors are computed automatically without explicit user inputs. If you have further questions about the package and how to use it, please contact me via ayosp-at-phys.sc.niigata-u.ac.jp</p>
+<section id="package-structure">
+<h2>Package structure<a class="headerlink" href="#package-structure" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="grassmanntn/index.html">grassmanntn</a> (main module): contains most of the features.</p></li>
+<li><p><a class="reference external" href="grassmanntn.param/index.html">grassmanntn.param</a>: contains technical functions such as the sign factor <span class="math notranslate nohighlight">\(\sigma_I\)</span>, the parity <span class="math notranslate nohighlight">\(p(I)\)</span> or the encoder-switching function <span class="math notranslate nohighlight">\(\varepsilon(I)\)</span>.</p></li>
+<li><p><a class="reference external" href="grassmanntn.arith/index.html">grassmann.arith</a>: a new module added in v 1.3.0 to help the user build the initial tensor directly from the fermionic action/Hamiltonian. Symbolic expression is supported.</p></li>
+</ul>
+</section>
+<section id="useful-links">
+<h2>Useful links<a class="headerlink" href="#useful-links" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/ayosprakob/grassmanntn/tree/main">GitHub</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/grassmanntn/">PyPI</a></p></li>
+<li><p><a class="reference external" href="https://scipost.org/SciPostPhysCodeb.20/pdf">full paper</a></p></li>
+<li><p><a class="reference external" href="https://arxiv.org/abs/2309.07557">arXiv</a></p></li>
+</ul>
+</section>
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://numpy.org/doc/stable/index.html">numpy</a></p></li>
+<li><p><a class="reference external" href="https://sparse.pydata.org/en/stable/">sparse</a></p></li>
+<li><p><a class="reference external" href="https://optimized-einsum.readthedocs.io/en/stable/">opt_einsum</a></p></li>
+<li><p><a class="reference external" href="https://www.sympy.org/">sympy</a></p></li>
+</ul>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
+<p>Installation via PyPI</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">grassmanntn</span>
+</pre></div>
+</div>
+<p>Once the package is installed, download <a class="reference external" href="https://github.com/ayosprakob/grassmanntn/blob/main/example.py">example.py</a> and try running it with</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="n">example</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">show_progress</span>
+</pre></div>
+</div>
+<p>An example code of a one-flavor two-dimensional <span class="math notranslate nohighlight">\(\mathbb{Z}_2\)</span> gauge theory should be able to run.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-4-0">v 1.4.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-5">v 1.3.5</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-4">v 1.3.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-3">v 1.3.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-2">v 1.3.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-1">v 1.3.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-3-0">v 1.3.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#v-1-2-3">v 1.2.3</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="settings.html">Package settings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Basic examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#initialization">Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#contraction">Contraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#tensor-decompositions">Tensor decompositions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#hermitian-conjugation">Hermitian conjugation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="schwinger.html">Advanced example: 2D Schwinger model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#initial-tensor-preparation">Initial tensor preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#initial-tensor-compression">Initial tensor compression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schwinger.html#coarse-graining-procedures">Coarse-graining procedures</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grassmanntn/index.html">grassmanntn (main module)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/densesparse.html">dense and sparse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/block.html">block</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/einsum.html">einsum()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/joinsplit.html">join_legs() and split_legs()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/hconjugate.html">hconjugate()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/decomposition.html">svd() and eig()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/power.html">power()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/sqrt.html">sqrt()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn/random.html">random()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grassmanntn.param/index.html">grassmanntn.param</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.param/gparity.html">gparity()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.param/sgn.html">sgn()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.param/encoder.html">encoder()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="grassmanntn.arith/index.html">grassmanntn.arith</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/grassmann_number.html">grassmann_number</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/berezin_measure.html">berezin_measure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/set_ac.html">set_anticommutative</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/get_coeff.html">get_coeff()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grassmanntn.arith/exp.html">exp()</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="releases.html" class="btn btn-neutral float-right" title="Release notes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Atis Yosprakob.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
