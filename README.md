@@ -6,6 +6,7 @@ All the sign factors are computed automatically without explicit user inputs.
 ## Useful links
 - [documentation](https://ayosprakob.github.io/grassmanntn/)
 - [PyPI](https://pypi.org/project/grassmanntn/)
+- [full paper](https://scipost.org/SciPostPhysCodeb.20/pdf)
 - [arXiv preprint](https://doi.org/10.48550/arXiv.2309.07557)
 
 ## Prerequisites
