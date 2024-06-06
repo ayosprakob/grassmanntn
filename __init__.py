@@ -538,7 +538,7 @@ class block:
         
     def __rmul__(self, other):
         return self*other
-        
+    
     def switch_format(self):
 
         def mult_along_axis(A, v, axis):
@@ -582,6 +582,32 @@ class block:
             return self.copy()
         else:
             return self.switch_format()
+
+    def switch_parity(self):
+
+        is_bosonic = True
+        for s in self.statistics:
+            if s in fermi_type :
+                is_bosonic=False
+                break
+        if is_bosonic :
+            return self.copy()
+
+        # for each nonconjugate axis, multiply the odd block by -1
+        ret = self.copy()
+        it = np.nditer(self.data, flags=['multi_index','refs_ok'])
+        for val in it:
+            #total index
+            block = it.multi_index
+            val_replace = val.item().copy()
+            sign  = 1
+            fstat = [ s for s in self.statistics if s*s==1 ]
+            for stat,parity in zip(fstat,block):
+                if stat==1 and parity==1 :
+                    sign*=-1
+            ret.data[block] = val_replace * sign
+
+        return ret
 
     def todense(self,encoder="canonical",skip_joined_check=False):
         return todense(self,encoder,skip_joined_check)
@@ -1076,6 +1102,58 @@ class dense:
             ret.encoder='canonical'
         return ret
 
+    def switch_parity(self,save_memory=False):
+        # multiply sign factor (-1)**p[i] to every nonconjugated indices i
+
+        #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+        # WORK IN THE FOLLOWING CONDITIONS      :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+        # (WILL CONVERT AUTOMATICALLY)          :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+        #   - canonical encoder                 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+        #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+        if save_memory :
+            ret = self
+        else:
+            ret = self.copy()
+        if(self.encoder=='parity-preserving'):
+            ret = ret.switch_encoder(save_memory=True)
+        to_calc = []
+        for i in range(self.ndim):
+            to_calc += (ret.statistics[i]==1),
+            if(ret.statistics[i]==hybrid_symbol):
+                error("Error[switch_parity]: Cannot switch format with a hybrid index.\n                      Split them into bosonic and fermionic ones first!")
+        
+        k=0
+        kmax = ret.ndim
+        s0 = time.time()
+        s00 = s0
+        progress_space()
+
+        dat = ret.data
+        for i in range(ret.ndim):
+            if not to_calc[i] :
+                continue
+
+            ss = [None] * ret.ndim    # slice object
+            ss[i] = slice(None)       # sum over axis i
+            ss = make_tuple(ss)
+            d = ret.shape[i]
+            v = np.array([(-1)**param.gparity(j) for j in range(d)])
+            dat = dat*v[ss]
+
+            if time.time()-s0 > 2 :
+                show_progress(i,kmax,process_name = "switch_parity",ratio = False,color="blue",time=time.time()-s00)
+                s0 = time.time()
+
+        clear_progress()
+        tab_up()
+
+        ret.data = dat
+
+        if(self.encoder=='parity-preserving'):
+            ret = ret.switch_encoder(save_memory=True)
+        return ret
+
     def force_encoder(self,target="canonical"):
         if target not in encoder_type:
             error("Error[dense.force_encoder]: Unrecognized target encoder.")
@@ -1352,6 +1430,9 @@ class sparse:
 
     def switch_encoder(self,save_memory=False):
         return sparse(dense(self).switch_encoder(save_memory=save_memory))
+
+    def switch_parity(self,save_memory=False):
+        return sparse(dense(self).switch_parity(save_memory=save_memory))
 
     def force_encoder(self,target="canonical"):
         if target not in encoder_type:
@@ -2240,12 +2321,22 @@ def einsum(*args,ignore_anticommutation=False):
     obj_index_list = before.split(",")
     nobj = len(obj_index_list)
 
-    obj_list = make_list(args[1:1+nobj])
+    this_format = args[1].format
 
-    if type(obj_list[0]) == block:
-        return einsum_block(*args,ignore_anticommutation=ignore_anticommutation)
+    list_args = list(args)
+    for i in range(1,1+nobj) :
+        list_args[i] = args[i].copy().force_format("standard")
+    list_args = tuple(list_args)
+
+    if type(args[1]) == block:
+        ret = einsum_block(*list_args,ignore_anticommutation=ignore_anticommutation)
     else:
-        return einsum_ds(*args,ignore_anticommutation=ignore_anticommutation)
+        ret = einsum_ds(*list_args,ignore_anticommutation=ignore_anticommutation)
+
+    if np.isscalar(ret) :
+        return ret
+    else:
+        return ret.force_format(this_format)
 
 def einsum_block(*args,ignore_anticommutation=False):
 
@@ -3296,6 +3387,7 @@ def join_legs_block(InpObj,string_inp,final_stat):
     final_stat = make_tuple(final_stat)
     
     Obj = InpObj.copy()
+    this_format = InpObj.format
 
     #===============================================================================#
     #   Step 1: Get the grouping information                                        #
@@ -3498,7 +3590,15 @@ def join_legs_block(InpObj,string_inp,final_stat):
                 s = new_sgn_list[fi]
 
                 for index in range(len(s)):
-                    v0 = ret.sgn[blocknum[fi]][axis][index+block_shift[axis]]
+                    try:
+                        v0 = ret.sgn[blocknum[fi]][axis][index+block_shift[axis]]
+                    except:
+                        print(block_shift[axis])
+                        print(index+block_shift[axis])
+                        print(axis)
+                        print(fi)
+                        print(blocknum[fi])
+                        exit()
                     v1 = new_sgn_list[fi][index]
                     if v0!=0 and v0!=v1:
                         error("Error[join_legs_block]: Sign factor is not consistent!")
@@ -3513,6 +3613,9 @@ def join_legs_block(InpObj,string_inp,final_stat):
         ret = correct_sign_size(ret)
         if incorrect_sign_size(ret):
             error("Error[??]: Unsuccessful attempt at truncating the sgn vectors.")
+
+    ret = ret.force_format(this_format)
+
     return ret
 
 def split_legs_block(InpObj,string_inp,final_stat,final_shape,final_even_shape,final_odd_shape):
@@ -3534,6 +3637,9 @@ def split_legs_block(InpObj,string_inp,final_stat,final_shape,final_even_shape,f
     final_odd_shape = make_tuple(final_odd_shape)
     
     Obj = InpObj.copy()
+
+    this_format = InpObj.format
+    Obj = Obj.force_format("standard")
 
     final_fstat = make_tuple([ stat for stat in final_stat if stat in fermi_type ])
     fstat = make_tuple([ stat for stat in Obj.statistics if stat in fermi_type ])
@@ -3769,6 +3875,9 @@ def split_legs_block(InpObj,string_inp,final_stat,final_shape,final_even_shape,f
         ret = correct_sign_size(ret)
         if incorrect_sign_size(ret):
             error("Error[??]: Unsuccessful attempt at truncating the sgn vectors.")
+
+    ret = ret.force_format(this_format)
+
     return ret
 
 ####################################################
@@ -4603,7 +4712,7 @@ def decompose_block(InpObj,string,cutoff=None,save_memory=False,option=None):
     string = denumerate(string)
 
     Obj = InpObj.copy()
-    this_format = Obj.format
+    this_format = InpObj.format
 
     if save_memory :
         del InpObj.data
@@ -4804,7 +4913,7 @@ def decompose_block(InpObj,string,cutoff=None,save_memory=False,option=None):
     # ===========================================================================
 
     einsum_string = string.replace("|","")+"->"+subscripts3
-    Obj3 = einsum_block(einsum_string,Obj)
+    Obj3 = einsum(einsum_string,Obj)
 
 
     if save_memory :
@@ -4985,6 +5094,19 @@ def decompose_block(InpObj,string,cutoff=None,save_memory=False,option=None):
     else:
         error("Error[decompose_block]: Unknown decomposition type")
 
+    paddim = max(SE.shape[0],SO.shape[0])
+
+    dE = paddim-SE.shape[0]
+    dO = paddim-SO.shape[0]
+
+    UE = np.pad(UE,((0,0),(0,dE)),mode='constant')
+    SE = np.pad(SE,((0,dE)),mode='constant')
+    VE = np.pad(VE,((0,dE),(0,0)),mode='constant')
+
+    UO = np.pad(UO,((0,0),(0,dO)),mode='constant')
+    SO = np.pad(SO,((0,dO)),mode='constant')
+    VO = np.pad(VO,((0,dO),(0,0)),mode='constant')
+
 
     SE = np.diag(SE)
     SO = np.diag(SO)
@@ -5081,7 +5203,7 @@ def decompose_block(InpObj,string,cutoff=None,save_memory=False,option=None):
 
     if False:
         print("-------------------- 1 -------------------------------------------------------")
-        X0 = einsum_block('ij,jk,kl->il',U,S,V).force_format("standard")
+        X0 = einsum('ij,jk,kl->il',U,S,V).force_format("standard")
         X0.marked_as_joined = True
         X0.display()
 
@@ -5116,7 +5238,7 @@ def decompose_block(InpObj,string,cutoff=None,save_memory=False,option=None):
 
     if False:
         print("-------------------- 2 -------------------------------------------------------")
-        X1 = einsum_block('ij,jk,kl->il',U,S,V)
+        X1 = einsum('ij,jk,kl->il',U,S,V)
         X1.force_format("standard").display()
 
         X11 = split_legs_block(X0,'i,j',X1.statistics,X1.shape,X1.even_shape,X1.odd_shape)
@@ -5141,8 +5263,8 @@ def decompose_block(InpObj,string,cutoff=None,save_memory=False,option=None):
 
     skip_power_of_two_check = True
 
-    U = einsum_block(strU,U)
-    V = einsum_block(strV,V)
+    U = einsum(strU,U)
+    V = einsum(strV,V)
 
     skip_power_of_two_check = False
 
@@ -5176,41 +5298,9 @@ def eig_block(InpObj,string,cutoff=None,save_memory=False):
 ####################################################
 
 def op_hconjugate(InpObj):
-    # operator hermitian conjugate
-    # 1. In standard format, flip all indices (ignore anticommutations)
-    # 2. convert all fermionic indices stat to -1 and switch the format
-    # 3. forcefully convert to standard format
-    # 4. Assign correct statistics
 
-    Obj = InpObj.copy()
-
-    this_format = Obj.format
-    original_stat = Obj.statistics
-    new_stat = tuple([ -i for i in list(original_stat)[::-1]])
-    conj_stat = tuple([ -1 if i*i>0 else 0 for i in new_stat])
-
-    str1 = "".join(char_list[:len(original_stat)])
-    str2 = str1[::-1]
-    einsum_str = str1+"->"+str2
-
-    # 1 -------
-    ret = Obj.force_format("standard")
-    ret = einsum(einsum_str,ret,ignore_anticommutation=True)
-
-    # 2 -------
-    ret.statistics = conj_stat
-    ret = ret.force_format("matrix")
-
-    # 3 -------
-    ret.format = "standard"
-
-    # 4 -------
-    ret.statistics = new_stat
-
-    ret.data = np.conjugate(ret.data)
-    ret = ret.force_format(this_format)
-
-    return ret
+    print("Error: op_hconjugate is no longer supported!!!")
+    exit()
 
 def hconjugate(InpObj,string,save_memory=False):
 
@@ -5407,14 +5497,14 @@ def hconjugate(InpObj,string,save_memory=False):
 
     return Obj
 
-def hconjugate_block(InpObj,string,save_memory=False):
+def hconjugate_block(InpObj,string,save_memory=False,debugggg=False):
 
     string = string.replace(" ","")
     string = denumerate(string)
 
     
     Obj = InpObj.copy()
-    this_format = Obj.format
+    this_format = InpObj.format
 
     if save_memory :
         del InpObj.data
@@ -5609,7 +5699,7 @@ def hconjugate_block(InpObj,string,save_memory=False):
     # ===========================================================================
 
     einsum_string = string.replace("|","")+"->"+subscripts3
-    Obj3 = einsum_block(einsum_string,Obj)
+    Obj3 = einsum(einsum_string,Obj)
 
 
     if save_memory :
@@ -5672,6 +5762,40 @@ def hconjugate_block(InpObj,string,save_memory=False):
     group_string_left = "("+group_string_left.replace(",",")(")+")"
     group_string_right = "("+group_string_right.replace(",",")(")+")"
 
+    if group_string_left=="()":
+        ψ = gtn.dense(np.array([1,0]),statistics=(1,)).toblock()
+        c = get_char(string)
+        
+        in_str  = group_string_right[1:-1]
+        es_str  = c+","+in_str+"->"+c+in_str     # einsum string
+        cj_str  = c+"|"+in_str                   # conjugate string
+        es2_str = in_str+c+","+c+"->"+in_str     # einsum string 2
+        
+        ret = gtn.einsum(es_str,ψ,InpObj)
+        ret = ret.hconjugate(cj_str)
+        ret = gtn.einsum(es2_str,ret,ψ)
+        
+        # do it in the dense format instead
+        #ret = InpObj.todense().hconjugate(string,save_memory=False).toblock()
+        return ret
+
+    if group_string_right=="()":
+        ψ = gtn.dense(np.array([1,0]),statistics=(1,)).toblock()
+        c = get_char(string)
+        
+        in_str  = group_string_left[1:-1]
+        es_str  = in_str+","+c+"->"+in_str+c     # einsum string
+        cj_str  = in_str+"|"+c                   # conjugate string
+        es2_str = c+","+c+in_str+"->"+in_str     # einsum string 2
+        
+        ret = gtn.einsum(es_str,InpObj,ψ)
+        ret = ret.hconjugate(cj_str)
+        ret = gtn.einsum(es2_str,ψ,ret)
+        
+        # do it in the dense format instead
+        #ret = InpObj.todense().hconjugate(string,save_memory=False).toblock()
+        return ret
+
     Obj4 = join_legs_block(Obj3,group_string,final_stat4)
 
 
@@ -5711,7 +5835,6 @@ def hconjugate_block(InpObj,string,save_memory=False):
         print("  full shape:",shape4)
         print("  even shape:",even_shape4)
         print("   odd shape:",odd_shape4)
-
 
     if save_memory :
         del Obj3.data
@@ -5778,7 +5901,7 @@ def hconjugate_block(InpObj,string,save_memory=False):
 
     # make a rough template
     einstr = "".join(char_list[:l])+"".join(char_list[l:l+r])+"->"+"".join(char_list[l:l+r])+"".join(char_list[:l])
-    ret = einsum_block(einstr,Obj5)
+    ret = einsum(einstr,Obj5)
     newstat = make_tuple( [ -stat if stat in fermi_type else stat for stat in ret.statistics ] )
     ret.statistics = newstat
 
@@ -5827,12 +5950,13 @@ def hconjugate_block(InpObj,string,save_memory=False):
 
     revert_str = subscripts2[1]+subscripts2[0]+"->"+subscripts1[1]+subscripts1[0]
 
-    ret = einsum_block(revert_str,ret)
+    ret = einsum(revert_str,ret)
 
     if incorrect_sign_size(ret):
         ret = correct_sign_size(ret)
         if incorrect_sign_size(ret):
             error("Error[??]: Unsuccessful attempt at truncating the sgn vectors.")
+
     return ret
 
 ####################################################
