@@ -3,6 +3,9 @@ This is a package that aims to simplify the coding involving Grassmann tensor ne
 I try to make the coding as convenient as when you use other standard packages like numpy or scipy.
 All the sign factors are computed automatically without explicit user inputs.
 
+> [!NOTE]
+> A complete overhaul of GrassmannTN is underdevelopment. The overhaul includes a significant improve in performance and syntax simplification. We plan to release it as a Julia package some time in 2025.
+
 ## Useful links
 - [documentation](https://ayosprakob.github.io/grassmanntn/)
 - [PyPI](https://pypi.org/project/grassmanntn/)
