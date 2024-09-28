@@ -4,7 +4,7 @@ I try to make the coding as convenient as when you use other standard packages l
 All the sign factors are computed automatically without explicit user inputs.
 
 > [!NOTE]
-> A complete overhaul of GrassmannTN is underdevelopment. The overhaul includes a significant improve in performance and syntax simplification. We plan to release it as a Julia package some time in 2025.
+> A complete overhaul of GrassmannTN is underdevelopment. The overhaul includes a significant improvement in performance and syntax simplification. We plan to release it as a Julia package some time in 2025.
 
 ## Useful links
 - [documentation](https://ayosprakob.github.io/grassmanntn/)
