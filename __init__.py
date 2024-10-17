@@ -244,7 +244,7 @@ class block:
     __array_priority__ = 1000000
     
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, is_zero=False):
         
         #import from dense only
         dat = data.copy()
@@ -297,49 +297,44 @@ class block:
                     sgn[0][axis][i]=1
                     sgn[1][axis][i]=1
                 else:
-                    block = i%2
+                    blck = i%2
                     sub_i = int(math.floor(i/2))
                     sign = param.sgn(param.encoder(i))
-                    sgn[block][axis][sub_i]=sign
+                    sgn[blck][axis][sub_i]=sign
 
         # Consider using the fact that all odd axis use the same sign factor (also the even axis)
 
-        # now iterate through the dat tensor and separate it into blocks
-        it = np.nditer(dat, flags=['multi_index'])
-        for val in it:
-            
-            #total index
-            index = it.multi_index
+        
+        # if is_zero option is True, skip the iteration and build the blocks directly
+        if not is_zero :
+            # now iterate through the dat tensor and separate it into blocks
+            it = np.nditer(dat, flags=['multi_index'])
+            for val in it:
+                
+                #total index
+                index = it.multi_index
 
-            #fermionic index
-            findex = []
-            for i,d in enumerate(index):
-                if dat.statistics[i] in fermi_type:
-                    findex += [d]
+                #fermionic index
+                findex = []
+                for i,d in enumerate(index):
+                    if dat.statistics[i] in fermi_type:
+                        findex += [d]
 
-            #determine the block number
-            blocknum = [ elem%grading for elem in findex ]
-            blocknum = tuple(blocknum)
+                #determine the block number
+                blocknum = [ elem%grading for elem in findex ]
+                blocknum = tuple(blocknum)
 
-            blockelem = [ int((d-d%grading)/grading) for d in findex ]
+                blockelem = [ int((d-d%grading)/grading) for d in findex ]
 
-            #determine the block matrix elements
-            blockelem = []
-            for i,d in enumerate(index):
-                if dat.statistics[i] in fermi_type:
-                    blockelem += [int((d-d%grading)/grading)]
-                else:
-                    blockelem += [d]
-            blockelem = tuple(blockelem)
-            cells[blocknum][blockelem] += val.item()
-
-            # compute the sigma sign factor
-            #for i,dim in enumerate(blockelem):
-            #    σ = 1
-            #    if dat.statistics[i] in fermi_type:
-            #        canonical_index = param.encoder(index[i])
-            #        σ = param.sgn(canonical_index)
-            #    sgn_cells[blocknum][i][dim]=σ
+                #determine the block matrix elements
+                blockelem = []
+                for i,d in enumerate(index):
+                    if dat.statistics[i] in fermi_type:
+                        blockelem += [int((d-d%grading)/grading)]
+                    else:
+                        blockelem += [d]
+                blockelem = tuple(blockelem)
+                cells[blocknum][blockelem] += val.item()
 
         self.data = cells.copy()
         self.sgn  = copy.deepcopy(sgn)
@@ -357,8 +352,8 @@ class block:
 
         it = np.nditer(self.data, flags=['multi_index','refs_ok'])
         for val in it:
-            block = it.multi_index
-            dat = self.data[block]
+            blck = it.multi_index
+            dat = self.data[blck]
             mem += sys.getsizeof(dat)
 
         print()
@@ -389,14 +384,14 @@ class block:
         i=0
         it = np.nditer(self.data, flags=['multi_index','refs_ok'])
         for val in it:
-            block = it.multi_index
-            dat = self.data[block]
+            blck = it.multi_index
+            dat = self.data[blck]
             
             if(np.linalg.norm(dat)>numer_display_cutoff):
                 if i>0:
                     print(" --------------------------------------------------------")
                 print()
-                block_symbol = [ "even" if i==0 else "odd" for i in block ]
+                block_symbol = [ "even" if i==0 else "odd" for i in blck ]
                 block_symbol = "("+",".join(block_symbol)+")"
                 print("  Block number:",block_symbol,"\n")
                 print("   Block shape:",dat.shape,"\n")
@@ -414,8 +409,8 @@ class block:
 
         it = np.nditer(self.data, flags=['multi_index','refs_ok'])
         for val in it:
-            block = it.multi_index
-            dat = self.data[block]
+            blck = it.multi_index
+            dat = self.data[blck]
             mem += sys.getsizeof(dat)
 
         print()
@@ -498,8 +493,8 @@ class block:
         ret = self.copy()
         it = np.nditer(self.data, flags=['multi_index','refs_ok'])
         for val in it:
-            block = it.multi_index
-            ret.data[block] = self.data[block]+other.data[block]
+            blck = it.multi_index
+            ret.data[blck] = self.data[blck]+other.data[blck]
         return ret
         
     def __mul__(self, other):
@@ -509,8 +504,8 @@ class block:
         ret = self.copy()
         it = np.nditer(self.data, flags=['multi_index','refs_ok'])
         for val in it:
-            block = it.multi_index
-            ret.data[block] = self.data[block]*other
+            blck = it.multi_index
+            ret.data[blck] = self.data[blck]*other
 
         return ret
         
@@ -558,17 +553,15 @@ class block:
         it = np.nditer(self.data, flags=['multi_index','refs_ok'])
         for val in it:
             #total index
-            block = it.multi_index
-            #print("block = ",block)
+            blck = it.multi_index
             val_replace = val.item().copy()
             fd = 0
             for d in range(self.ndim):
                 if self.statistics[d] == -1:
-                    #print(val_replace.shape,self.statistics[d],self.sgn[block[d]][d].shape,d)
-                    val_replace = mult_along_axis(val_replace,self.sgn[block[fd]][d],d)
+                    val_replace = mult_along_axis(val_replace,self.sgn[blck[fd]][d],d)
                 if self.statistics[d] in fermi_type:
                     fd += 1
-            ret.data[block] = val_replace.copy()
+            ret.data[blck] = val_replace.copy()
 
         if self.format == "standard":
             ret.format = "matrix"
@@ -598,14 +591,14 @@ class block:
         it = np.nditer(self.data, flags=['multi_index','refs_ok'])
         for val in it:
             #total index
-            block = it.multi_index
+            blck = it.multi_index
             val_replace = val.item().copy()
             sign  = 1
             fstat = [ s for s in self.statistics if s*s==1 ]
-            for stat,parity in zip(fstat,block):
+            for stat,parity in zip(fstat,blck):
                 if stat==1 and parity==1 :
                     sign*=-1
-            ret.data[block] = val_replace * sign
+            ret.data[blck] = val_replace * sign
 
         return ret
 
@@ -633,10 +626,13 @@ class block:
     def eig(self,string,cutoff=None,save_memory=False):
         return eig_block(self,string,cutoff,save_memory)
 
+    def pinv(self,string,rcond=1e-10):
+        return pinv(self,string,rcond=rcond)
+
 def zero_block(effective_shape,statistics,format='standard',dtype=float):
     shape = [ 2**int(np.ceil(np.log2(dim))) if stat in fermi_type else dim for dim,stat in zip(effective_shape,statistics) ]
     oeshape = [ max(1,int(round(dim/2))) if stat in fermi_type else dim for dim,stat in zip(effective_shape,statistics) ]
-    ret = block(dense(np.zeros(shape,dtype=dtype),statistics=statistics,format=format))
+    ret = block(dense(np.zeros(shape,dtype=dtype),statistics=statistics,format=format),is_zero=True)
     it = np.nditer(ret.data, flags=['multi_index','refs_ok'])
     for val in it:
         #total index
@@ -650,7 +646,9 @@ def zero_block(effective_shape,statistics,format='standard',dtype=float):
 def zero_block_eo(even_shape,odd_shape,statistics,format='standard',dtype=float):
     effective_shape = [ edim+odim if stat in fermi_type else edim for edim,odim,stat in zip(even_shape,odd_shape,statistics) ]
     shape = [ 2**int(np.ceil(np.log2(dim))) if stat in fermi_type else dim for dim,stat in zip(effective_shape,statistics) ]
-    ret = block(dense(np.zeros(shape,dtype=dtype),statistics=statistics,format=format))
+
+    ret = block(dense(np.zeros(shape,dtype=dtype),statistics=statistics,format=format),is_zero=True)
+
     it = np.nditer(ret.data, flags=['multi_index','refs_ok'])
     for val in it:
         #total index
@@ -667,6 +665,7 @@ def zero_block_eo(even_shape,odd_shape,statistics,format='standard',dtype=float)
             else:
                 blk_shape += [odd_shape[i]]
         ret.data[blk] = np.zeros(blk_shape,dtype=dtype)
+
     new_esgn = [ sgnv[:even_shape[i]] for i,sgnv in enumerate(ret.sgn[0]) ]
     new_osgn = [ sgnv[:odd_shape[i]] for i,sgnv in enumerate(ret.sgn[1]) ]
     ret.sgn = [new_esgn,new_osgn]
@@ -701,8 +700,8 @@ def todense(obj,encoder,skip_joined_check=False):
 
     it = np.nditer(obj.data, flags=['multi_index','refs_ok'])
     for _ in it:
-        block = it.multi_index
-        dat = obj.data[block]
+        blck = it.multi_index
+        dat = obj.data[blck]
         #print("block:",block)
         sub_it = np.nditer(dat, flags=['multi_index','refs_ok'])
         for val in sub_it:
@@ -712,7 +711,7 @@ def todense(obj,encoder,skip_joined_check=False):
             fi = 0
             for i,c in enumerate(coords):
                 if obj.statistics[i] in fermi_type:
-                    if block[fi]==0:
+                    if blck[fi]==0:
                         new_coords += [2*c]
                     else:
                         new_coords += [2*c+1]
@@ -740,9 +739,9 @@ def incorrect_sign_size(InpObj):
         odim_sgn = [ len(sgnv) for sgnv,stat in zip(obj.sgn[1],obj.statistics) if stat in fermi_type]
         dim_sgn = [edim_sgn,odim_sgn]
 
-        block = it.multi_index
+        blck = it.multi_index
         shape_block = [ dim for dim,stat in zip(_.item().shape,obj.statistics) if stat in fermi_type]
-        shape_sgn = make_tuple([ dim_sgn[p][i] for i,p in enumerate(block) ])
+        shape_sgn = make_tuple([ dim_sgn[p][i] for i,p in enumerate(blck) ])
 
         shape_sgn = make_list(shape_sgn)
         shape_block = make_list(shape_block)
@@ -773,9 +772,9 @@ def correct_sign_size(InpObj):
         odim_sgn = [ len(sgnv) for sgnv,stat in zip(obj.sgn[1],obj.statistics) if stat in fermi_type]
         dim_sgn = [edim_sgn,odim_sgn]
 
-        block = it.multi_index
+        blck = it.multi_index
         shape_block = [ dim for dim,stat in zip(_.item().shape,obj.statistics) if stat in fermi_type]
-        shape_sgn = make_tuple([ dim_sgn[p][i] for i,p in enumerate(block) ])
+        shape_sgn = make_tuple([ dim_sgn[p][i] for i,p in enumerate(blck) ])
 
         shape_sgn = make_list(shape_sgn)
         shape_block = make_list(shape_block)
@@ -796,7 +795,7 @@ def correct_sign_size(InpObj):
             fi = 0
             for i,stat in enumerate(obj.statistics):
                 if stat in fermi_type:
-                    full_block += [block[fi]]
+                    full_block += [blck[fi]]
                     fi += 1
                 else:
                     full_block += [0]
@@ -1191,6 +1190,9 @@ class dense:
     def toblock(self):
         return block(self)
 
+    def pinv(self,string,rcond=1e-10):
+        return pinv(self,string,rcond=rcond)
+
 ####################################################
 ##            Sparse Grassmann arrays             ##
 ####################################################
@@ -1470,6 +1472,9 @@ class sparse:
 
     def toblock(self):
         return block(self)
+
+    def pinv(self,string,rcond=1e-10):
+        return pinv(self,string,rcond=rcond)
 
 ####################################################
 ##       Parity Calculation (internal tools)      ##
@@ -2420,13 +2425,12 @@ def einsum_block(*args,ignore_anticommutation=False):
         newshape = reordering(summand,after,shape_list)   # tensor shape
         neweshape = reordering(summand,after,eshape_list)   # tensor even shape
         newoshape = reordering(summand,after,oshape_list)   # tensor odd shape
-        #newfshape = reordering(fbefore,fafter,fshape_list) # cell shape
 
         newshape_final = make_tuple([
                 dim if stat in bose_type else 2**int(np.ceil(np.log2(dim)))
                     for dim,stat in zip(newshape,newstats) ])
         # correct ret's shape in the end
-        #ret = zero_block(effective_shape=newshape,statistics=newstats,format=first_format,dtype=rettype)
+
         ret = zero_block_eo(neweshape,newoshape,statistics=newstats,format=first_format,dtype=rettype)
 
         # copy the sign factors from here
@@ -2447,8 +2451,6 @@ def einsum_block(*args,ignore_anticommutation=False):
                 error("Error[einsum_block]: cannot locate the final subscript in the original objects' subscripts")
             ret_sgn_e += [obj_list[obj_num].sgn[0][ind_loc]]
             ret_sgn_o += [obj_list[obj_num].sgn[1][ind_loc]]
-
-            #print("Found",c,"in "+str(ind_loc)+"-th index of "+str(obj_num)+"-th object;",str_sample)
 
         ret.sgn = [ret_sgn_e,ret_sgn_o]
 
@@ -2681,9 +2683,9 @@ def einsum_block(*args,ignore_anticommutation=False):
             block_list_O = [ config+[1] for config in block_list ]
             block_list = block_list_E+block_list_O
 
-        block_list = [ tuple(block) for block in block_list ]
+        block_list = [ tuple(blck) for blck in block_list ]
 
-        for block in block_list:
+        for blck in block_list:
             #print()
             #print(unique_fsummand,"=",block)
 
@@ -2703,7 +2705,7 @@ def einsum_block(*args,ignore_anticommutation=False):
                     if c not in unique_fsummand:
                         error("Error[einsum_block]: the character c is not contained in unique_fsummand. Unexplanable error! Possibly a bug.")
                     c_location = unique_fsummand.index(c)
-                    sub_block += [block[c_location]]
+                    sub_block += [blck[c_location]]
                 obj_block_list += [tuple(sub_block)]
             
             #print(obj_findex_list,"=",obj_block_list)
@@ -2717,12 +2719,12 @@ def einsum_block(*args,ignore_anticommutation=False):
 
             for ic, c in enumerate(unique_fsummand):
                 c_index_in_summand = summand.index(c)
-                sgn_c = all_sgn[block[ic]][c_index_in_summand]
+                sgn_c = all_sgn[blck[ic]][c_index_in_summand]
                 if summand.count(c) > 1:
                     err = 0
                     for ic2, c2 in enumerate(summand):
                         if c2==c :
-                            sgn_c2 = all_sgn[block[ic]][ic2]
+                            sgn_c2 = all_sgn[blck[ic]][ic2]
                             err += np.linalg.norm(sgn_c-sgn_c2)
                     if err>numer_cutoff :
                         error("Error[einsum_block]: some sign factors are not consistent.")
@@ -2741,7 +2743,7 @@ def einsum_block(*args,ignore_anticommutation=False):
                 for elem in summed_index_info:
                     S1_com_before = S1_com_before.replace(elem[0][1],elem[0][0])
                 # get the parity list
-                parity_list = [ block[unique_fsummand.index(c)] for c in S1_com_before ]
+                parity_list = [ blck[unique_fsummand.index(c)] for c in S1_com_before ]
                 S1 = relative_sign(S1_sgn_computation_string,parity_list)
                 #print("S1:",S1_sgn_computation_string,"=",S1)
                 #print(S1)
@@ -2751,7 +2753,7 @@ def einsum_block(*args,ignore_anticommutation=False):
             #print("compute S3:", not skip_S3, end="; S3 = ")
             if not skip_S3:
                 S3_com_before = S3_sgn_computation_string.split("->")[0]
-                parity_list = [ block[unique_fsummand.index(c)] for c in S3_com_before ]
+                parity_list = [ blck[unique_fsummand.index(c)] for c in S3_com_before ]
                 S3 = relative_sign(S3_sgn_computation_string,parity_list)
                 #print("S3:",S3_sgn_computation_string,"=",S3)
                 #print(S3)
@@ -2783,7 +2785,7 @@ def einsum_block(*args,ignore_anticommutation=False):
             # obtain the output block
             # ======================================================================================================
 
-            out_block = tuple([ block[unique_fsummand.index(c)] for c in fafter ])
+            out_block = tuple([ blck[unique_fsummand.index(c)] for c in fafter ])
             #print("output block:",fafter,";",out_block)
             ret.data[out_block] += sum_result
             ret.shape = newshape_final
@@ -2809,10 +2811,10 @@ def einsum_block(*args,ignore_anticommutation=False):
             block_list_O = [ config+[1] for config in block_list ]
             block_list = block_list_E+block_list_O
 
-        block_list = [ tuple(block) for block in block_list ]
+        block_list = [ tuple(blck) for blck in block_list ]
 
         scalar_output=0
-        for block in block_list:
+        for blck in block_list:
             #print()
             #print(unique_fsummand,"=",block)
 
@@ -2832,7 +2834,7 @@ def einsum_block(*args,ignore_anticommutation=False):
                     if c not in unique_fsummand:
                         error("Error[einsum_block]: the character c is not contained in unique_fsummand. Unexplanable error! Possibly a bug.")
                     c_location = unique_fsummand.index(c)
-                    sub_block += [block[c_location]]
+                    sub_block += [blck[c_location]]
                 obj_block_list += [tuple(sub_block)]
             
             #print(obj_findex_list,"=",obj_block_list)
@@ -2879,12 +2881,12 @@ def einsum_block(*args,ignore_anticommutation=False):
             
             for ic, c in enumerate(unique_fsummand):
                 c_index_in_summand = summand.index(c)
-                sgn_c = all_sgn[block[ic]][c_index_in_summand]
+                sgn_c = all_sgn[blck[ic]][c_index_in_summand]
                 if summand.count(c) > 1:
                     err = 0
                     for ic2, c2 in enumerate(summand):
                         if c2==c :
-                            sgn_c2 = all_sgn[block[ic]][ic2]
+                            sgn_c2 = all_sgn[blck[ic]][ic2]
                             err += np.linalg.norm(sgn_c-sgn_c2)
                     if err>numer_cutoff :
                         error("Error[einsum_block]: some sign factors are not consistent.")
@@ -2903,7 +2905,7 @@ def einsum_block(*args,ignore_anticommutation=False):
                 for elem in summed_index_info:
                     S1_com_before = S1_com_before.replace(elem[0][1],elem[0][0])
                 # get the parity list
-                parity_list = [ block[unique_fsummand.index(c)] for c in S1_com_before ]
+                parity_list = [ blck[unique_fsummand.index(c)] for c in S1_com_before ]
                 S1 = relative_sign(S1_sgn_computation_string,parity_list)
                 #print("S1:",S1_sgn_computation_string,"=",S1)
                 #print(S1)
@@ -3488,14 +3490,14 @@ def join_legs_block(InpObj,string_inp,final_stat):
     for _ in it:
         # look into each block and determine where it should be in ret
 
-        block = it.multi_index ;
+        blck = it.multi_index ;
         #print(block,":",_.item().shape)
         
         block_group = []
         i = 0
         for elem in group_block_info:
             n = len(elem[0])
-            block_group += [tuple(block[i:i+n])]
+            block_group += [tuple(blck[i:i+n])]
             i+=n
         # block_group is just the regrouping of block according the grouping info
         block_group = tuple(block_group); #print(block_group)
@@ -3682,20 +3684,20 @@ def split_legs_block(InpObj,string_inp,final_stat,final_shape,final_even_shape,f
     # reassign each block to be of the correct shape
     it = np.nditer(ret.data, flags=['multi_index','refs_ok'])
     for _ in it:
-        block = it.multi_index ; #print(block)
+        blck = it.multi_index ; #print(blck)
         sub_block_shape = []
         faxis = 0
         for axis in range(_.item().ndim):
             if ret.statistics[axis] in bose_type:
                 sub_block_shape+=[final_even_shape[axis]]
             else:
-                if block[faxis]==0:
+                if blck[faxis]==0:
                     sub_block_shape+=[final_even_shape[axis]]
                 else:
                     sub_block_shape+=[final_odd_shape[axis]]
                 faxis+=1
         sub_block_shape = make_tuple(sub_block_shape)
-        ret.data[block] = np.zeros(sub_block_shape)
+        ret.data[blck] = np.zeros(sub_block_shape)
     
     for axis in range(ret.ndim):
         ret.sgn[0][axis] = ret.sgn[0][axis][:final_even_shape[axis]]
@@ -3810,14 +3812,8 @@ def split_legs_block(InpObj,string_inp,final_stat,final_shape,final_even_shape,f
         gen_all_coords(coords_index,coords_dim,index_list)
         
         for index,coords in zip(index_list,coords_list):
-            #print()
-            #print("blocknum:",blocknum)
-            #print("sub block index:",index)
-            #print("new block groups:",coords)
             
-            block = make_tuple(sum( [ make_list(c) for c in coords ] ,[]))
-            #print("block:",block)
-            
+            blck = make_tuple(sum( [ make_list(c) for c in coords ] ,[]))
             # compute the shifting factor
             coords_shift = []
             for grp,i in enumerate(index):
@@ -3827,45 +3823,27 @@ def split_legs_block(InpObj,string_inp,final_stat,final_shape,final_even_shape,f
                 coords_shift += [shift]
             sub_block_size = [ sub_block_size_list[grp][conf] for grp,conf in enumerate(index) ]
             
-            #print("shift axis:",findex_loc)
-            #print("coords shift:",coords_shift)
-            #print("sub block size:",sub_block_size)
-            
             extracted_mat = block_mat
-            
-            # original = 4(ab)
-            # after = 2(2*ab)
-            
-            
-            #print("joined_shape:",extracted_mat.shape)
-            #print("splitted_shape:",ret.data[block].shape)
             for ig, group in enumerate(index):
                 index_from = coords_shift[ig]
                 index_to = index_from + sub_block_size[ig]
                 taken_axis = findex_loc[ig]
-                #print("take index from", index_from,"to",index_to,"in the axis",taken_axis)
                 extracted_mat = extracted_mat.take(
                     indices=range(index_from,index_to),axis=taken_axis
                     )
                 #print(extracted_mat.shape)
             
-            extracted_mat = np.reshape(extracted_mat,ret.data[block].shape)
+            extracted_mat = np.reshape(extracted_mat,ret.data[blck].shape)
             
             # compute the correction sign factor
-            #print(blocknum,block)
-            #print(fstat,final_fstat)
-            #print("----")
             sign_correction = 1
             for joined, splitted,jstat,sstat in zip(blocknum,coords,fstat,fstat_group):
-                #print()
-                #print(joined,"->",splitted)
-                #print(jstat,"->",sstat)
                 
                 for prt,st in zip(splitted,sstat):
                     if st==1 and jstat==-1:
                         sign_correction*=(-1)**prt
                 
-            ret.data[block] = sign_correction*extracted_mat
+            ret.data[blck] = sign_correction*extracted_mat
         
     # compute the new sigma factors
     
@@ -3920,17 +3898,31 @@ def trim_grassmann_odd(Obj):
     return Obj
 
 def is_grassmann_even(Obj):
-    if Obj.encoder == 'canonical':
-        Obj = Obj.switch_encoder(save_memory=True)
-    if type(Obj) == dense:
-        Obj = sparse(Obj)
 
-    C = Obj.coords
-    for x in C:
-        parity = sum([ ind for i,ind in enumerate(x) if Obj.statistics[i] in fermi_type ])
-        if parity%2!=0 :
-            return False
-    return True
+    if type(Obj) == block :
+        it = np.nditer(Obj.data, flags=['multi_index','refs_ok'])
+        for val in it:
+            #total index
+            blck = it.multi_index
+            norm = np.linalg.norm(val.item())
+            parity = sum(blck)%2
+            
+            if parity==1 and norm > numer_cutoff:
+                return False
+        return True
+    else:
+
+        if Obj.encoder == 'canonical':
+            Obj = Obj.switch_encoder(save_memory=True)
+        if type(Obj) == dense:
+            Obj = sparse(Obj)
+
+        C = Obj.coords
+        for x in C:
+            parity = sum([ ind for i,ind in enumerate(x) if Obj.statistics[i] in fermi_type ])
+            if parity%2!=0 :
+                return False
+        return True
 
 ####################################################
 ##          Singular value decomposition          ##
@@ -4320,8 +4312,11 @@ def svd(InpObj,string,cutoff=None,save_memory=False):
 ####################################################
 
 def SortedEig(M,cutoff=None,debug_mode=False):
-
-    NonHeritianNorm = np.linalg.norm(M-np.conjugate(np.transpose(M)))/np.linalg.norm(M)
+    
+    if np.linalg.norm(M) < numer_cutoff :
+        NonHeritianNorm = 0
+    else:
+        NonHeritianNorm = np.linalg.norm(M-np.conjugate(np.transpose(M)))/np.linalg.norm(M)
     if NonHeritianNorm>numer_cutoff :
         error("Error[SortedEig]: The input matrix is not Hermitian!")
 
@@ -5051,9 +5046,9 @@ def decompose_block(InpObj,string,cutoff=None,save_memory=False,option=None):
     it = np.nditer(Obj5.data, flags=['multi_index','refs_ok'])
     for val in it:
         #total index
-        block = it.multi_index
+        blck = it.multi_index
         norm = np.linalg.norm(val.item())
-        parity = sum(block)%2
+        parity = sum(blck)%2
         
         if parity==1 and norm > numer_cutoff:
             error("Error[SVD/EigV_block]: This function only works for even tensors!")
@@ -5514,7 +5509,7 @@ def hconjugate_block(InpObj,string,save_memory=False,debugggg=False):
     # check if Obj.statistics or final_statistics is weird or not
     for stat in Obj.statistics:
         if stat not in allowed_stat :
-            error("Error[svd_block]: The input object contains illegal statistics. (0, 1, -1, or "+hybrid_symbol+" only)")
+            error("Error[hconjugate_block]: The input object contains illegal statistics. (0, 1, -1, or "+hybrid_symbol+" only)")
 
     # convert to standard format first
     Obj = Obj.force_format("standard")
@@ -5523,7 +5518,7 @@ def hconjugate_block(InpObj,string,save_memory=False,debugggg=False):
         string = string.replace(" ","")
         string = string.replace(")(","|")
         if string.count("(")>1 or string.count(")")<1:
-            error("Error[svd_block]: Parentheses don't match")
+            error("Error[hconjugate_block]: Parentheses don't match")
         string = string.replace(")","")
         string = string.replace("(","")
 
@@ -5545,7 +5540,7 @@ def hconjugate_block(InpObj,string,save_memory=False,debugggg=False):
             if(i==len(separator_list)-1):
                 partition_string += " )"
 
-        error("Error[svd_block]: The input string must contain one and only one partition "+partition_string+" in it.")
+        error("Error[hconjugate_block]: The input string must contain one and only one partition "+partition_string+" in it.")
 
     for separator in separator_list:
         if separator == "|":
@@ -5866,12 +5861,12 @@ def hconjugate_block(InpObj,string,save_memory=False,debugggg=False):
     it = np.nditer(Obj5.data, flags=['multi_index','refs_ok'])
     for val in it:
         #total index
-        block = it.multi_index
+        blck = it.multi_index
         norm = np.linalg.norm(val.item())
-        parity = sum(block)%2
+        parity = sum(blck)%2
         
         if parity==1 and norm > numer_cutoff:
-            error("Error[SVD_block]: This function only works for even tensors!")
+            error("Error[hconjugate_block]: This function only works for even tensors!")
 
     def prod(x):
         x = make_list(x)
@@ -5960,8 +5955,82 @@ def hconjugate_block(InpObj,string,save_memory=False,debugggg=False):
     return ret
 
 ####################################################
+##                Pseudo inverses                 ##
+####################################################
+
+def pinv(InpObj,string,rcond=1e-10):
+
+    # string processing -------------------------------------
+    string = denumerate(string)
+    for separator in separator_list:
+        if separator in string:
+            stra,strb = string.split(separator)
+            break
+    strba = strb+stra
+    strx = get_char(strba)
+    stry = get_char(strba+strx)
+    str_ein1 = strb+strx+","+strx+stry+"->"+strb+stry
+    str_ein2 = strb+stry+","+stry+stra+"->"+strba
+    # -------------------------------------------------------
+
+    U,S,V = InpObj.svd(string)
+    Uinv = U.hconjugate(stra+"|"+strx)
+    Sinv = inv_nz(S.hconjugate(strx+"|"+stry),rcond=rcond)
+    Vinv = V.hconjugate(strx+"|"+strb)
+
+    ret = gtn.einsum(str_ein1,Vinv,Sinv)
+    ret = gtn.einsum(str_ein2,ret,Uinv)
+
+    return ret
+
+# Inverse all nonzero elements
+
+def inv_nz(T,rcond=1e-10):
+    if type(T)==block:
+        return inv_nz_block(T,rcond=rcond)
+    else:
+        return inv_nz_ds(T,rcond=rcond)
+
+def inv_nz_ds(T,rcond=1e-10):
+    this_type = type(T)
+    this_format = T.format
+    this_encoder = T.encoder
+    T = dense(T).force_format("matrix").force_encoder("canonical")
+
+    with np.errstate(divide='ignore'):
+        T.data = np.where(np.abs(T.data)>rcond, 1.0/T.data, 0.0)
+
+    T = T.force_format(this_format).force_encoder(this_encoder)
+    if this_type==sparse :
+        T = sparse(T)
+    return T
+
+def inv_nz_block(T,rcond=1e-10):
+    this_format = T.format
+    T = T.force_format("matrix")
+    
+    it = np.nditer(T.data, flags=['multi_index','refs_ok'])
+    for val in it:
+        blck = it.multi_index
+        with np.errstate(divide='ignore'):
+            T.data[blck] = np.where(np.abs(T.data[blck])>rcond, 1.0/T.data[blck], 0.0)
+
+    T = T.force_format(this_format)
+    return T
+
+####################################################
 ##                    Utilities                   ##
 ####################################################
+
+# return a time interval since the previous snapshot
+def get_interval(snapshot):
+    t0 = snapshot[0]
+    t1 = time.time()
+    snapshot[0] = t1
+    if t0 == None:
+        return ""
+    else:
+        return np.around(t1-t0,4)
 
 def random(shape,statistics,tensor_type=dense,encoder="canonical",format="standard",dtype=float,skip_trimming=False):
     X = np.random.rand(*shape)
@@ -5978,34 +6047,74 @@ def random(shape,statistics,tensor_type=dense,encoder="canonical",format="standa
 def zeros(shape,statistics,tensor_type=dense,encoder="canonical",format="standard",dtype=float):
     return 0.0*random(shape,statistics,tensor_type,encoder,format,dtype,True)
 
-def power(T,p):
+def power(T,p,rcond=1e-10):
     if type(T)==block:
         return power_block(T,p)
     else:
         return power_ds(T,p)
 
-def sqrt(T):
+def sqrt(T,rcond=1e-10):
     return power(T,0.5)
 
-def power_ds(T,p):
+def power_ds(T,p,rcond=1e-10):
     this_type = type(T)
     this_format = T.format
     this_encoder = T.encoder
     T = dense(T).force_format("matrix").force_encoder("canonical")
-    T.data = np.power(T.data,p)
+    #T.data = np.power(T.data,p)
+    T.data = np.where(np.abs(T.data)>rcond, np.power(T.data,p), 0.0)
     T = T.force_format(this_format).force_encoder(this_encoder)
     if this_type==sparse :
         T = sparse(T)
     return T
 
-def power_block(T,p):
+def power_block(T,p,rcond=1e-10):
     this_format = T.format
     T = T.force_format("matrix")
     
     it = np.nditer(T.data, flags=['multi_index','refs_ok'])
     for val in it:
-        block = it.multi_index
-        T.data[block] = np.power(val.item(),p)
+        blck = it.multi_index
+        #T.data[blck] = np.power(val.item(),p)
+        np.where(np.abs(T.data[blck])>rcond, np.power(val.item(),p), 0.0)
 
     T = T.force_format(this_format)
+    return T
+
+def exp(T,rcond=1e-10):
+    if type(T)==block:
+        return exp_block(T,rcond=rcond)
+    elif type(T)==grassmann_number:
+        return exp_gnum(T)
+    else:
+        return exp_ds(T,rcond=rcond)
+
+def exp_ds(T,rcond=1e-10):
+
+    this_type = type(T)
+    this_format = T.format
+    this_encoder = T.encoder
+    T = dense(T).force_format("matrix").force_encoder("canonical")
+
+    with np.errstate(divide='ignore'):
+        T.data = np.where(np.abs(T.data)>rcond, np.exp(T.data), 0.0)
+
+    T = T.force_format(this_format).force_encoder(this_encoder)
+    if this_type==sparse :
+        T = sparse(T)
+    return T
+
+def exp_block(T,rcond=1e-10):
+
+    this_format = T.format
+    T = T.force_format("matrix")
+    
+    it = np.nditer(T.data, flags=['multi_index','refs_ok'])
+    for val in it:
+        blck = it.multi_index
+        with np.errstate(divide='ignore'):
+            T.data[blck] = np.where(np.abs(T.data[blck])>rcond, np.exp(val.item()), 0.0)
+
+    T = T.force_format(this_format)
+
     return T
