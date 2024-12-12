@@ -4320,7 +4320,11 @@ def SortedEig(M,cutoff=None,debug_mode=False):
     if NonHeritianNorm>numer_cutoff :
         error("Error[SortedEig]: The input matrix is not Hermitian!")
 
-    U, Λ, V = np.linalg.svd(M, full_matrices=False)
+    #U, Λ, V = np.linalg.svd(M, full_matrices=False)
+    # SVD doesn't work everytime. Possibly especially if there are negative eigen values?
+    
+    Λ, U = np.linalg.eigh(M)
+    V = np.conjugate(np.transpose(U))
 
     nnz = 0
     #if np.abs(Λ[0]) < numer_cutoff:
